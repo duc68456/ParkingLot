@@ -1,0 +1,31 @@
+.pin-input-container {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 56px;
+}
+
+.pin-digit-input {
+  width: 48px;
+  height: 56px;
+  border: 1.6px solid #cad5e2;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 24px;
+  font-weight: 400;
+  text-align: center;
+  color: #0a0a0a;
+  background: white;
+  transition: border-color 0.2s ease;
+  outline: none;
+}
+
+.pin-digit-input:focus {
+  border-color: #155dfc;
+}
+
+.pin-digit-input:not(:placeholder-shown) {
+  border-color: #155dfc;
+}

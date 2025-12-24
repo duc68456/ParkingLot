@@ -1,0 +1,22 @@
+.staff-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.staff-form-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.staff-note {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  font-style: italic;
+  line-height: 16px;
+  color: #62748e;
+  margin: 0;
+  text-align: center;
+}

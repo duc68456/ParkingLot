@@ -1,0 +1,31 @@
+.primary-button {
+  width: 100%;
+  height: 48px;
+  background: #155dfc;
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -2px rgba(0, 0, 0, 0.1);
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  margin-top: 8px;
+}
+
+.primary-button:hover:not(.disabled) {
+  background: #1250e0;
+}
+
+.primary-button:active:not(.disabled) {
+  background: #0f44c7;
+}
+
+.primary-button.disabled,
+.primary-button:disabled {
+  background: #cad5e2;
+  cursor: not-allowed;
+  box-shadow: 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
