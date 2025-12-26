@@ -4,6 +4,7 @@ import Sidebar from '../components/Sidebar';
 import AdminHeader from '../components/AdminHeader';
 import PeoplePage from './PeoplePage';
 import VehiclesPage from './VehiclesPage';
+import PurchaseCardPage from './PurchaseCardPage';
 import '../styles/pages/AdminLayout.css';
 
 export default function AdminLayout({ children }) {
@@ -27,6 +28,8 @@ export default function AdminLayout({ children }) {
     if (children) return children;
     
     switch (activeView) {
+      case 'Purchase Card':
+        return <PurchaseCardPage />;
       case 'People':
         return <PeoplePage />;
       case 'Vehicles':

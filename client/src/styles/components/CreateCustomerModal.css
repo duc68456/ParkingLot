@@ -1,0 +1,227 @@
+/* Overlay */
+.create-customer-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Modal Container */
+.create-customer-modal {
+  background: white;
+  border-radius: 10px;
+  border: 0.8px solid #e2e8f0;
+  width: 976px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  z-index: 1001;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Form */
+.create-customer-form {
+  padding: 24px 104px;
+}
+
+/* Header */
+.create-customer-header {
+  margin-bottom: 24px;
+}
+
+.create-customer-title {
+  font-family: 'Arimo', sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 28px;
+  color: #0f172b;
+  margin: 0 0 8px 0;
+}
+
+.create-customer-subtitle {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #45556c;
+  margin: 0;
+}
+
+/* Form Fields */
+.create-customer-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.create-customer-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.create-customer-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.create-customer-field-full {
+  grid-column: 1 / -1;
+}
+
+.create-customer-label {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #314158;
+  position: relative;
+}
+
+.create-customer-required {
+  color: #fb2c36;
+  margin-left: 2px;
+}
+
+.create-customer-input,
+.create-customer-select {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  padding: 10px 16px;
+  border: 0.8px solid #cad5e2;
+  border-radius: 10px;
+  background: white;
+  color: #0a0a0a;
+  outline: none;
+  transition: border-color 0.2s;
+  height: 41.6px;
+}
+
+.create-customer-input::placeholder,
+.create-customer-select option:first-child {
+  color: rgba(10, 10, 10, 0.5);
+}
+
+.create-customer-input:focus,
+.create-customer-select:focus {
+  border-color: #155dfc;
+}
+
+.create-customer-input.error {
+  border-color: #fb2c36;
+}
+
+.create-customer-error {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  color: #fb2c36;
+  margin-top: 4px;
+}
+
+.create-customer-select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 6L8 10L12 6' stroke='%2345556c' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+/* Action Buttons */
+.create-customer-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding-top: 24px;
+  border-top: 0.8px solid #e2e8f0;
+}
+
+.create-customer-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  background: white;
+  border: 0.8px solid #cad5e2;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: #314158;
+  cursor: pointer;
+  transition: all 0.2s;
+  height: 45.6px;
+}
+
+.create-customer-back-btn:hover {
+  background: #f8fafc;
+  border-color: #155dfc;
+}
+
+.create-customer-back-btn:active {
+  transform: translateY(1px);
+}
+
+.create-customer-submit-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 24px;
+  background: #155dfc;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  height: 44px;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+.create-customer-submit-btn:hover {
+  background: #1447e6;
+  transform: translateY(-1px);
+  box-shadow: 0px 4px 8px 0px rgba(21, 93, 252, 0.2);
+}
+
+.create-customer-submit-btn:active {
+  transform: translateY(0);
+  box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .create-customer-form {
+    padding: 24px 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .create-customer-form {
+    padding: 24px;
+  }
+
+  .create-customer-row {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .create-customer-actions {
+    flex-direction: column;
+  }
+
+  .create-customer-back-btn,
+  .create-customer-submit-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

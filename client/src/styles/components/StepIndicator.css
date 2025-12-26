@@ -1,0 +1,70 @@
+.step-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 104px;
+}
+
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+.step-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.step-circle.active {
+  background: #155dfc;
+}
+
+.step-number {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #62748e;
+}
+
+.step-circle.active .step-number {
+  color: white;
+}
+
+.step-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.step-title {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #0f172b;
+}
+
+.step-subtitle {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+  color: #62748e;
+}
+
+.step-divider {
+  flex: 1;
+  height: 4px;
+  background: #e2e8f0;
+  min-width: 40px;
+}

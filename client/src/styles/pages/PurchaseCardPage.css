@@ -1,0 +1,1050 @@
+.purchase-card-page {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Step Indicator Wrapper */
+.step-indicator-wrapper {
+  background: white;
+  border: 0.8px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 24px 0;
+  display: flex;
+  justify-content: center;
+}
+
+/* Select Customer Section */
+.select-customer-section {
+  background: white;
+  border: 0.8px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 24px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section-title {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 28px;
+  color: #0f172b;
+  margin: 0;
+}
+
+.section-subtitle {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #45556c;
+  margin: 0;
+}
+
+/* Customer Search */
+.customer-search {
+  width: 100%;
+}
+
+.customer-search input {
+  height: 45.6px;
+  padding-left: 40px;
+}
+
+.customer-search .search-icon {
+  left: 12px;
+  width: 20px;
+  height: 20px;
+}
+
+/* Existing Customers */
+.existing-customers {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.customers-heading {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #314158;
+  margin: 0;
+}
+
+.customers-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Scrollbar styling for customers grid */
+.customers-grid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.customers-grid::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.customers-grid::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.customers-grid::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Create Customer Section */
+.create-customer-section {
+  border-top: 0.8px solid #e2e8f0;
+  padding-top: 24px;
+}
+
+.create-customer-btn {
+  width: 100%;
+  height: 48px;
+  background: #155dfc;
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.create-customer-btn:hover {
+  background: #1447e6;
+  box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.15);
+}
+
+.create-customer-btn:active {
+  background: #0f3acc;
+  box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.1);
+}
+
+.create-customer-btn img {
+  width: 20px;
+  height: 20px;
+}
+
+/* Create Customer Form Section */
+.create-customer-form-section {
+  background: white;
+  border: 0.8px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 24px 104px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.customer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Form Fields */
+.form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-field-full {
+  grid-column: 1 / -1;
+}
+
+.form-label {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #314158;
+}
+
+.required {
+  color: #fb2c36;
+  margin-left: 2px;
+}
+
+.form-input,
+.form-select {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  padding: 10px 16px;
+  border: 0.8px solid #cad5e2;
+  border-radius: 10px;
+  background: white;
+  color: #0a0a0a;
+  outline: none;
+  transition: border-color 0.2s;
+  height: 41.6px;
+}
+
+.form-input::placeholder {
+  color: rgba(10, 10, 10, 0.5);
+}
+
+.form-input:focus,
+.form-select:focus {
+  border-color: #155dfc;
+}
+
+.form-input.error {
+  border-color: #fb2c36;
+}
+
+.error-message {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  color: #fb2c36;
+  margin-top: -4px;
+}
+
+.form-select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 6L8 10L12 6' stroke='%2345556c' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+/* Form Actions */
+.form-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding-top: 24px;
+  border-top: 0.8px solid #e2e8f0;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  background: white;
+  border: 0.8px solid #cad5e2;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: #314158;
+  cursor: pointer;
+  transition: all 0.2s;
+  height: 45.6px;
+}
+
+.back-btn:hover {
+  background: #f8fafc;
+  border-color: #155dfc;
+}
+
+.back-btn:active {
+  transform: translateY(1px);
+}
+
+.submit-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 24px;
+  background: #155dfc;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  height: 44px;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+.submit-btn:hover {
+  background: #1447e6;
+  transform: translateY(-1px);
+  box-shadow: 0px 4px 8px 0px rgba(21, 93, 252, 0.2);
+}
+
+.submit-btn:active {
+  transform: translateY(0);
+  box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .create-customer-form-section {
+    padding: 24px 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .create-customer-form-section {
+    padding: 24px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .back-btn,
+  .submit-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .customers-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Purchase Cards Section (Step 2) */
+.purchase-cards-section {
+  background: white;
+  border: 0.8px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Selected Customer Info */
+.selected-customer-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: linear-gradient(174.966deg, #eff6ff 0%, #eef2ff 100%);
+  border: 0.8px solid #bedbff;
+  border-radius: 10px;
+}
+
+.customer-avatar-large {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: white;
+}
+
+.customer-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.customer-name {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #0f172b;
+  margin: 0;
+}
+
+.customer-email {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: #45556c;
+  margin: 0;
+}
+
+/* Add Card Form */
+.add-card-form {
+  background: white;
+  border: 1.6px solid #cad5e2;
+  border-radius: 10px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-title {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #0f172b;
+  margin: 0;
+}
+
+.card-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.plate-input {
+  font-family: 'Cousine', monospace;
+  text-transform: uppercase;
+}
+
+.add-card-btn {
+  width: 100%;
+  height: 44px;
+  background: #155dfc;
+  border: none;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+.add-card-btn:hover {
+  background: #1447e6;
+  transform: translateY(-1px);
+  box-shadow: 0px 4px 8px 0px rgba(21, 93, 252, 0.2);
+}
+
+.add-card-btn:active {
+  transform: translateY(0);
+  box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.1);
+}
+
+/* Warning Message */
+.warning-message {
+  background: #fefce8;
+  border: 0.8px solid #fff085;
+  border-radius: 10px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.warning-message p {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #733e0a;
+  margin: 0;
+  text-align: center;
+}
+
+/* Cards to Purchase Section */
+.cards-to-purchase {
+  margin-top: 24px;
+}
+
+.cards-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.cards-title {
+  font-size: 14px;
+  font-weight: 400;
+  color: #0f172b;
+  margin: 0;
+  line-height: 20px;
+  font-family: 'Arimo', sans-serif;
+}
+
+.cards-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background-color: #d0fae5;
+  color: #007a55;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+}
+
+.cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-group-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: linear-gradient(135deg, #ecfdf5 0%, #eff6ff 100%);
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.card-group-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 153, 102, 0.1);
+}
+
+.card-group-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.card-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #00bc7d 0%, #009966 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.card-group-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-type {
+  font-size: 14px;
+  font-weight: 400;
+  color: #0f172b;
+  font-family: 'Arimo', sans-serif;
+}
+
+.card-price-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  background-color: #d0fae5;
+  color: #007a55;
+  font-size: 12px;
+  font-weight: 400;
+  border-radius: 12px;
+  font-family: 'Arimo', sans-serif;
+  line-height: 16px;
+}
+
+.card-plate-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.plate-text {
+  font-family: 'Cousine', monospace;
+  font-size: 12px;
+  font-weight: 400;
+  color: #312c85;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card-delete-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.card-delete-btn:hover {
+  background-color: #fee2e2;
+}
+
+.card-delete-btn:active {
+  transform: scale(0.95);
+}
+
+/* Submit Button Disabled State */
+.submit-btn.disabled {
+  background: #009966;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.submit-btn.disabled:hover {
+  background: #009966;
+  transform: none;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive for Step 2 */
+@media (max-width: 768px) {
+  .purchase-cards-section {
+    padding: 24px;
+  }
+
+  .card-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Step 3: Review Invoice */
+.review-section {
+  background: white;
+  border: 0.8px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 24px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.review-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.review-title {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 28px;
+  color: #0f172b;
+  margin: 0;
+}
+
+.review-subtitle {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #45556c;
+  margin: 0;
+}
+
+/* Customer Info in Review */
+.review-customer-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: linear-gradient(174.796deg, #eff6ff 0%, #eef2ff 100%);
+  border: 0.8px solid #bedbff;
+  border-radius: 10px;
+}
+
+.review-customer-avatar {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #2b7fff 0%, #155dfc 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: white;
+  flex-shrink: 0;
+}
+
+.review-customer-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.review-customer-name {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #0f172b;
+  margin: 0;
+}
+
+.review-customer-email {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: #45556c;
+  margin: 0;
+}
+
+/* Invoice Details */
+.invoice-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 0.8px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.invoice-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.invoice-label {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: #62748e;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin: 0;
+}
+
+.invoice-value {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #0f172b;
+  margin: 0;
+}
+
+.invoice-number {
+  font-family: 'Cousine', monospace;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+/* Invoice Items Section */
+.invoice-items-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.invoice-items-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.invoice-items-title {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #0f172b;
+  margin: 0;
+}
+
+.invoice-items-list {
+  border: 0.8px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* Invoice Item */
+.invoice-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: linear-gradient(to right, #ecfdf5 0%, #eff6ff 100%);
+  transition: all 0.2s ease;
+}
+
+.invoice-item:hover {
+  background: linear-gradient(to right, #d1fae5 0%, #dbeafe 100%);
+}
+
+.invoice-item-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.invoice-item-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #00bc7d 0%, #009966 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.invoice-item-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.invoice-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.invoice-item-category {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #0f172b;
+}
+
+.invoice-item-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  background-color: #d0fae5;
+  color: #007a55;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  border-radius: 12px;
+  font-family: 'Arimo', sans-serif;
+}
+
+.invoice-item-calculation {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: #62748e;
+}
+
+.invoice-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.invoice-item-total {
+  font-family: 'Cousine', monospace;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #0f172b;
+  min-width: 60px;
+  text-align: right;
+}
+
+/* Payment Summary */
+.payment-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+  background: #f8fafc;
+  border: 0.8px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.payment-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.payment-row-border {
+  border-top: 0.8px solid #e2e8f0;
+  padding-top: 12px;
+}
+
+.payment-label {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #45556c;
+}
+
+.payment-value {
+  font-family: 'Cousine', monospace;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #0f172b;
+}
+
+.payment-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: white;
+  border-top: 1.6px solid #cad5e2;
+  border-radius: 10px;
+  margin-top: 12px;
+}
+
+.payment-total-label {
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  color: #0f172b;
+}
+
+.payment-total-value {
+  font-family: 'Cousine', monospace;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 32px;
+  color: #0f172b;
+}
+
+/* Review Actions */
+.review-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 24px;
+  border-top: 0.8px solid #e2e8f0;
+}
+
+.review-back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: white;
+  border: 0.8px solid #cad5e2;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  color: #314158;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.review-back-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.review-back-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.confirm-payment-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: #009966;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+.confirm-payment-btn:hover {
+  background: #008855;
+  transform: translateY(-1px);
+  box-shadow: 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+
+.confirm-payment-btn:active {
+  transform: translateY(0);
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+.confirm-payment-btn svg {
+  width: 20px;
+  height: 20px;
+}
