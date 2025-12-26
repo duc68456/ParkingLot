@@ -4,3 +4,5 @@ export { default as LoginForm } from './LoginForm';
 export { default as StaffLoginForm } from './StaffLoginForm';
 export { default as AdminLayout } from './AdminLayout';
 export { default as Dashboard } from './Dashboard';
+export { default as EntrySessionsPage } from './EntrySessionsPage';
+export { default as PricingPage } from './PricingPage';

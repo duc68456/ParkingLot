@@ -81,8 +81,7 @@
 .vehicle-details {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  justify-content: center;
+  gap: 2px;
 }
 
 .vehicle-plate {

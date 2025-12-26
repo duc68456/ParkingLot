@@ -1,0 +1,208 @@
+/* View Subscription Modal Overlay */
+.view-subscription-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Modal Container */
+.view-subscription-modal {
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 896px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1001;
+}
+
+/* Modal Header */
+.view-subscription-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.view-subscription-modal-header h3 {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 28px;
+  color: #0f172b;
+  margin: 0;
+}
+
+.view-subscription-modal-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.view-subscription-modal-close:hover {
+  background-color: #f1f5f9;
+}
+
+.view-subscription-modal-close img {
+  width: 20px;
+  height: 20px;
+}
+
+/* Modal Content */
+.view-subscription-modal-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+/* Title Section */
+.view-subscription-title-section {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 24px;
+}
+
+.view-subscription-id-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.view-subscription-id {
+  font-family: 'Cousine', monospace;
+  font-size: 18px;
+  line-height: 28px;
+  color: #0f172b;
+  margin: 0;
+}
+
+.view-subscription-customer-name {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #45556c;
+  margin: 0;
+}
+
+.view-subscription-status-badge {
+  background-color: #f0fdf4;
+  border: 1px solid #b9f8cf;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #008236;
+  height: fit-content;
+}
+
+/* Details Grid */
+.view-subscription-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  row-gap: 24px;
+}
+
+/* Field */
+.view-subscription-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.view-subscription-label {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+  color: #62748e;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin: 0;
+}
+
+.view-subscription-value {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #0f172b;
+  margin: 0;
+}
+
+.view-subscription-id-value {
+  font-family: 'Cousine', monospace;
+}
+
+/* Scrollbar styling for modal content */
+.view-subscription-modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.view-subscription-modal-content::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.view-subscription-modal-content::-webkit-scrollbar-thumb {
+  background: #cad5e2;
+  border-radius: 3px;
+}
+
+.view-subscription-modal-content::-webkit-scrollbar-thumb:hover {
+  background: #155dfc;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .view-subscription-modal {
+    max-width: 90%;
+    margin: 0 20px;
+  }
+
+  .view-subscription-modal-header {
+    padding: 16px 20px;
+  }
+
+  .view-subscription-modal-content {
+    padding: 20px;
+  }
+
+  .view-subscription-title-section {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .view-subscription-status-badge {
+    align-self: flex-start;
+  }
+
+  .view-subscription-details-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}

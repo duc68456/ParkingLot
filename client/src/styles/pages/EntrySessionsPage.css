@@ -1,0 +1,115 @@
+/* Entry Sessions Page Styles */
+
+.entry-sessions-page {
+  padding: 24px;
+  background-color: #f1f5f9;
+  min-height: 100vh;
+}
+
+/* Page Header */
+.entry-sessions-page .page-header-section {
+  margin-bottom: 24px;
+}
+
+.entry-sessions-page .page-title {
+  font-family: 'Arimo', sans-serif;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 32px;
+  color: #0f172b;
+  margin: 0 0 4px 0;
+}
+
+.entry-sessions-page .page-subtitle {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #45556c;
+  margin: 0;
+}
+
+/* Search Container */
+.entry-sessions-page .search-container {
+  margin-bottom: 16px;
+}
+
+.entry-sessions-page .search-wrapper {
+  position: relative;
+  width: 384px;
+}
+
+.entry-sessions-page .search-input {
+  width: 100%;
+  height: 41.6px;
+  padding: 10px 16px 10px 40px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: normal;
+  color: #0a0a0a;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.entry-sessions-page .search-input::placeholder {
+  color: rgba(10, 10, 10, 0.5);
+}
+
+.entry-sessions-page .search-input:focus {
+  border-color: #155dfc;
+}
+
+.entry-sessions-page .search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .entry-sessions-page .search-wrapper {
+    width: 100%;
+    max-width: 384px;
+  }
+}
+
+@media (max-width: 768px) {
+  .entry-sessions-page {
+    padding: 16px;
+  }
+
+  .entry-sessions-page .search-wrapper {
+    width: 100%;
+    max-width: none;
+  }
+
+  .entry-sessions-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .entry-sessions-table {
+    min-width: 1000px;
+  }
+
+  .table-footer {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .pagination-buttons {
+    width: 100%;
+  }
+
+  .pagination-btn {
+    flex: 1;
+  }
+}

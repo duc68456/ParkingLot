@@ -6,6 +6,9 @@ import PeoplePage from './PeoplePage';
 import VehiclesPage from './VehiclesPage';
 import PurchaseCardPage from './PurchaseCardPage';
 import CardsPage from './CardsPage';
+import SubscriptionsPage from './SubscriptionsPage';
+import EntrySessionsPage from './EntrySessionsPage';
+import PricingPage from './PricingPage';
 import '../styles/pages/AdminLayout.css';
 
 export default function AdminLayout({ children }) {
@@ -37,6 +40,12 @@ export default function AdminLayout({ children }) {
         return <VehiclesPage />;
       case 'Cards':
         return <CardsPage />;
+      case 'Subscriptions':
+        return <SubscriptionsPage />;
+      case 'Entry Sessions':
+        return <EntrySessionsPage />;
+      case 'Pricing':
+        return <PricingPage />;
       case 'Dashboard':
       default:
         return <h1>Dashboard Content</h1>;

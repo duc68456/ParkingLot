@@ -14,4 +14,9 @@ export { default as NotificationButton } from './NotificationButton';
 export { default as SettingsButton } from './SettingsButton';
 export { default as UserProfile } from './UserProfile';
 export { default as ViewCardsModal } from './ViewCardsModal';
-export { default as ViewCustomerModal } from './ViewCustomerModal';
+export { default as SubscriptionTypesTable } from './SubscriptionTypesTable';
+export { default as EntrySessionsTable } from './EntrySessionsTable';
+export { default as PricingRulesTable } from './PricingRulesTable';
+
+
+

@@ -210,12 +210,18 @@
   gap: 16px;
   padding-top: 24px;
   border-top: 0.8px solid #e2e8f0;
+  align-items: flex-start;
 }
 
 .section-header {
   display: flex;
   align-items: center;
   gap: 8px;
+  justify-content: flex-start;
+  flex-direction: row;
+  white-space: nowrap;         /* ← prevent text wrapping */
+  flex-wrap: nowrap;            /* ← prevent items from wrapping */
+  min-width: 0;                 /* ← allow flex to calculate properly */
 }
 
 .section-icon {

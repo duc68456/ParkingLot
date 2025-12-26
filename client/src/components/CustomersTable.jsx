@@ -6,12 +6,12 @@ const editIcon = "http://localhost:3845/assets/fff43459d23d75a693e463832b4f1a77e
 const cardIcon = "http://localhost:3845/assets/22ed6fed4c4d56385d3b4d40f1a0236ded42a86e.svg";
 const deleteIcon = "http://localhost:3845/assets/1fdb1f29273b223332a28061a714a4354ee0c9ae.svg";
 
-export default function CustomersTable({ customers, phoneIcon, onViewCustomer, onViewCards }) {
+export default function CustomersTable({ customers, phoneIcon, onViewCards }) {
   const headers = ['ID', 'Customer', 'Contact', 'Status', 'Registered', 'Actions'];
 
   const handleView = (customer) => {
-    if (onViewCustomer) {
-      onViewCustomer(customer);
+    if (onViewCards) {
+      onViewCards(customer);
     } else {
       console.log('View customer:', customer);
     }
@@ -22,11 +22,7 @@ export default function CustomersTable({ customers, phoneIcon, onViewCustomer, o
   };
 
   const handleManageCards = (customer) => {
-    if (onViewCards) {
-      onViewCards(customer);
-    } else {
-      console.log('Manage cards for:', customer);
-    }
+    console.log('Manage cards for:', customer);
   };
 
   const handleDelete = (customer) => {
