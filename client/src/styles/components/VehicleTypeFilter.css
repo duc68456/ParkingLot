@@ -1,0 +1,29 @@
+.vehicle-type-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-label {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  color: #45556C;
+}
+
+.filter-select {
+  height: 41.6px;
+  padding: 10px 16px;
+  background: white;
+  border: 0.8px solid #E2E8F0;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  color: #0A0A0A;
+  cursor: pointer;
+  min-width: 115px;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #155DFC;
+}

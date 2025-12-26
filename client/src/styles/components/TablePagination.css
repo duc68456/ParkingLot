@@ -1,0 +1,68 @@
+.table-pagination {
+  background: #f8fafc;
+  border-top: 0.8px solid #e2e8f0;
+  height: 66.4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  font-family: 'Arimo', sans-serif;
+}
+
+.results-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.results-info p {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #45556c;
+  margin: 0;
+}
+
+.results-count {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #45556c;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pagination-btn {
+  background: white;
+  border: 0.8px solid #e2e8f0;
+  border-radius: 10px;
+  height: 33.6px;
+  padding: 0 16px;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #314158;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.pagination-btn:active:not(:disabled) {
+  background: #f1f5f9;
+}
+
+.pagination-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

@@ -1,0 +1,247 @@
+/* Edit Vehicle Type Modal - All classes prefixed with edit-type- */
+
+.edit-type-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+.edit-type-modal-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  padding: 24px;
+}
+
+.edit-type-modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 448px;
+  max-width: 90vw;
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+}
+
+.edit-type-modal form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Header */
+.edit-type-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 0.8px solid #e2e8f0;
+}
+
+.edit-type-title {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 28px;
+  color: #0f172b;
+  margin: 0;
+}
+
+.edit-type-close-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  padding: 8px;
+}
+
+.edit-type-close-btn:hover {
+  background: #f1f5f9;
+}
+
+.edit-type-close-btn:active {
+  background: #e2e8f0;
+}
+
+.edit-type-close-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Content */
+.edit-type-content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Warning Note */
+.edit-type-warning {
+  background: linear-gradient(171.47deg, #fffbeb 0%, #fffbeb 100%);
+  border: 0.8px solid #fee685;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.edit-type-warning p {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+  color: #7b3306;
+  margin: 0;
+}
+
+.edit-type-warning strong {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 700;
+  color: #7b3306;
+}
+
+/* Form Group */
+.edit-type-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.edit-type-label {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #314158;
+}
+
+.edit-type-required {
+  color: #fb2c36;
+  margin-left: 2px;
+}
+
+/* Input Fields */
+.edit-type-input {
+  height: 41.6px;
+  padding: 10px 16px;
+  border: 0.8px solid #cad5e2;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #314158;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.edit-type-input:focus {
+  outline: none;
+  border-color: #155dfc;
+  box-shadow: 0 0 0 3px rgba(21, 93, 252, 0.1);
+}
+
+.edit-type-input::placeholder {
+  color: rgba(10, 10, 10, 0.5);
+}
+
+/* Disabled Input */
+.edit-type-disabled-input {
+  background: #f1f5f9;
+  color: #45556c;
+  cursor: not-allowed;
+  font-family: 'Cousine', monospace;
+}
+
+.edit-type-disabled-input:focus {
+  border-color: #cad5e2;
+  box-shadow: none;
+}
+
+/* Name Input */
+.edit-type-name-input {
+  background: white;
+}
+
+/* Footer */
+.edit-type-footer {
+  background: #f8fafc;
+  border-top: 0.8px solid #e2e8f0;
+  border-radius: 0 0 16px 16px;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* Buttons */
+.edit-type-btn-cancel {
+  height: 45.6px;
+  padding: 0 24px;
+  background: transparent;
+  border: 0.8px solid #cad5e2;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #314158;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.edit-type-btn-cancel:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.edit-type-btn-cancel:active {
+  background: #f1f5f9;
+}
+
+.edit-type-btn-submit {
+  height: 44px;
+  padding: 0 24px;
+  background: #155dfc;
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.edit-type-btn-submit:hover {
+  background: #1447e6;
+  box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.15);
+}
+
+.edit-type-btn-submit:active {
+  background: #0f3acc;
+  box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.1);
+}
+
+.edit-type-btn-submit:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
+}

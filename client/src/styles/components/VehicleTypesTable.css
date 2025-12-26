@@ -1,0 +1,112 @@
+.vehicle-types-table-container {
+  background: white;
+  border: 0.8px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.vehicle-types-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Arimo', sans-serif;
+}
+
+.vehicle-types-table thead {
+  background: #f8fafc;
+  border-bottom: 0.8px solid #e2e8f0;
+}
+
+.vehicle-types-table thead tr {
+  height: 40px;
+}
+
+.vehicle-types-table th {
+  padding: 12px 24px;
+  text-align: left;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 16px;
+  color: #45556c;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.vehicle-types-table th.actions-header {
+  text-align: right;
+}
+
+.vehicle-types-table tbody tr {
+  height: 64.8px;
+  border-bottom: 0.8px solid #f1f5f9;
+}
+
+.vehicle-types-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.vehicle-types-table td {
+  padding: 12px 24px;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #314158;
+}
+
+.vehicle-types-table td.actions-cell {
+  text-align: right;
+}
+
+.action-buttons {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  padding: 0;
+}
+
+.action-btn:hover {
+  background: #f1f5f9;
+}
+
+.action-btn:active {
+  background: #e2e8f0;
+}
+
+.action-btn svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.edit-btn svg path {
+  fill: #45556c;
+  transition: fill 0.2s;
+}
+
+.edit-btn:hover svg path {
+  fill: #1d293d;
+}
+
+.delete-btn svg path {
+  fill: #d92d20;
+  transition: fill 0.2s;
+}
+
+.delete-btn:hover svg path {
+  fill: #b91c1c;
+}
