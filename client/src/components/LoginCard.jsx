@@ -2,7 +2,7 @@ import { useState } from 'react';
 import TabButtons from './TabButtons';
 import LoginForm from '../pages/LoginForm';
 import StaffLoginForm from '../pages/StaffLoginForm';
-import './LoginCard.css';
+import '../styles/components/LoginCard.css';
 
 export default function LoginCard() {
   const [activeTab, setActiveTab] = useState('staff');

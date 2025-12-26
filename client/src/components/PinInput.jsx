@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import './PinInput.css';
+import '../styles/components/PinInput.css';
 
 export default function PinInput({ length = 6, value, onChange }) {
   const inputRefs = useRef([]);

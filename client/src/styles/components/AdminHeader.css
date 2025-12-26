@@ -1,0 +1,33 @@
+.admin-header {
+  width: 100%;
+  height: 64px;
+  background: white;
+  border-bottom: 0.8px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.admin-header-content {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+}
+
+.admin-header-title {
+  font-family: 'Arimo', sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 28px;
+  color: #1d293d;
+  margin: 0;
+}
+
+.admin-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 37.6px;
+}

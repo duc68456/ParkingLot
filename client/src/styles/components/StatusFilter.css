@@ -1,0 +1,38 @@
+.status-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 37.6px;
+}
+
+.status-filter-label {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #314158;
+}
+
+.status-filter-select {
+  width: 122.4px;
+  height: 37.6px;
+  padding: 0 12px;
+  background: #FFFFFF;
+  border: 0.8px solid #CAD5E2;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  color: #0A0A0A;
+  cursor: pointer;
+}
+
+.status-filter-select:focus {
+  outline: none;
+  border-color: #155DFC;
+}
+
+.status-filter-count {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #62748E;
+}

@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import './PasswordInput.css';
+import '../styles/components/PasswordInput.css';
+
+const eyeIcon = "http://localhost:3845/assets/aea4ffb257aed259c9f20eab867d62a24cebf892.svg";
+const eyeSlashIcon = "http://localhost:3845/assets/e6ba4a03794833ec2a09e661eecc3c46bb95c132.svg";
 
 export default function PasswordInput({ label, placeholder, value, onChange }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -23,13 +26,13 @@ export default function PasswordInput({ label, placeholder, value, onChange }) {
         >
           <div className="eye-icon">
             <img 
-              src="http://localhost:3845/assets/aea4ffb257aed259c9f20eab867d62a24cebf892.svg" 
+              src={eyeIcon} 
               alt="Toggle password visibility"
               className="eye-vector"
             />
             {!showPassword && (
               <img 
-                src="http://localhost:3845/assets/e6ba4a03794833ec2a09e661eecc3c46bb95c132.svg" 
+                src={eyeSlashIcon} 
                 alt=""
                 className="eye-slash"
               />

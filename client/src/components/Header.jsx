@@ -1,11 +1,13 @@
-import './Header.css';
+import '../styles/components/Header.css';
+
+const companyLogo = "http://localhost:3845/assets/1acb3050167d6a4814823522ee5128257328b234.svg";
 
 export default function Header() {
   return (
     <div className="header">
       <div className="header-icon">
         <img 
-          src="http://localhost:3845/assets/1acb3050167d6a4814823522ee5128257328b234.svg" 
+          src={companyLogo} 
           alt="Company Logo"
         />
       </div>

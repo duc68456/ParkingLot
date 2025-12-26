@@ -1,18 +1,29 @@
 import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import FormHeader from '../components/FormHeader';
 import PinInput from '../components/PinInput';
 import Button from '../components/Button';
-import './StaffLoginForm.css';
+import '../styles/pages/StaffLoginForm.css';
+
+const staffIcon = "http://localhost:3845/assets/fd1d48cb3a7b000f034556812f92351cbb70d0bc.svg";
 
 export default function StaffLoginForm({ type }) {
   const [pin, setPin] = useState(['', '', '', '', '', '']);
   const isPinComplete = pin.every(digit => digit !== '');
+  const { login } = useAuth();
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const pinCode = pin.join('');
     console.log('Staff login submitted:', { type, pinCode });
-    // Add login logic here
+    
+    // Simulate login
+    login({
+      name: 'Staff User',
+      email: 'staff@parkingpro.com',
+      initials: 'SU',
+      type: 'staff'
+    });
   };
 
   return (
@@ -20,7 +31,7 @@ export default function StaffLoginForm({ type }) {
       <FormHeader 
         title="Login"
         subtitle="Enter your 6-digit PIN code"
-        iconSrc="http://localhost:3845/assets/fd1d48cb3a7b000f034556812f92351cbb70d0bc.svg"
+        iconSrc={staffIcon}
       />
       <form onSubmit={handleSubmit} className="staff-form-content">
         <PinInput 

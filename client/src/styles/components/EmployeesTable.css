@@ -1,0 +1,70 @@
+.employee-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.employee-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.employee-avatar.purple {
+  background: linear-gradient(135deg, #AD46FF 0%, #9810FA 100%);
+}
+
+.employee-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.employee-name {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #0F172B;
+}
+
+.employee-role-text {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  color: #62748E;
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  border: 0.8px solid;
+}
+
+.role-badge.admin {
+  background: #EFF6FF;
+  color: #1447E6;
+  border-color: #BEDBFF;
+}
+
+.role-badge.manager {
+  background: #EFF6FF;
+  color: #1447E6;
+  border-color: #BEDBFF;
+}
+
+.role-badge.staff {
+  background: #EFF6FF;
+  color: #1447E6;
+  border-color: #BEDBFF;
+}

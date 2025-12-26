@@ -1,0 +1,105 @@
+.data-table-container {
+  background: white;
+  border: 0.8px solid #E2E8F0;
+  border-radius: 14px;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.data-table-wrapper {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-header-row {
+  background: #F8FAFC;
+  border-bottom: 0.8px solid #E2E8F0;
+}
+
+.table-header-cell {
+  padding: 12px 24px;
+  text-align: left;
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 16px;
+  color: #45556C;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.table-header-cell.align-right {
+  text-align: right;
+}
+
+.table-row {
+  border-bottom: 0.8px solid #F1F5F9;
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.table-cell {
+  padding: 20px 24px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #314158;
+  vertical-align: middle;
+}
+
+.table-cell.align-right {
+  text-align: right;
+}
+
+.table-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: #F8FAFC;
+  border-top: 0.8px solid #E2E8F0;
+}
+
+.table-footer-info {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #45556C;
+}
+
+.table-footer-info strong {
+  font-weight: normal;
+}
+
+.table-pagination {
+  display: flex;
+  gap: 8px;
+}
+
+.pagination-btn {
+  height: 33.6px;
+  padding: 0 16px;
+  background: white;
+  border: 0.8px solid #E2E8F0;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  color: #314158;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #F8FAFC;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

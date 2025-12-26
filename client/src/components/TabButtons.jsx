@@ -1,4 +1,4 @@
-import './TabButtons.css';
+import '../styles/components/TabButtons.css';
 
 export default function TabButtons({ activeTab, onTabChange }) {
   return (
