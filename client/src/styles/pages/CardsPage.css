@@ -536,3 +536,118 @@
     justify-content: center;
   }
 }
+
+/* Assign Card Tab Styles */
+.assign-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.info-banner {
+  background: #eff6ff;
+  border: 1.6px solid #bedbff;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 0;
+}
+
+.info-banner p {
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  color: #193cb8;
+  margin: 0;
+}
+
+.info-count {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 700;
+  color: #193cb8;
+}
+
+.btn-assign-action {
+  height: 28px;
+  padding: 0 16px;
+  background: #155dfc;
+  border: none;
+  border-radius: 4px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-assign-action:hover {
+  background: #1447e6;
+}
+
+.action-buttons-right {
+  justify-content: flex-end;
+}
+
+/* Categories Tab Styles */
+.categories-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.add-category-section {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0;
+}
+
+.btn-add-category {
+  height: 40px;
+  padding: 0 16px;
+  background: #155dfc;
+  border: none;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-add-category:hover {
+  background: #1447e6;
+}
+
+.btn-add-category svg {
+  flex-shrink: 0;
+}
+
+.category-id-cell,
+.category-name-cell,
+.category-price-cell,
+.category-date-cell {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #314158;
+  padding: 21.2px 24px;
+}
+
+.action-btn-delete {
+  transition: all 0.2s;
+}
+
+.action-btn-delete:hover {
+  background-color: #fef2f2;
+}
+
+.action-btn-delete:hover svg path {
+  stroke: #991b1b;
+}

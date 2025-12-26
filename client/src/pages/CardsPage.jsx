@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import AssignCardModal from '../components/AssignCardModal';
+import AddCategoryModal from '../components/AddCategoryModal';
+import EditCategoryModal from '../components/EditCategoryModal';
 import '../styles/pages/CardsPage.css';
 
 // Mock data for cards
@@ -35,6 +38,46 @@ const mockCards = [
   }
 ];
 
+// Mock unassigned cards
+const mockUnassignedCards = [
+  {
+    id: 'CARD003',
+    uid: 'UID-123458',
+    category: 'VIP',
+    status: 'Inactive',
+    expiry: '-',
+    gradient: 'linear-gradient(135deg, rgb(144, 161, 185) 0%, rgb(98, 116, 142) 100%)'
+  }
+];
+
+// Mock categories
+const mockCategories = [
+  {
+    id: 'CAT001',
+    name: 'Standard',
+    price: '$10.00',
+    lastUpdated: '01/01/2024'
+  },
+  {
+    id: 'CAT002',
+    name: 'Premium',
+    price: '$25.00',
+    lastUpdated: '01/01/2024'
+  },
+  {
+    id: 'CAT003',
+    name: 'VIP',
+    price: '$50.00',
+    lastUpdated: '01/01/2024'
+  },
+  {
+    id: 'CAT004',
+    name: 'Staff',
+    price: '$15.00',
+    lastUpdated: '01/01/2024'
+  }
+];
+
 function CardsPage() {
   const [activeTab, setActiveTab] = useState('inventory');
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,6 +85,12 @@ function CardsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [expiryFilter, setExpiryFilter] = useState('all');
   const [filteredCards, setFilteredCards] = useState(mockCards);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [selectedCard, setSelectedCard] = useState(null);
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [categories, setCategories] = useState(mockCategories);
 
   const stats = [
     {
@@ -92,6 +141,88 @@ function CardsPage() {
   const handleEditCard = (cardId) => {
     console.log('Edit card:', cardId);
     // TODO: Implement edit card
+  };
+
+  const handleAssignClick = (card) => {
+    setSelectedCard(card);
+    setShowAssignModal(true);
+  };
+
+  const handleCloseAssignModal = () => {
+    setShowAssignModal(false);
+    setSelectedCard(null);
+  };
+
+  const handleAssignCard = (assignData) => {
+    console.log('Assigning card:', assignData);
+    // Here you would make an API call to assign the card
+    alert(`Card ${assignData.cardId} assigned successfully!`);
+    handleCloseAssignModal();
+  };
+
+  const handleAddCategory = () => {
+    setShowAddCategoryModal(true);
+  };
+
+  const handleCloseAddCategoryModal = () => {
+    setShowAddCategoryModal(false);
+  };
+
+  const handleCreateCategory = (categoryData) => {
+    // Generate new category ID
+    const newId = `CAT${String(categories.length + 1).padStart(3, '0')}`;
+    const today = new Date().toLocaleDateString('en-GB');
+    
+    const newCategory = {
+      id: newId,
+      name: categoryData.name,
+      price: `$${categoryData.price.toFixed(2)}`,
+      lastUpdated: today
+    };
+
+    setCategories([...categories, newCategory]);
+    setShowAddCategoryModal(false);
+    alert(`Category "${categoryData.name}" created successfully!`);
+  };
+
+  const handleEditCategory = (categoryId) => {
+    const category = categories.find(cat => cat.id === categoryId);
+    if (category) {
+      setSelectedCategory(category);
+      setShowEditCategoryModal(true);
+    }
+  };
+
+  const handleCloseEditCategoryModal = () => {
+    setShowEditCategoryModal(false);
+    setSelectedCategory(null);
+  };
+
+  const handleUpdateCategory = (updatedData) => {
+    const today = new Date().toLocaleDateString('en-GB');
+    
+    const updatedCategories = categories.map(cat => 
+      cat.id === updatedData.id 
+        ? {
+            ...cat,
+            name: updatedData.name,
+            price: `$${updatedData.price.toFixed(2)}`,
+            lastUpdated: today
+          }
+        : cat
+    );
+
+    setCategories(updatedCategories);
+    setShowEditCategoryModal(false);
+    setSelectedCategory(null);
+    alert(`Category "${updatedData.name}" updated successfully!`);
+  };
+
+  const handleDeleteCategory = (categoryId) => {
+    if (confirm(`Are you sure you want to delete category ${categoryId}?`)) {
+      setCategories(categories.filter(cat => cat.id !== categoryId));
+      alert(`Category ${categoryId} deleted successfully!`);
+    }
   };
 
   return (
@@ -291,11 +422,196 @@ function CardsPage() {
         </div>
       )}
 
+      {/* Assign Card Tab Content */}
+      {activeTab === 'assign' && (
+        <div className="assign-content">
+          {/* Info Banner */}
+          <div className="info-banner">
+            <p>
+              <span className="info-count">{mockUnassignedCards.length}</span> unassigned cards available
+            </p>
+          </div>
+
+          {/* Unassigned Cards Table */}
+          <div className="data-table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>CARD</th>
+                  <th>OWNER</th>
+                  <th>STATUS</th>
+                  <th>EXPIRY</th>
+                  <th className="text-right">ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mockUnassignedCards.map((card) => (
+                  <tr key={card.id}>
+                    <td className="card-id-cell">{card.id}</td>
+                    <td>
+                      <div className="card-info">
+                        <div
+                          className="card-icon"
+                          style={{ backgroundImage: card.gradient }}
+                        >
+                          <img
+                            src="http://localhost:3845/assets/48c5ec2984942afc7a9f1923cb9d463027cdf83f.svg"
+                            alt=""
+                          />
+                        </div>
+                        <div className="card-details">
+                          <p className="card-uid">{card.uid}</p>
+                          <p className="card-type">{card.category}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="owner-info">
+                        <p className="owner-name">Unassigned</p>
+                        <p className="owner-type">Unassigned</p>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="status-badge status-inactive">
+                        {card.status}
+                      </span>
+                    </td>
+                    <td className="expiry-cell">{card.expiry}</td>
+                    <td>
+                      <div className="action-buttons action-buttons-right">
+                        <button
+                          className="btn-assign-action"
+                          onClick={() => handleAssignClick(card)}
+                        >
+                          Assign
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Pagination */}
+            <div className="table-footer">
+              <p className="results-text">
+                Showing <span className="results-count">{mockUnassignedCards.length}</span> results
+              </p>
+              <div className="pagination-buttons">
+                <button className="pagination-btn">Previous</button>
+                <button className="pagination-btn">Next</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Categories Tab Content */}
+      {activeTab === 'categories' && (
+        <div className="categories-content">
+          {/* Add Category Button */}
+          <div className="add-category-section">
+            <button className="btn-add-category" onClick={handleAddCategory}>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M10 4V16M4 10H16" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              Add Category
+            </button>
+          </div>
+
+          {/* Categories Table */}
+          <div className="data-table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>NAME</th>
+                  <th>PRICE</th>
+                  <th>LAST UPDATED</th>
+                  <th className="text-right">ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {categories.map((category) => (
+                  <tr key={category.id}>
+                    <td className="category-id-cell">{category.id}</td>
+                    <td className="category-name-cell">{category.name}</td>
+                    <td className="category-price-cell">{category.price}</td>
+                    <td className="category-date-cell">{category.lastUpdated}</td>
+                    <td>
+                      <div className="action-buttons action-buttons-right">
+                        <button
+                          className="action-btn"
+                          onClick={() => handleEditCategory(category.id)}
+                          title="Edit"
+                        >
+                          <img
+                            src="http://localhost:3845/assets/22ed6fed4c4d56385d3b4d40f1a0236ded42a86e.svg"
+                            alt="Edit"
+                          />
+                        </button>
+                        <button
+                          className="action-btn action-btn-delete"
+                          onClick={() => handleDeleteCategory(category.id)}
+                          title="Delete"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M2 4h12M5.333 4V2.667a1.333 1.333 0 0 1 1.334-1.334h2.666a1.333 1.333 0 0 1 1.334 1.334V4m2 0v9.333a1.333 1.333 0 0 1-1.334 1.334H4.667a1.333 1.333 0 0 1-1.334-1.334V4h9.334Z" stroke="#dc2626" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Pagination */}
+            <div className="table-footer">
+              <p className="results-text">
+                Showing <span className="results-count">{categories.length}</span> results
+              </p>
+              <div className="pagination-buttons">
+                <button className="pagination-btn">Previous</button>
+                <button className="pagination-btn">Next</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Other Tab Contents (Placeholders) */}
-      {activeTab !== 'inventory' && (
+      {activeTab !== 'inventory' && activeTab !== 'assign' && activeTab !== 'categories' && (
         <div className="tab-placeholder">
           <p>Content for {tabs.find(t => t.id === activeTab)?.label} tab coming soon...</p>
         </div>
+      )}
+
+      {/* Assign Card Modal */}
+      {showAssignModal && selectedCard && (
+        <AssignCardModal
+          card={selectedCard}
+          onClose={handleCloseAssignModal}
+          onAssign={handleAssignCard}
+        />
+      )}
+
+      {/* Add Category Modal */}
+      {showAddCategoryModal && (
+        <AddCategoryModal
+          onClose={handleCloseAddCategoryModal}
+          onAdd={handleCreateCategory}
+        />
+      )}
+
+      {/* Edit Category Modal */}
+      {showEditCategoryModal && selectedCategory && (
+        <EditCategoryModal
+          category={selectedCategory}
+          onClose={handleCloseEditCategoryModal}
+          onUpdate={handleUpdateCategory}
+        />
       )}
     </div>
   );

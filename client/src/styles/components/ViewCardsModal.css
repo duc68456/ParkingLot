@@ -140,14 +140,14 @@
 .view-cards-row {
   display: flex;
   align-items: baseline;
-  gap: 4px;
-  line-height: 21.6px;
+  gap: 8px;
 }
 
 .view-cards-label {
   font-family: 'Arimo', sans-serif;
   font-size: 14px;
   font-weight: 400;
+  line-height: 20px;
   color: #0f172b;
 }
 
@@ -155,6 +155,7 @@
   font-family: 'Cousine', monospace;
   font-size: 14px;
   font-weight: 400;
+  line-height: 20px;
   color: #0f172b;
 }
 
@@ -183,29 +184,29 @@
   border: 0.8px solid #c6d2ff;
   border-radius: 8px;
   padding: 4px 10px;
-  height: 25.587px;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .view-cards-vehicle-icon {
   width: 14px;
   height: 14px;
+  flex-shrink: 0;
 }
 
 .view-cards-vehicle-plate {
   font-family: 'Cousine', monospace;
   font-size: 12px;
   font-weight: 400;
-  color: #312c85;
   line-height: 16px;
+  color: #312c85;
 }
 
 .view-cards-vehicle-type {
   font-family: 'Arimo', sans-serif;
   font-size: 12px;
   font-weight: 400;
-  color: #4f39f6;
   line-height: 16px;
+  color: #4f39f6;
 }
 
 /* Right Side - Status & Expiry */
@@ -221,6 +222,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.8px;
+  align-items: flex-end;
 }
 
 .view-cards-status-label,
@@ -228,24 +230,24 @@
   font-family: 'Arimo', sans-serif;
   font-size: 12px;
   font-weight: 400;
-  color: #62748e;
   line-height: 16px;
+  color: #62748e;
   text-align: right;
 }
 
 /* Status Badge */
 .view-cards-status-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 3px 10px;
-  border-radius: 9999px;
+  border-radius: 100px;
   font-family: 'Arimo', sans-serif;
   font-size: 12px;
   font-weight: 400;
   line-height: 16px;
   border: 0.8px solid;
   white-space: nowrap;
-  text-align: right;
-  height: 25.587px;
 }
 
 .view-cards-status-active {

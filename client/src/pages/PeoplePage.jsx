@@ -7,6 +7,7 @@ import CustomersTable from '../components/CustomersTable';
 import EmployeesTable from '../components/EmployeesTable';
 import AddEmployeeModal from '../components/AddEmployeeModal';
 import ViewCardsModal from '../components/ViewCardsModal';
+import ViewCustomerModal from '../components/ViewCustomerModal';
 import '../styles/pages/PeoplePage.css';
 
 const phoneIcon = "http://localhost:3845/assets/48c5ec2984942afc7a9f1923cb9d463027cdf83f.svg";
@@ -102,6 +103,7 @@ export default function PeoplePage() {
   const [employees, setEmployees] = useState(mockEmployees);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [showCardsModal, setShowCardsModal] = useState(false);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
 
   const tabs = [
     { 
@@ -145,6 +147,16 @@ export default function PeoplePage() {
 
   const handleCloseCardsModal = () => {
     setShowCardsModal(false);
+    setSelectedCustomer(null);
+  };
+
+  const handleViewCustomer = (customer) => {
+    setSelectedCustomer(customer);
+    setShowCustomerModal(true);
+  };
+
+  const handleCloseCustomerModal = () => {
+    setShowCustomerModal(false);
     setSelectedCustomer(null);
   };
 
@@ -201,6 +213,7 @@ export default function PeoplePage() {
           <CustomersTable 
             customers={filteredCustomers} 
             phoneIcon={phoneIcon}
+            onViewCustomer={handleViewCustomer}
             onViewCards={handleViewCards}
           />
         ) : (
@@ -219,6 +232,14 @@ export default function PeoplePage() {
           customer={selectedCustomer}
           cards={mockCustomerCards[selectedCustomer.id] || []}
           onClose={handleCloseCardsModal}
+        />
+      )}
+
+      {showCustomerModal && selectedCustomer && (
+        <ViewCustomerModal
+          customer={selectedCustomer}
+          vehicles={[{ plateNumber: 'ABC-1234', vehicleType: 'Car', registeredDate: '15/01/2023' }]}
+          onClose={handleCloseCustomerModal}
         />
       )}
     </div>

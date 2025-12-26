@@ -1,0 +1,228 @@
+/* Add Category Modal Styles */
+
+.add-category-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.add-category-modal {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 448px;
+  box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Modal Header */
+.add-category-modal .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 0.8px solid #e2e8f0;
+}
+
+.add-category-modal .modal-header h3 {
+  font-family: 'Arimo', sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 28px;
+  color: #0f172b;
+  margin: 0;
+}
+
+.add-category-modal .close-button {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.add-category-modal .close-button:hover {
+  background-color: #f8fafc;
+}
+
+/* Modal Content */
+.add-category-modal .modal-content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Form Group */
+.add-category-modal .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.add-category-modal .form-group label {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #314158;
+}
+
+.add-category-modal .form-input {
+  height: 41.6px;
+  background: white;
+  border: 0.8px solid #cad5e2;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  color: #0a0a0a;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.add-category-modal .form-input::placeholder {
+  color: rgba(10, 10, 10, 0.5);
+}
+
+.add-category-modal .form-input:hover {
+  border-color: #155dfc;
+}
+
+.add-category-modal .form-input:focus {
+  border-color: #155dfc;
+  box-shadow: 0 0 0 3px rgba(21, 93, 252, 0.1);
+}
+
+/* Price Input with Currency Symbol */
+.add-category-modal .price-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.add-category-modal .currency-symbol {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  color: #62748e;
+  pointer-events: none;
+}
+
+.add-category-modal .price-input {
+  padding-left: 32px;
+}
+
+/* Remove spinner buttons from number input */
+.add-category-modal .price-input::-webkit-outer-spin-button,
+.add-category-modal .price-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.add-category-modal .price-input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Modal Footer */
+.add-category-modal .modal-footer {
+  background: #f8fafc;
+  border-top: 0.8px solid #e2e8f0;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+.add-category-modal .btn-cancel {
+  height: 45.6px;
+  padding: 0 20px;
+  background: white;
+  border: 0.8px solid #cad5e2;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  color: #314158;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.add-category-modal .btn-cancel:hover {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.add-category-modal .btn-create {
+  height: 44px;
+  padding: 0 24px;
+  background: #155dfc;
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.add-category-modal .btn-create:hover {
+  background: #1447e6;
+  box-shadow: 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .add-category-overlay {
+    padding: 16px;
+  }
+
+  .add-category-modal {
+    max-width: 100%;
+  }
+
+  .add-category-modal .modal-header {
+    padding: 16px;
+  }
+
+  .add-category-modal .modal-content {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .add-category-modal .modal-footer {
+    padding: 12px 16px;
+    flex-direction: column;
+  }
+
+  .add-category-modal .btn-cancel,
+  .add-category-modal .btn-create {
+    width: 100%;
+  }
+}

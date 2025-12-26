@@ -1,0 +1,404 @@
+/* View Customer Modal */
+
+/* Overlay */
+.view-customer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+/* Modal Wrapper */
+.view-customer-modal-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  pointer-events: none;
+  padding: 24px;
+}
+
+/* Modal Container */
+.view-customer-modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 896px;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+  overflow: hidden;
+}
+
+/* Header */
+.view-customer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 0.8px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.view-customer-title {
+  font-family: 'Arimo', sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 28px;
+  color: #0f172b;
+  margin: 0;
+}
+
+.view-customer-close-btn {
+  background: none;
+  border: none;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  cursor: pointer;
+  padding: 8px;
+  transition: background-color 0.2s;
+}
+
+.view-customer-close-btn:hover {
+  background-color: #f1f5f9;
+}
+
+.view-customer-close-btn img {
+  width: 20px;
+  height: 20px;
+}
+
+/* Body */
+.view-customer-body {
+  padding: 24px 24px 24px 24px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Profile Section */
+.customer-profile-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 24px;
+  border-bottom: 0.8px solid #e2e8f0;
+}
+
+.customer-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgb(43, 127, 255) 0%, rgb(21, 93, 252) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Arimo', sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 28px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.customer-profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.customer-name {
+  font-family: 'Arimo', sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 28px;
+  color: #0f172b;
+  margin: 0;
+}
+
+.customer-email {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #45556c;
+  margin: 0;
+}
+
+.customer-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 100px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  margin-top: 8px;
+  width: fit-content;
+}
+
+.customer-status-active {
+  background: #f0fdf4;
+  color: #008236;
+}
+
+.customer-status-inactive {
+  background: #f8fafc;
+  color: #62748e;
+}
+
+.customer-status-suspended {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* Customer Details Grid */
+.customer-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  row-gap: 24px;
+}
+
+.customer-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5.6px;
+}
+
+.detail-label {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: #62748e;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin: 0;
+}
+
+.detail-value {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #0f172b;
+  margin: 0;
+}
+
+/* Registered Vehicles Section */
+.registered-vehicles-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 24px;
+  border-top: 0.8px solid #e2e8f0;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.section-title {
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  color: #0f172b;
+  margin: 0;
+}
+
+.vehicle-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 100px;
+  background: #e0e7ff;
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: #432dd7;
+}
+
+/* Vehicles List */
+.vehicles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.vehicle-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 16px;
+  padding: 16.8px;
+  background: linear-gradient(90deg, #eef2ff 0%, #eff6ff 100%);
+  border: 0.8px solid #c6d2ff;
+  border-radius: 10px;
+}
+
+.vehicle-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+.vehicle-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgb(97, 95, 255) 0%, rgb(79, 57, 246) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.vehicle-icon-wrapper img {
+  width: 20px;
+  height: 20px;
+}
+
+.vehicle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.vehicle-plate {
+  font-family: 'Cousine', monospace;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  color: #0f172b;
+  margin: 0;
+}
+
+.vehicle-type {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: #45556c;
+  margin: 0;
+}
+
+.vehicle-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.vehicle-date-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 100px;
+  background: #dbeafe;
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: #1447e6;
+}
+
+.vehicle-date {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #0f172b;
+  margin: 0;
+  text-align: right;
+}
+
+/* Scrollbar Styling */
+.view-customer-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.view-customer-body::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.view-customer-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.view-customer-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .view-customer-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 0;
+  }
+
+  .customer-details-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .customer-profile-section {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .customer-status-badge {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .vehicle-item {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .vehicle-right {
+    width: 100%;
+    align-items: flex-start;
+  }
+
+  .vehicle-date-label,
+  .vehicle-date {
+    text-align: left;
+  }
+}
