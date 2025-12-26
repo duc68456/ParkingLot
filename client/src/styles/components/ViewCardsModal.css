@@ -1,0 +1,344 @@
+/* View Cards Modal - Scoped styles to avoid conflicts */
+
+/* Overlay */
+.view-cards-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+/* Modal Wrapper */
+.view-cards-modal-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  pointer-events: none;
+  padding: 24px;
+}
+
+/* Modal Container */
+.view-cards-modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 896px;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+  overflow: hidden;
+}
+
+/* Header */
+.view-cards-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 0.8px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.view-cards-title {
+  font-family: 'Arimo', sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 28px;
+  color: #0f172b;
+  margin: 0;
+}
+
+.view-cards-close-btn {
+  background: none;
+  border: none;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  cursor: pointer;
+  padding: 8px;
+  transition: background-color 0.2s;
+}
+
+.view-cards-close-btn:hover {
+  background-color: #f1f5f9;
+}
+
+.view-cards-close-btn img {
+  width: 20px;
+  height: 20px;
+}
+
+/* Body */
+.view-cards-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.view-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Card Item */
+.view-cards-item {
+  background: #f8fafc;
+  border: 0.8px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16.8px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.view-cards-item-left {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  flex: 1;
+}
+
+.view-cards-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, rgb(0, 188, 125) 0%, rgb(0, 153, 102) 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.view-cards-icon img {
+  width: 24px;
+  height: 24px;
+}
+
+.view-cards-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.view-cards-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  line-height: 21.6px;
+}
+
+.view-cards-label {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #0f172b;
+}
+
+.view-cards-value {
+  font-family: 'Cousine', monospace;
+  font-size: 14px;
+  font-weight: 400;
+  color: #0f172b;
+}
+
+.view-cards-uid-label {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: #62748e;
+  line-height: 16px;
+}
+
+.view-cards-uid-value {
+  font-family: 'Cousine', monospace;
+  font-size: 12px;
+  font-weight: 400;
+  color: #62748e;
+  line-height: 16px;
+}
+
+/* Vehicle Badge */
+.view-cards-vehicle-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #eef2ff;
+  border: 0.8px solid #c6d2ff;
+  border-radius: 8px;
+  padding: 4px 10px;
+  height: 25.587px;
+  margin-top: 2px;
+}
+
+.view-cards-vehicle-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.view-cards-vehicle-plate {
+  font-family: 'Cousine', monospace;
+  font-size: 12px;
+  font-weight: 400;
+  color: #312c85;
+  line-height: 16px;
+}
+
+.view-cards-vehicle-type {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: #4f39f6;
+  line-height: 16px;
+}
+
+/* Right Side - Status & Expiry */
+.view-cards-item-right {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+
+.view-cards-status-container,
+.view-cards-expiry-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8px;
+}
+
+.view-cards-status-label,
+.view-cards-expiry-label {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: #62748e;
+  line-height: 16px;
+  text-align: right;
+}
+
+/* Status Badge */
+.view-cards-status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  border: 0.8px solid;
+  white-space: nowrap;
+  text-align: right;
+  height: 25.587px;
+}
+
+.view-cards-status-active {
+  background: #f0fdf4;
+  border-color: #b9f8cf;
+  color: #008236;
+}
+
+.view-cards-status-damaged {
+  background: #fff7ed;
+  border-color: #ffd6a7;
+  color: #ca3500;
+}
+
+.view-cards-status-inactive {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #62748e;
+}
+
+.view-cards-status-default {
+  background: #f1f5f9;
+  border-color: #cad5e2;
+  color: #45556c;
+}
+
+.view-cards-expiry-date {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #0f172b;
+  line-height: 20px;
+  text-align: right;
+}
+
+/* Scrollbar Styling */
+.view-cards-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.view-cards-body::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.view-cards-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.view-cards-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .view-cards-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 0;
+  }
+
+  .view-cards-item {
+    flex-direction: column;
+  }
+
+  .view-cards-item-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .view-cards-status-container,
+  .view-cards-expiry-container {
+    align-items: flex-start;
+  }
+
+  .view-cards-status-label,
+  .view-cards-expiry-label,
+  .view-cards-expiry-date {
+    text-align: left;
+  }
+}
+
+/* Empty State */
+.view-cards-empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: #62748e;
+}
+
+.view-cards-empty p {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  margin: 0;
+}

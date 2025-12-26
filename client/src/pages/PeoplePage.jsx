@@ -6,6 +6,7 @@ import StatusFilter from '../components/StatusFilter';
 import CustomersTable from '../components/CustomersTable';
 import EmployeesTable from '../components/EmployeesTable';
 import AddEmployeeModal from '../components/AddEmployeeModal';
+import ViewCardsModal from '../components/ViewCardsModal';
 import '../styles/pages/PeoplePage.css';
 
 const phoneIcon = "http://localhost:3845/assets/48c5ec2984942afc7a9f1923cb9d463027cdf83f.svg";
@@ -35,6 +36,36 @@ const mockCustomers = [
     registered: '20/02/2023'
   }
 ];
+
+// Mock cards data for customers
+const mockCustomerCards = {
+  'CUST001': [
+    {
+      cardId: 'CARD001',
+      uid: 'UID-123456',
+      licensePlate: 'ABC-1234',
+      vehicleType: 'Car',
+      status: 'Active',
+      expiryDate: '31/12/2025'
+    },
+    {
+      cardId: 'CARD006',
+      uid: 'UID-123461',
+      status: 'Damaged',
+      expiryDate: '15/08/2025'
+    }
+  ],
+  'CUST002': [
+    {
+      cardId: 'CARD002',
+      uid: 'UID-789012',
+      licensePlate: 'XYZ-5678',
+      vehicleType: 'Motorcycle',
+      status: 'Active',
+      expiryDate: '30/06/2026'
+    }
+  ]
+};
 
 const mockEmployees = [
   {
@@ -69,6 +100,8 @@ export default function PeoplePage() {
   const [statusFilter, setStatusFilter] = useState('All Status');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [employees, setEmployees] = useState(mockEmployees);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [showCardsModal, setShowCardsModal] = useState(false);
 
   const tabs = [
     { 
@@ -103,6 +136,16 @@ export default function PeoplePage() {
       hiredDate: new Date().toLocaleDateString('en-GB').replace(/\//g, '/')
     };
     setEmployees([...employees, newEmployee]);
+  };
+
+  const handleViewCards = (customer) => {
+    setSelectedCustomer(customer);
+    setShowCardsModal(true);
+  };
+
+  const handleCloseCardsModal = () => {
+    setShowCardsModal(false);
+    setSelectedCustomer(null);
   };
 
   const filteredCustomers = mockCustomers.filter(customer => 
@@ -155,7 +198,11 @@ export default function PeoplePage() {
         </div>
 
         {activeTab === 'customers' ? (
-          <CustomersTable customers={filteredCustomers} phoneIcon={phoneIcon} />
+          <CustomersTable 
+            customers={filteredCustomers} 
+            phoneIcon={phoneIcon}
+            onViewCards={handleViewCards}
+          />
         ) : (
           <EmployeesTable employees={filteredEmployees} />
         )}
@@ -166,6 +213,14 @@ export default function PeoplePage() {
         onClose={handleCloseModal}
         onSubmit={handleSubmitEmployee}
       />
+
+      {showCardsModal && selectedCustomer && (
+        <ViewCardsModal
+          customer={selectedCustomer}
+          cards={mockCustomerCards[selectedCustomer.id] || []}
+          onClose={handleCloseCardsModal}
+        />
+      )}
     </div>
   );
 }

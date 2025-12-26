@@ -5,6 +5,7 @@ import AdminHeader from '../components/AdminHeader';
 import PeoplePage from './PeoplePage';
 import VehiclesPage from './VehiclesPage';
 import PurchaseCardPage from './PurchaseCardPage';
+import CardsPage from './CardsPage';
 import '../styles/pages/AdminLayout.css';
 
 export default function AdminLayout({ children }) {
@@ -34,6 +35,8 @@ export default function AdminLayout({ children }) {
         return <PeoplePage />;
       case 'Vehicles':
         return <VehiclesPage />;
+      case 'Cards':
+        return <CardsPage />;
       case 'Dashboard':
       default:
         return <h1>Dashboard Content</h1>;
