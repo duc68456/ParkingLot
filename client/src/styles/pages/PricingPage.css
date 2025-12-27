@@ -104,10 +104,156 @@
   height: 20px;
 }
 
+/* Data Table Styles */
+.pricing-page .data-table {
+  background: white;
+  border: 0.8px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.pricing-page table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.pricing-page thead {
+  background: #f8fafc;
+  border-bottom: 0.8px solid #e2e8f0;
+}
+
+.pricing-page th {
+  padding: 12px 24px;
+  text-align: left;
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  color: #45556c;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.pricing-page th.text-right {
+  text-align: right;
+}
+
+.pricing-page tbody tr {
+  border-bottom: 0.8px solid #f1f5f9;
+}
+
+.pricing-page tbody tr:last-child {
+  border-bottom: none;
+}
+
+.pricing-page td {
+  padding: 21.2px 24px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #314158;
+}
+
+.pricing-page .card-id-cell {
+  font-family: 'Cousine', monospace;
+  color: #314158;
+}
+
+/* Action Buttons */
+.pricing-page .action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pricing-page .action-buttons-right {
+  justify-content: flex-end;
+}
+
+.pricing-page .action-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.pricing-page .action-btn:hover {
+  background-color: #f1f5f9;
+}
+
+.pricing-page .action-btn img {
+  width: 16px;
+  height: 16px;
+}
+
+/* Table Footer */
+.pricing-page .table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px;
+  background: #f8fafc;
+  border-top: 0.8px solid #e2e8f0;
+}
+
+.pricing-page .results-text {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #45556c;
+  margin: 0;
+}
+
+.pricing-page .results-count {
+  color: #45556c;
+}
+
+.pricing-page .pagination-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.pricing-page .pagination-btn {
+  padding: 6.8px 16px;
+  background: white;
+  border: 0.8px solid #e2e8f0;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #314158;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pricing-page .pagination-btn:hover {
+  background: #f8fafc;
+  border-color: #155dfc;
+  color: #155dfc;
+}
+
 /* Responsive Design */
 @media (max-width: 1200px) {
   .pricing-page .tab-navigation {
     overflow-x: auto;
+  }
+  
+  .pricing-page .data-table {
+    overflow-x: auto;
+  }
+  
+  .pricing-page table {
+    min-width: 800px;
   }
 }
 
@@ -133,17 +279,17 @@
     min-width: 1000px;
   }
 
-  .table-footer {
+  .pricing-page .table-footer {
     flex-direction: column;
     gap: 12px;
     align-items: flex-start;
   }
 
-  .pagination-buttons {
+  .pricing-page .pagination-buttons {
     width: 100%;
   }
 
-  .pagination-btn {
+  .pricing-page .pagination-btn {
     flex: 1;
   }
 }

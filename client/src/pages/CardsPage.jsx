@@ -2,6 +2,7 @@ import { useState } from 'react';
 import AssignCardModal from '../components/AssignCardModal';
 import AddCategoryModal from '../components/AddCategoryModal';
 import EditCategoryModal from '../components/EditCategoryModal';
+import ViewCardModal from '../components/ViewCardModal';
 import '../styles/pages/CardsPage.css';
 
 // Mock data for cards
@@ -91,6 +92,8 @@ function CardsPage() {
   const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [categories, setCategories] = useState(mockCategories);
+  const [showViewCardModal, setShowViewCardModal] = useState(false);
+  const [cardToView, setCardToView] = useState(null);
 
   const stats = [
     {
@@ -134,8 +137,23 @@ function CardsPage() {
   };
 
   const handleViewCard = (cardId) => {
-    console.log('View card:', cardId);
-    // TODO: Implement view card details
+    const card = [...mockCards, ...mockUnassignedCards].find(c => c.id === cardId);
+    if (card) {
+      // Ensure card has all required fields
+      const cardWithDefaults = {
+        ...card,
+        owner: card.owner || 'Unassigned',
+        ownerType: card.ownerType || '-',
+        type: card.type || card.category || '-'
+      };
+      setCardToView(cardWithDefaults);
+      setShowViewCardModal(true);
+    }
+  };
+
+  const handleCloseViewCardModal = () => {
+    setShowViewCardModal(false);
+    setCardToView(null);
   };
 
   const handleEditCard = (cardId) => {
@@ -611,6 +629,14 @@ function CardsPage() {
           category={selectedCategory}
           onClose={handleCloseEditCategoryModal}
           onUpdate={handleUpdateCategory}
+        />
+      )}
+
+      {/* View Card Modal */}
+      {showViewCardModal && cardToView && (
+        <ViewCardModal
+          card={cardToView}
+          onClose={handleCloseViewCardModal}
         />
       )}
     </div>

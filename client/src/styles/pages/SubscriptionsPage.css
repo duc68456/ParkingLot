@@ -372,9 +372,11 @@
 
 /* Subscription Types Content */
 .subscriptions-page .subscription-types-content {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  padding: 24px;
+  background: white;
+  border: 0.8px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
 }
 
 /* Responsive Design */
@@ -424,4 +426,51 @@
   .subscriptions-page .pagination-btn {
     flex: 1;
   }
+}
+
+/* Subscription Types Tab Styles */
+.subscriptions-page .subscription-types-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.subscriptions-page .types-header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.subscriptions-page .btn-add-type {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  background-color: #155dfc;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+.subscriptions-page .btn-add-type:hover {
+  background-color: #1447e6;
+}
+
+.subscriptions-page .btn-add-type img {
+  width: 20px;
+  height: 20px;
+}
+
+/* Type ID Cell - Cousine Font */
+.subscriptions-page .type-id-cell {
+  font-family: 'Cousine', monospace;
+  color: #314158;
 }

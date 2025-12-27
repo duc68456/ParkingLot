@@ -2,6 +2,7 @@ import { useState } from 'react';
 import PageHeader from '../components/PageHeader';
 import SearchInput from '../components/SearchInput';
 import EntrySessionsTable from '../components/EntrySessionsTable';
+import ViewEntrySessionModal from '../components/ViewEntrySessionModal';
 import '../styles/pages/EntrySessionsPage.css';
 
 const searchIcon = "http://localhost:3845/assets/48c5ec2984942afc7a9f1923cb9d463027cdf83f.svg";
@@ -16,7 +17,10 @@ const mockEntrySessions = [
     exitTime: 'Jan 15, 10:30 AM',
     status: 'Completed',
     finalFee: 15.00,
-    staff: 'Tom Staff'
+    staff: 'Tom Staff',
+    inSubscription: false,
+    processedByEntry: 'Tom Staff',
+    processedByExit: 'Sarah Manager'
   },
   {
     id: 'SESS002',
@@ -26,16 +30,27 @@ const mockEntrySessions = [
     exitTime: null,
     status: 'Active',
     finalFee: 0.00,
-    staff: 'Tom Staff'
+    staff: 'Tom Staff',
+    inSubscription: false,
+    processedByEntry: 'Tom Staff',
+    processedByExit: null
   }
 ];
 
 export default function EntrySessionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sessions, setSessions] = useState(mockEntrySessions);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleViewSession = (session) => {
-    alert(`View details for session: ${session.id}`);
+    setSelectedSession(session);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedSession(null);
   };
 
   const filteredSessions = sessions.filter(session =>
@@ -72,6 +87,14 @@ export default function EntrySessionsPage() {
         sessions={filteredSessions}
         onViewSession={handleViewSession}
       />
+
+      {/* View Session Modal */}
+      {isModalOpen && (
+        <ViewEntrySessionModal
+          session={selectedSession}
+          onClose={handleCloseModal}
+        />
+      )}
     </div>
   );
 }

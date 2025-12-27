@@ -5,6 +5,8 @@ import PricingRulesTable from '../components/PricingRulesTable';
 import '../styles/pages/PricingPage.css';
 
 const addIcon = "http://localhost:3845/assets/25c699331c374458f53e2c0a64f9f8de133e7e81.svg";
+const editIcon = "http://localhost:3845/assets/2364e2571592b9a3dae086ea57a266ba122c58bb.svg";
+const deleteIcon = "http://localhost:3845/assets/44c73e1229f34e8f21d184b426c1ea73cf4ffc60.svg";
 
 // Mock data for entry pricing rules
 const mockEntryPricingRules = [
@@ -30,9 +32,57 @@ const mockEntryPricingRules = [
   }
 ];
 
+// Mock data for card pricing
+const mockCardPricing = [
+  {
+    id: 'CAT001',
+    category: 'Standard',
+    price: 10.00,
+    lastUpdated: '01/01/2024'
+  },
+  {
+    id: 'CAT002',
+    category: 'Premium',
+    price: 25.00,
+    lastUpdated: '01/01/2024'
+  },
+  {
+    id: 'CAT003',
+    category: 'VIP',
+    price: 50.00,
+    lastUpdated: '01/01/2024'
+  },
+  {
+    id: 'CAT004',
+    category: 'Staff',
+    price: 15.00,
+    lastUpdated: '01/01/2024'
+  }
+];
+
+// Mock data for subscription pricing
+const mockSubscriptionPricing = [
+  {
+    id: 'SPR001',
+    cardCategory: 'Standard',
+    vehicleType: 'Car',
+    subscriptionType: 'Monthly',
+    price: 100.00
+  },
+  {
+    id: 'SPR002',
+    cardCategory: 'Premium',
+    vehicleType: 'Car',
+    subscriptionType: 'Monthly',
+    price: 80.00
+  }
+];
+
 export default function PricingPage() {
   const [activeTab, setActiveTab] = useState('entry-pricing');
   const [pricingRules, setPricingRules] = useState(mockEntryPricingRules);
+  const [cardPricing, setCardPricing] = useState(mockCardPricing);
+  const [subscriptionPricing, setSubscriptionPricing] = useState(mockSubscriptionPricing);
 
   const tabs = [
     { id: 'entry-pricing', label: 'Entry Pricing' },
@@ -52,6 +102,25 @@ export default function PricingPage() {
     if (confirm(`Are you sure you want to delete pricing rule ${rule.id}?`)) {
       setPricingRules(pricingRules.filter(r => r.id !== rule.id));
       alert(`Pricing rule ${rule.id} deleted successfully!`);
+    }
+  };
+
+  const handleEditCardPrice = (card) => {
+    alert(`Edit card pricing: ${card.id}`);
+  };
+
+  const handleAddSubscriptionRule = () => {
+    alert('Add Subscription Pricing Rule functionality coming soon!');
+  };
+
+  const handleEditSubscriptionRule = (rule) => {
+    alert(`Edit subscription pricing rule: ${rule.id}`);
+  };
+
+  const handleDeleteSubscriptionRule = (rule) => {
+    if (confirm(`Are you sure you want to delete subscription pricing rule ${rule.id}?`)) {
+      setSubscriptionPricing(subscriptionPricing.filter(r => r.id !== rule.id));
+      alert(`Subscription pricing rule ${rule.id} deleted successfully!`);
     }
   };
 
@@ -101,14 +170,121 @@ export default function PricingPage() {
       {/* Card Pricing Tab Content */}
       {activeTab === 'card-pricing' && (
         <div className="pricing-content">
-          <p>Card Pricing content coming soon...</p>
+          {/* Card Pricing Table */}
+          <div className="data-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>CATEGORY</th>
+                  <th>PRICE</th>
+                  <th>LAST UPDATED</th>
+                  <th className="text-right">ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cardPricing.map((card) => (
+                  <tr key={card.id}>
+                    <td className="card-id-cell">{card.id}</td>
+                    <td>{card.category}</td>
+                    <td>${card.price.toFixed(2)}</td>
+                    <td>{card.lastUpdated}</td>
+                    <td>
+                      <div className="action-buttons action-buttons-right">
+                        <button
+                          className="action-btn"
+                          onClick={() => handleEditCardPrice(card)}
+                          title="Edit"
+                        >
+                          <img src={editIcon} alt="Edit" width="16" height="16" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Pagination Footer */}
+            <div className="table-footer">
+              <p className="results-text">
+                Showing <span className="results-count">{cardPricing.length}</span> results
+              </p>
+              <div className="pagination-buttons">
+                <button className="pagination-btn">Previous</button>
+                <button className="pagination-btn">Next</button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Subscription Pricing Tab Content */}
       {activeTab === 'subscription-pricing' && (
         <div className="pricing-content">
-          <p>Subscription Pricing content coming soon...</p>
+          {/* Add Subscription Rule Button */}
+          <div className="add-rule-section">
+            <button className="btn-add-rule" onClick={handleAddSubscriptionRule}>
+              <img src={addIcon} alt="" className="btn-icon" />
+              Add Rule
+            </button>
+          </div>
+
+          {/* Subscription Pricing Table */}
+          <div className="data-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>CARD CATEGORY</th>
+                  <th>VEHICLE TYPE</th>
+                  <th>SUB. TYPE</th>
+                  <th>PRICE</th>
+                  <th className="text-right">ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {subscriptionPricing.map((rule) => (
+                  <tr key={rule.id}>
+                    <td className="card-id-cell">{rule.id}</td>
+                    <td>{rule.cardCategory}</td>
+                    <td>{rule.vehicleType}</td>
+                    <td>{rule.subscriptionType}</td>
+                    <td>${rule.price.toFixed(2)}</td>
+                    <td>
+                      <div className="action-buttons action-buttons-right">
+                        <button
+                          className="action-btn"
+                          onClick={() => handleEditSubscriptionRule(rule)}
+                          title="Edit"
+                        >
+                          <img src={editIcon} alt="Edit" width="16" height="16" />
+                        </button>
+                        <button
+                          className="action-btn"
+                          onClick={() => handleDeleteSubscriptionRule(rule)}
+                          title="Delete"
+                        >
+                          <img src={deleteIcon} alt="Delete" width="16" height="16" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Pagination Footer */}
+            <div className="table-footer">
+              <p className="results-text">
+                Showing <span className="results-count">{subscriptionPricing.length}</span> results
+              </p>
+              <div className="pagination-buttons">
+                <button className="pagination-btn">Previous</button>
+                <button className="pagination-btn">Next</button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
