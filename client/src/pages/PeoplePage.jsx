@@ -7,6 +7,8 @@ import CustomersTable from '../components/CustomersTable';
 import EmployeesTable from '../components/EmployeesTable';
 import AddEmployeeModal from '../components/AddEmployeeModal';
 import ViewCardsModal from '../components/ViewCardsModal';
+import ViewCustomerModal from '../components/ViewCustomerModal';
+import EditCustomerModal from '../components/EditCustomerModal';
 import '../styles/pages/PeoplePage.css';
 
 const phoneIcon = "http://localhost:3845/assets/48c5ec2984942afc7a9f1923cb9d463027cdf83f.svg";
@@ -24,7 +26,10 @@ const mockCustomers = [
     initials: 'JD',
     phone: '+1234567890',
     status: 'Active',
-    registered: '15/01/2023'
+    registered: '15/01/2023',
+    address: '123 Main St, City',
+    hometown: 'Springfield',
+    gender: 'Male'
   },
   {
     id: 'CUST002',
@@ -33,7 +38,10 @@ const mockCustomers = [
     initials: 'JS',
     phone: '+1234567891',
     status: 'Active',
-    registered: '20/02/2023'
+    registered: '20/02/2023',
+    address: '456 Oak Ave, Town',
+    hometown: 'Riverside',
+    gender: 'Female'
   }
 ];
 
@@ -63,6 +71,24 @@ const mockCustomerCards = {
       vehicleType: 'Motorcycle',
       status: 'Active',
       expiryDate: '30/06/2026'
+    }
+  ]
+};
+
+// Mock vehicles data for customers
+const mockCustomerVehicles = {
+  'CUST001': [
+    {
+      plateNumber: 'ABC-1234',
+      vehicleType: 'Car',
+      registeredDate: '15/01/2023'
+    }
+  ],
+  'CUST002': [
+    {
+      plateNumber: 'XYZ-5678',
+      vehicleType: 'Car',
+      registeredDate: '20/02/2023'
     }
   ]
 };
@@ -102,13 +128,16 @@ export default function PeoplePage() {
   const [employees, setEmployees] = useState(mockEmployees);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [showCardsModal, setShowCardsModal] = useState(false);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [showEditCustomerModal, setShowEditCustomerModal] = useState(false);
+  const [customers, setCustomers] = useState(mockCustomers);
 
   const tabs = [
     { 
       id: 'customers', 
       label: 'Customers', 
       icon: customerIcon,
-      count: mockCustomers.length 
+      count: customers.length 
     },
     { 
       id: 'employees', 
@@ -148,7 +177,33 @@ export default function PeoplePage() {
     setSelectedCustomer(null);
   };
 
-  const filteredCustomers = mockCustomers.filter(customer => 
+  const handleViewCustomer = (customer) => {
+    setSelectedCustomer(customer);
+    setShowCustomerModal(true);
+  };
+
+  const handleCloseCustomerModal = () => {
+    setShowCustomerModal(false);
+    setSelectedCustomer(null);
+  };
+
+  const handleEditCustomer = (customer) => {
+    setSelectedCustomer(customer);
+    setShowEditCustomerModal(true);
+  };
+
+  const handleCloseEditCustomerModal = () => {
+    setShowEditCustomerModal(false);
+    setSelectedCustomer(null);
+  };
+
+  const handleSaveCustomer = (updatedCustomer) => {
+    setCustomers(customers.map(c => 
+      c.id === updatedCustomer.id ? updatedCustomer : c
+    ));
+  };
+
+  const filteredCustomers = customers.filter(customer => 
     customer.status === 'Active' || statusFilter === 'All Status'
   );
 
@@ -191,7 +246,7 @@ export default function PeoplePage() {
             value={statusFilter}
             onChange={setStatusFilter}
             count={activeTab === 'customers' 
-              ? `(${filteredCustomers.length}/${mockCustomers.length})`
+              ? `(${filteredCustomers.length}/${customers.length})`
               : `(${filteredEmployees.length}/${employees.length})`
             }
           />
@@ -201,7 +256,9 @@ export default function PeoplePage() {
           <CustomersTable 
             customers={filteredCustomers} 
             phoneIcon={phoneIcon}
+            onView={handleViewCustomer}
             onViewCards={handleViewCards}
+            onEdit={handleEditCustomer}
           />
         ) : (
           <EmployeesTable employees={filteredEmployees} />
@@ -219,6 +276,22 @@ export default function PeoplePage() {
           customer={selectedCustomer}
           cards={mockCustomerCards[selectedCustomer.id] || []}
           onClose={handleCloseCardsModal}
+        />
+      )}
+
+      {showCustomerModal && selectedCustomer && (
+        <ViewCustomerModal
+          customer={selectedCustomer}
+          vehicles={mockCustomerVehicles[selectedCustomer.id] || []}
+          onClose={handleCloseCustomerModal}
+        />
+      )}
+
+      {showEditCustomerModal && selectedCustomer && (
+        <EditCustomerModal
+          customer={selectedCustomer}
+          onClose={handleCloseEditCustomerModal}
+          onSave={handleSaveCustomer}
         />
       )}
     </div>

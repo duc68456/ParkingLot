@@ -1,7 +1,7 @@
-/* View Customer Modal */
+/* View Customer Modal - Exact Figma Design */
 
-/* Overlay */
-.view-customer-overlay {
+/* Overlay - rgba(0,0,0,0.2) as per Figma */
+.view-customer-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -11,46 +11,48 @@
   z-index: 1000;
 }
 
-/* Modal Wrapper */
-.view-customer-modal-wrapper {
+/* Modal Container Wrapper - 93.6px padding top/bottom, 199.6px padding left/right */
+.view-customer-modal-container {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   z-index: 1001;
   pointer-events: none;
-  padding: 24px;
+  padding: 93.6px 199.6px;
+  overflow: hidden;
 }
 
-/* Modal Container */
-.view-customer-modal {
+/* Modal Content - 896px width, 590.4px height */
+.view-customer-modal-content {
   background: white;
   border-radius: 16px;
   box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
   width: 896px;
-  max-width: 90vw;
-  max-height: 90vh;
+  height: 590.4px;
   display: flex;
   flex-direction: column;
   pointer-events: auto;
   overflow: hidden;
+  position: relative;
 }
 
-/* Header */
-.view-customer-header {
+/* Header - 68.8px height, border-bottom 0.8px */
+.modal-header {
+  height: 68.8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
+  padding: 0 24px;
   border-bottom: 0.8px solid #e2e8f0;
   flex-shrink: 0;
 }
 
-.view-customer-title {
+.modal-title {
   font-family: 'Arimo', sans-serif;
   font-size: 18px;
   font-weight: 400;
@@ -59,7 +61,7 @@
   margin: 0;
 }
 
-.view-customer-close-btn {
+.modal-close-button {
   background: none;
   border: none;
   width: 36px;
@@ -73,39 +75,46 @@
   transition: background-color 0.2s;
 }
 
-.view-customer-close-btn:hover {
+.modal-close-button:hover {
   background-color: #f1f5f9;
 }
 
-.view-customer-close-btn img {
+.modal-close-button img {
   width: 20px;
   height: 20px;
 }
 
-/* Body */
-.view-customer-body {
-  padding: 24px 24px 24px 24px;
-  overflow-y: auto;
+/* Modal Body - 521.6px height, overflow scroll */
+.modal-body {
   flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 24px 24px 24px 24px;
+  padding-right: 39.2px;
+}
+
+.modal-body-scroll {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  height: 483.188px;
 }
 
-/* Profile Section */
-.customer-profile-section {
+/* Profile Section - 104.787px height, border-bottom 0.8px */
+.profile-section {
   display: flex;
-  align-items: flex-start;
   gap: 16px;
+  align-items: flex-start;
+  height: 104.787px;
   padding-bottom: 24px;
   border-bottom: 0.8px solid #e2e8f0;
 }
 
-.customer-avatar {
+.profile-avatar {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgb(43, 127, 255) 0%, rgb(21, 93, 252) 100%);
+  background: linear-gradient(135deg, #2b7fff 0%, #155dfc 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -117,73 +126,66 @@
   flex-shrink: 0;
 }
 
-.customer-profile-info {
+.profile-info {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  height: 79.988px;
 }
 
-.customer-name {
+.profile-name {
   font-family: 'Arimo', sans-serif;
   font-size: 18px;
   font-weight: 400;
   line-height: 28px;
   color: #0f172b;
   margin: 0;
+  height: 28px;
 }
 
-.customer-email {
+.profile-email {
   font-family: 'Arimo', sans-serif;
   font-size: 14px;
   font-weight: 400;
   line-height: 20px;
   color: #45556c;
   margin: 0;
+  height: 20px;
 }
 
-.customer-status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 100px;
+.profile-status-badge {
+  background: #f0fdf4;
+  color: #008236;
   font-family: 'Arimo', sans-serif;
   font-size: 12px;
   font-weight: 400;
   line-height: 16px;
-  margin-top: 8px;
+  padding: 4px 10px;
+  border-radius: 100px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 23.988px;
   width: fit-content;
+  margin-top: 8px;
 }
 
-.customer-status-active {
-  background: #f0fdf4;
-  color: #008236;
+/* Details Grid Container - 192px height, 2 columns */
+.details-grid-container {
+  position: relative;
+  height: 192px;
+  width: 100%;
 }
 
-.customer-status-inactive {
-  background: #f8fafc;
-  color: #62748e;
+.detail-field {
+  position: absolute;
+  height: 48px;
+  width: 404.4px;
 }
 
-.customer-status-suspended {
-  background: #fef2f2;
-  color: #dc2626;
-}
-
-/* Customer Details Grid */
-.customer-details-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
-  row-gap: 24px;
-}
-
-.customer-detail-item {
-  display: flex;
-  flex-direction: column;
-  gap: 5.6px;
-}
-
-.detail-label {
+.detail-field-label {
+  position: absolute;
+  top: 5.6px;
+  left: 0;
   font-family: 'Arimo', sans-serif;
   font-size: 12px;
   font-weight: 400;
@@ -192,45 +194,79 @@
   text-transform: uppercase;
   letter-spacing: 0.6px;
   margin: 0;
+  height: 16px;
 }
 
-.detail-value {
+.detail-field-value {
+  position: absolute;
+  top: 28px;
+  left: 0;
   font-family: 'Arimo', sans-serif;
   font-size: 14px;
   font-weight: 400;
   line-height: 20px;
   color: #0f172b;
   margin: 0;
+  height: 20px;
 }
 
-/* Registered Vehicles Section */
-.registered-vehicles-section {
+/* Position each field - Row 1 */
+.detail-field-phone {
+  left: 0;
+  top: 0;
+}
+
+.detail-field-gender {
+  left: 428.4px;
+  top: 0;
+}
+
+/* Row 2 */
+.detail-field-address {
+  left: 0;
+  top: 72px;
+}
+
+.detail-field-hometown {
+  left: 428.4px;
+  top: 72px;
+}
+
+/* Row 3 */
+.detail-field-cards {
+  left: 0;
+  top: 144px;
+}
+
+.detail-field-subscriptions {
+  left: 428.4px;
+  top: 144px;
+}
+
+/* Vehicles Section - 138.4px height, border-top 0.8px, padding-top 24.8px */
+.vehicles-section {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding-top: 24px;
+  height: 138.4px;
   border-top: 0.8px solid #e2e8f0;
-  align-items: flex-start;
+  padding-top: 24.8px;
 }
 
-.section-header {
+.vehicles-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  justify-content: flex-start;
-  flex-direction: row;
-  white-space: nowrap;         /* ← prevent text wrapping */
-  flex-wrap: nowrap;            /* ← prevent items from wrapping */
-  min-width: 0;                 /* ← allow flex to calculate properly */
+  height: 24px;
 }
 
-.section-icon {
+.vehicles-icon {
   width: 20px;
   height: 20px;
   flex-shrink: 0;
 }
 
-.section-title {
+.vehicles-title {
   font-family: 'Arimo', sans-serif;
   font-size: 16px;
   font-weight: 400;
@@ -239,11 +275,12 @@
   margin: 0;
 }
 
-.vehicle-count-badge {
+.vehicles-count-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 2px 8px;
+  height: 19.988px;
   border-radius: 100px;
   background: #e0e7ff;
   font-family: 'Arimo', sans-serif;
@@ -253,93 +290,90 @@
   color: #432dd7;
 }
 
-/* Vehicles List */
-.vehicles-list {
+.vehicles-list-container {
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
 
-.vehicle-item {
+/* Vehicle Card - 73.6px height */
+.vehicle-card {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 16px;
+  justify-content: space-between;
+  height: 73.6px;
   padding: 16.8px;
   background: linear-gradient(90deg, #eef2ff 0%, #eff6ff 100%);
   border: 0.8px solid #c6d2ff;
   border-radius: 10px;
 }
 
-.vehicle-left {
+.vehicle-card-left {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex: 0 0 auto;
+  height: 40px;
 }
 
-.vehicle-icon-wrapper {
+.vehicle-card-icon {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: linear-gradient(135deg, rgb(97, 95, 255) 0%, rgb(79, 57, 246) 100%);
+  background: linear-gradient(135deg, #615fff 0%, #4f39f6 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.vehicle-icon-wrapper img {
+.vehicle-card-icon img {
   width: 20px;
   height: 20px;
 }
 
-.vehicle-info {
+.vehicle-card-info {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  height: 39.987px;
 }
 
-.vehicle-plate {
+.vehicle-plate-number {
   font-family: 'Cousine', monospace;
   font-size: 16px;
   font-weight: 400;
   line-height: 24px;
   color: #0f172b;
   margin: 0;
+  height: 24px;
 }
 
-.vehicle-type {
+.vehicle-type-text {
   font-family: 'Arimo', sans-serif;
   font-size: 12px;
   font-weight: 400;
   line-height: 16px;
   color: #45556c;
   margin: 0;
+  height: 15.988px;
 }
 
-.vehicle-right {
+.vehicle-card-right {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 2px;
-  margin-left: auto;
+  height: 35.987px;
 }
 
-.vehicle-date-label {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 100px;
-  background: #dbeafe;
+.vehicle-registered-label {
   font-family: 'Arimo', sans-serif;
   font-size: 12px;
   font-weight: 400;
   line-height: 16px;
-  color: #1447e6;
+  color: #62748e;
+  margin: 0;
+  height: 15.988px;
 }
 
-.vehicle-date {
+.vehicle-registered-date {
   font-family: 'Arimo', sans-serif;
   font-size: 14px;
   font-weight: 400;
@@ -347,64 +381,123 @@
   color: #0f172b;
   margin: 0;
   text-align: right;
+  height: 20px;
 }
 
 /* Scrollbar Styling */
-.view-customer-body::-webkit-scrollbar {
+.modal-body::-webkit-scrollbar {
   width: 8px;
 }
 
-.view-customer-body::-webkit-scrollbar-track {
+.modal-body::-webkit-scrollbar-track {
   background: #f1f5f9;
   border-radius: 4px;
 }
 
-.view-customer-body::-webkit-scrollbar-thumb {
+.modal-body::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 4px;
 }
 
-.view-customer-body::-webkit-scrollbar-thumb:hover {
+.modal-body::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
-  .view-customer-modal {
+@media (max-width: 1366px) {
+  .view-customer-modal-container {
+    padding: 60px 120px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .view-customer-modal-container {
+    padding: 40px 60px;
+  }
+  
+  .view-customer-modal-content {
     width: 100%;
-    max-width: 100%;
-    max-height: 100%;
-    border-radius: 0;
+    max-width: 800px;
   }
 
-  .customer-details-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
+  .details-grid-container {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
   }
 
-  .customer-profile-section {
+  .detail-field-customer-id,
+  .detail-field-card-number,
+  .detail-field-registration-date,
+  .detail-field-card-type,
+  .detail-field-issued-date,
+  .detail-field-expiry-date {
+    position: static;
+    width: auto;
+    height: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .view-customer-modal-container {
+    padding: 20px;
+  }
+
+  .view-customer-modal-content {
+    border-radius: 12px;
+  }
+
+  .modal-header {
+    padding: 16px 20px;
+  }
+
+  .modal-body {
+    padding: 20px;
+    padding-right: 20px;
+  }
+
+  .profile-section {
     flex-direction: column;
     align-items: center;
     text-align: center;
   }
 
-  .customer-status-badge {
-    margin-left: auto;
-    margin-right: auto;
+  .profile-info {
+    align-items: center;
   }
 
-  .vehicle-item {
+  .details-grid-container {
+    position: relative;
+    display: flex;
     flex-direction: column;
+    gap: 16px;
+  }
+
+  .detail-field-customer-id,
+  .detail-field-card-number,
+  .detail-field-registration-date,
+  .detail-field-card-type,
+  .detail-field-issued-date,
+  .detail-field-expiry-date {
+    position: static;
+    width: 100%;
+    height: auto;
+  }
+
+  .vehicle-card {
+    flex-direction: column;
+    align-items: flex-start;
+    height: auto;
     gap: 12px;
   }
 
-  .vehicle-right {
+  .vehicle-card-right {
     width: 100%;
     align-items: flex-start;
   }
 
-  .vehicle-date-label,
-  .vehicle-date {
+  .vehicle-card-date {
     text-align: left;
   }
 }
