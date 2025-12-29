@@ -17,13 +17,14 @@ export default function StaffLoginForm({ type }) {
     const pinCode = pin.join('');
     console.log('Staff login submitted:', { type, pinCode });
     
-    // Simulate login
+    // Simulate login with staff type
     login({
-      name: 'Staff User',
+      name: 'Staff Member',
       email: 'staff@parkingpro.com',
-      initials: 'SU',
+      initials: 'SM',
+      id: '#000',
       type: 'staff'
-    });
+    }, 'staff'); // Pass 'staff' as the user type
   };
 
   return (

@@ -1,16 +1,22 @@
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginPage from './pages/LoginPage';
 import AdminLayout from './pages/AdminLayout';
+import StaffGatePage from './pages/StaffGatePage';
 import './styles/App.css';
 
 function AppContent() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, userType } = useAuth();
 
-  return (
-    <>
-      {!isAuthenticated ? <LoginPage /> : <AdminLayout />}
-    </>
-  );
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
+  // Route based on user type
+  if (userType === 'staff') {
+    return <StaffGatePage />;
+  }
+
+  return <AdminLayout />;
 }
 
 function App() {

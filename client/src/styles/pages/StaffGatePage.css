@@ -1,0 +1,68 @@
+/* StaffGatePage.css */
+.staff-gate-page { width: 100%; min-height: 100vh; background-color: #f8fafc; font-family: 'Arimo', sans-serif; }
+.staff-header { width: 100%; height: 80.8px; background-color: white; border-bottom: 0.8px solid #e2e8f0; box-shadow: 0px 1px 3px 0px rgba(0,0,0,0.1), 0px 1px 2px -1px rgba(0,0,0,0.1); padding: 16px 32px 0.8px; display: flex; align-items: center; }
+.staff-header-container { width: 100%; height: 48px; display: flex; align-items: center; justify-content: space-between; }
+.staff-info-section { width: 187.512px; height: 44px; display: flex; align-items: center; gap: 12px; }
+.staff-avatar { width: 40px; height: 40px; background-color: #155dfc; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.staff-avatar img { width: 24px; height: 24px; }
+.staff-text { flex: 1; display: flex; flex-direction: column; }
+.staff-role { margin: 0; font-size: 14px; line-height: 20px; color: #62748e; white-space: nowrap; }
+.staff-id { margin: 0; font-size: 16px; line-height: 24px; color: #1d293d; white-space: nowrap; }
+.tab-switcher { width: 263.2px; height: 48px; background-color: #f1f5f9; border-radius: 10px; padding: 4px; display: flex; align-items: center; gap: 8px; }
+.tab-button { height: 40px; border-radius: 8px; border: none; background-color: transparent; padding: 0 16px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; font-family: 'Arimo', sans-serif; font-size: 16px; line-height: 24px; color: #45556c; white-space: nowrap; transition: all 0.2s ease; }
+.tab-button:first-child { width: 129.175px; }
+.tab-button:last-child { width: 118.025px; }
+.tab-button img { width: 16px; height: 16px; }
+.tab-button.active { background-color: white; color: #155dfc; box-shadow: 0px 1px 3px 0px rgba(0,0,0,0.1), 0px 1px 2px -1px rgba(0,0,0,0.1); }
+.logout-btn { width: 106.188px; height: 40px; background-color: #e7000b; border: none; border-radius: 10px; padding: 0 16px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; font-family: 'Arimo', sans-serif; font-size: 16px; line-height: 24px; color: white; white-space: nowrap; transition: opacity 0.2s ease; }
+.logout-btn:hover { opacity: 0.9; }
+.logout-btn img { width: 16px; height: 16px; }
+.staff-main { width: 100%; height: 855.963px; padding: 24px 32px 0; display: flex; flex-direction: column; gap: 24px; }
+.action-bar { width: 100%; height: 53.6px; display: flex; align-items: center; gap: 16px; }
+.report-btn { width: 197.613px; height: 48px; background-color: #155dfc; border: none; border-radius: 10px; box-shadow: 0px 1px 3px 0px rgba(0,0,0,0.1), 0px 1px 2px -1px rgba(0,0,0,0.1); padding: 0 24px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; font-family: 'Arimo', sans-serif; font-size: 16px; line-height: 24px; color: white; white-space: nowrap; transition: opacity 0.2s ease; }
+.report-btn:hover { opacity: 0.9; }
+.report-btn img { width: 20px; height: 20px; }
+.capacity-container { flex: 1; height: 53.6px; background-color: white; border: 0.8px solid #e2e8f0; border-radius: 10px; padding: 12.8px; }
+.capacity-inner { width: 100%; height: 28px; display: flex; align-items: center; justify-content: space-between; }
+.capacity-numbers { width: 164.825px; height: 28px; display: flex; align-items: center; gap: 12px; white-space: nowrap; flex-shrink: 0; }
+.capacity-label { font-size: 14px; line-height: 20px; color: #314158; white-space: nowrap; }
+.capacity-values { display: flex; align-items: baseline; gap: 4px; white-space: nowrap; }
+.capacity-current { font-size: 18px; line-height: 28px; color: #0f172b; white-space: nowrap; }
+.capacity-total { font-size: 12px; line-height: 16px; color: #62748e; white-space: nowrap; }
+.vehicle-stats { width: 284.613px; height: 15.988px; display: flex; align-items: center; gap: 16px; }
+.vehicle-stat-item { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.vehicle-stat-item img { width: 14px; height: 14px; }
+.vehicle-stat-item span { font-size: 12px; line-height: 16px; color: #45556c; }
+.capacity-progress-wrapper { width: 152.3px; height: 15.988px; display: flex; align-items: center; gap: 8px; }
+.capacity-progress-bar { width: 128px; height: 8px; background-color: #e2e8f0; border-radius: 100px; overflow: hidden; }
+.capacity-progress-fill { height: 100%; background-color: #00c950; border-radius: 100px; transition: width 0.3s ease; }
+.capacity-percent { font-size: 12px; line-height: 16px; color: #62748e; }
+.gate-panels { width: 100%; height: 730.362px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+.gate-panel { height: 730.362px; background-color: white; border: 1.6px solid #e2e8f0; border-radius: 14px; box-shadow: 0px 10px 15px -3px rgba(0,0,0,0.1), 0px 4px 6px -4px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
+.gate-header { width: 100%; height: 60px; padding: 16px 24px 0; display: flex; align-items: flex-start; }
+.gate-1-header { background: linear-gradient(to right, #155dfc, #1447e6); }
+.gate-2-header { background: linear-gradient(to right, #9810fa, #8200db); }
+.gate-title { margin: 0; font-family: 'Arimo', sans-serif; font-weight: 400; font-size: 20px; line-height: 28px; color: white; white-space: nowrap; }
+.gate-content { position: absolute; top: 84px; left: 24px; width: calc(100% - 48px); height: 619.163px; display: flex; flex-direction: column; gap: 24px; }
+.license-plate-wrapper { width: 100%; height: 343.188px; background-color: #f1f5f9; border: 1.6px solid #cad5e2; border-radius: 10px; padding: 17.6px 17.6px 1.6px; display: flex; flex-direction: column; gap: 12px; }
+.license-plate-label { margin: 0; font-size: 12px; line-height: 16px; color: #45556c; }
+.license-plate-box { width: 100%; height: 280px; background-color: white; border: 1.6px solid #e2e8f0; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.vehicle-icon-wrapper { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.vehicle-icon-box { width: 72px; height: 40px; background-color: #1d293d; border: 4px solid #45556c; border-radius: 10px; }
+.vehicle-text { margin: 0; font-size: 12px; line-height: 16px; color: #90a1b9; text-align: center; }
+.info-grid { width: 100%; height: 167.975px; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 75.988px); gap: 16px; }
+.info-card { width: 100%; height: 75.988px; background-color: #f8fafc; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 4px; }
+.info-card-1 { grid-area: 1 / 1; }
+.info-card-2 { grid-area: 1 / 2; }
+.info-card-3 { grid-area: 2 / 1; }
+.info-card-4 { grid-area: 2 / 2; }
+.info-card-label { margin: 0; font-size: 12px; line-height: 16px; color: #62748e; white-space: nowrap; }
+.info-card-value { display: flex; align-items: center; gap: 8px; height: 24px; }
+.info-card-value img { width: 24px; height: 24px; }
+.vehicle-type-text { font-size: 16px; line-height: 24px; color: #0f172b; text-transform: capitalize; }
+.info-card-value-text { margin: 0; font-family: 'Arimo', sans-serif; font-weight: 400; font-size: 16px; line-height: 24px; color: #0f172b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-number-text { font-family: 'Cousine', monospace; }
+.entry-time-text { font-family: 'Arimo', sans-serif; }
+.process-btn { width: 100%; height: 60px; background-color: #00a63e; border: none; border-radius: 10px; box-shadow: 0px 1px 3px 0px rgba(0,0,0,0.1), 0px 1px 2px -1px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; font-family: 'Arimo', sans-serif; font-size: 18px; line-height: 28px; color: white; white-space: nowrap; transition: opacity 0.2s ease; }
+.process-btn:hover { opacity: 0.9; }
+.process-btn img { width: 24px; height: 24px; }

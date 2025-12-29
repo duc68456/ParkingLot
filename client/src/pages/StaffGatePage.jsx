@@ -1,0 +1,296 @@
+import React, { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import ShiftReportModal from '../components/ShiftReportModal';
+import '../styles/pages/StaffGatePage.css';
+
+// Image assets
+const avatarIcon = "http://localhost:3845/assets/9bddb7d3b5cfd4771d686fa89d8f6c6ee437a2e3.svg";
+const entryIcon = "http://localhost:3845/assets/8ee6b442d525b28d4a107672a3efc208c8d5b28c.svg";
+const exitIcon = "http://localhost:3845/assets/40b6efd51b3d35c2be0b0b2f307ef67ab9118b5a.svg";
+const logoutIcon = "http://localhost:3845/assets/902105cd8549440941d486cd0ccb50c5a0c7c3e2.svg";
+const reportIcon = "http://localhost:3845/assets/2cd94cd69e5a78911979055e1ac2572aef27c1ae.svg";
+const carIcon = "http://localhost:3845/assets/878d7752e239ba114ca716ee37fc3e74eb6b3742.svg";
+const motorcycleIcon = "http://localhost:3845/assets/52051ee00a1dc5ee32879d95bc1062291ce30e6c.svg";
+const bikeIcon = "http://localhost:3845/assets/66f1f8c2b7844cffcea04e705ac2b03b96fc6ff9.svg";
+const vanIcon = "http://localhost:3845/assets/f4914feb3bfbebb6a428b63471152a4faf6aea6a.svg";
+const carLargeIcon = "http://localhost:3845/assets/40da8ed0c07b951d664ec087ff587c1797e9fa58.svg";
+const motorcycleLargeIcon = "http://localhost:3845/assets/3f18c6e8ca4d37dcaa592d3004793dd06527b481.svg";
+const checkIcon = "http://localhost:3845/assets/ed160eb609969c05d3ce53b626616345c19f90cc.svg";
+
+const StaffGatePage = () => {
+  const { user, logout } = useAuth();
+  const [activeTab, setActiveTab] = useState('entry');
+  const [showShiftReport, setShowShiftReport] = useState(false);
+
+  // Mock data for gates
+  const [gate1Data] = useState({
+    gateNumber: 1,
+    vehicleType: 'car',
+    cardNumber: 'N/A',
+    entryTime: '13:12:59',
+    customer: '',
+    hasVehicle: true
+  });
+
+  const [gate2Data] = useState({
+    gateNumber: 2,
+    vehicleType: 'motorcycle',
+    cardNumber: 'N/A',
+    entryTime: '14:12:59',
+    customer: '',
+    hasVehicle: true
+  });
+
+  // Mock parking capacity data
+  const parkingCapacity = {
+    current: 2,
+    total: 2050,
+    cars: { current: 1, total: 500 },
+    motorcycles: { current: 1, total: 1200 },
+    bikes: { current: 0, total: 150 },
+    vans: { current: 0, total: 200 }
+  };
+
+  const handleProcessEntry = (gateNumber) => {
+    console.log(`Processing entry for Gate ${gateNumber}`);
+  };
+
+  const handleViewShiftReport = () => {
+    setShowShiftReport(true);
+  };
+
+  const handleLogout = () => {
+    logout();
+  };
+
+  const capacityPercentage = (parkingCapacity.current / parkingCapacity.total) * 100;
+
+  return (
+    <div className="staff-gate-page">
+      {/* Header - 80.8px height */}
+      <header className="staff-header">
+        <div className="staff-header-container">
+          {/* Staff Info */}
+          <div className="staff-info-section">
+            <div className="staff-avatar">
+              <img src={avatarIcon} alt="Staff" />
+            </div>
+            <div className="staff-text">
+              <p className="staff-role">Staff Member</p>
+              <p className="staff-id">{user?.name || 'Staff Member'} {user?.id || '#000'}</p>
+            </div>
+          </div>
+
+          {/* Tab Switcher - 263.2px width */}
+          <div className="tab-switcher">
+            <button 
+              className={`tab-button ${activeTab === 'entry' ? 'active' : ''}`}
+              onClick={() => setActiveTab('entry')}
+            >
+              <img src={entryIcon} alt="" />
+              <span>Entry Gate</span>
+            </button>
+            <button 
+              className={`tab-button ${activeTab === 'exit' ? 'active' : ''}`}
+              onClick={() => setActiveTab('exit')}
+            >
+              <img src={exitIcon} alt="" />
+              <span>Exit Gate</span>
+            </button>
+          </div>
+
+          {/* Logout Button - 106.188px width */}
+          <button className="logout-btn" onClick={handleLogout}>
+            <img src={logoutIcon} alt="" />
+            <span>Logout</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Main Content - 855.963px height */}
+      <main className="staff-main">
+        {/* Top Action Bar - 53.6px height */}
+        <div className="action-bar">
+          {/* View Shift Report Button - 197.613px width */}
+          <button className="report-btn" onClick={handleViewShiftReport}>
+            <img src={reportIcon} alt="" />
+            <span>View Shift Report</span>
+          </button>
+
+          {/* Parking Capacity Display */}
+          <div className="capacity-container">
+            <div className="capacity-inner">
+              {/* Capacity Numbers */}
+              <div className="capacity-numbers">
+                <span className="capacity-label">Parking Capacity:</span>
+                <div className="capacity-values">
+                  <span className="capacity-current">{parkingCapacity.current}</span>
+                  <span className="capacity-total">/ {parkingCapacity.total}</span>
+                </div>
+              </div>
+
+              {/* Vehicle Stats */}
+              <div className="vehicle-stats">
+                <div className="vehicle-stat-item">
+                  <img src={carIcon} alt="" />
+                  <span>{parkingCapacity.cars.current}/{parkingCapacity.cars.total}</span>
+                </div>
+                <div className="vehicle-stat-item">
+                  <img src={motorcycleIcon} alt="" />
+                  <span>{parkingCapacity.motorcycles.current}/{parkingCapacity.motorcycles.total}</span>
+                </div>
+                <div className="vehicle-stat-item">
+                  <img src={bikeIcon} alt="" />
+                  <span>{parkingCapacity.bikes.current}/{parkingCapacity.bikes.total}</span>
+                </div>
+                <div className="vehicle-stat-item">
+                  <img src={vanIcon} alt="" />
+                  <span>Vans {parkingCapacity.vans.current}/{parkingCapacity.vans.total}</span>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="capacity-progress-wrapper">
+                <div className="capacity-progress-bar">
+                  <div 
+                    className="capacity-progress-fill" 
+                    style={{ width: `${capacityPercentage}%` }}
+                  />
+                </div>
+                <span className="capacity-percent">{Math.round(capacityPercentage)}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Gate Panels - 730.362px height */}
+        <div className="gate-panels">
+          {/* Gate 1 - Entry */}
+          <div className="gate-panel">
+            <div className="gate-header gate-1-header">
+              <h2 className="gate-title">Gate 1 - Entry</h2>
+            </div>
+
+            <div className="gate-content">
+              {/* License Plate Section - 343.188px height */}
+              <div className="license-plate-wrapper">
+                <p className="license-plate-label">License Plate</p>
+                <div className="license-plate-box">
+                  {gate1Data.hasVehicle && (
+                    <div className="vehicle-icon-wrapper">
+                      <div className="vehicle-icon-box" />
+                      <p className="vehicle-text">Vehicle at gate</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Vehicle Info Grid - 167.975px height */}
+              <div className="info-grid">
+                {/* Vehicle Type - Top Left */}
+                <div className="info-card info-card-1">
+                  <p className="info-card-label">Vehicle Type</p>
+                  <div className="info-card-value">
+                    <img src={carLargeIcon} alt="" />
+                    <span className="vehicle-type-text">{gate1Data.vehicleType}</span>
+                  </div>
+                </div>
+
+                {/* Card Number - Top Right */}
+                <div className="info-card info-card-2">
+                  <p className="info-card-label">Card Number</p>
+                  <p className={`info-card-value-text ${gate1Data.cardNumber !== 'N/A' ? 'card-number-text' : ''}`}>{gate1Data.cardNumber}</p>
+                </div>
+
+                {/* Entry Time - Bottom Left */}
+                <div className="info-card info-card-3">
+                  <p className="info-card-label">Entry Time</p>
+                  <p className="info-card-value-text entry-time-text">{gate1Data.entryTime}</p>
+                </div>
+
+                {/* Customer - Bottom Right */}
+                <div className="info-card info-card-4">
+                  <p className="info-card-label">Customer</p>
+                  <p className="info-card-value-text">{gate1Data.customer || 'N/A'}</p>
+                </div>
+              </div>
+
+              {/* Process Entry Button - 60px height */}
+              <button className="process-btn" onClick={() => handleProcessEntry(1)}>
+                <img src={checkIcon} alt="" />
+                <span>Process Entry</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Gate 2 - Entry */}
+          <div className="gate-panel">
+            <div className="gate-header gate-2-header">
+              <h2 className="gate-title">Gate 2 - Entry</h2>
+            </div>
+
+            <div className="gate-content">
+              {/* License Plate Section - 343.188px height */}
+              <div className="license-plate-wrapper">
+                <p className="license-plate-label">License Plate</p>
+                <div className="license-plate-box">
+                  {gate2Data.hasVehicle && (
+                    <div className="vehicle-icon-wrapper">
+                      <div className="vehicle-icon-box" />
+                      <p className="vehicle-text">Vehicle at gate</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Vehicle Info Grid - 167.975px height */}
+              <div className="info-grid">
+                {/* Vehicle Type - Top Left */}
+                <div className="info-card info-card-1">
+                  <p className="info-card-label">Vehicle Type</p>
+                  <div className="info-card-value">
+                    <img src={motorcycleLargeIcon} alt="" />
+                    <span className="vehicle-type-text">{gate2Data.vehicleType}</span>
+                  </div>
+                </div>
+
+                {/* Card Number - Top Right */}
+                <div className="info-card info-card-2">
+                  <p className="info-card-label">Card Number</p>
+                  <p className={`info-card-value-text ${gate2Data.cardNumber !== 'N/A' ? 'card-number-text' : ''}`}>{gate2Data.cardNumber}</p>
+                </div>
+
+                {/* Entry Time - Bottom Left */}
+                <div className="info-card info-card-3">
+                  <p className="info-card-label">Entry Time</p>
+                  <p className="info-card-value-text entry-time-text">{gate2Data.entryTime}</p>
+                </div>
+
+                {/* Customer - Bottom Right */}
+                <div className="info-card info-card-4">
+                  <p className="info-card-label">Customer</p>
+                  <p className="info-card-value-text">{gate2Data.customer || 'N/A'}</p>
+                </div>
+              </div>
+
+              {/* Process Entry Button - 60px height */}
+              <button className="process-btn" onClick={() => handleProcessEntry(2)}>
+                <img src={checkIcon} alt="" />
+                <span>Process Entry</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Shift Report Modal */}
+      <ShiftReportModal 
+        isOpen={showShiftReport} 
+        onClose={() => setShowShiftReport(false)}
+        gateType={activeTab}
+      />
+    </div>
+  );
+};
+
+export default StaffGatePage;
