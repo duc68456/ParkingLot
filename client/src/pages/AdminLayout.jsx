@@ -9,6 +9,8 @@ import CardsPage from './CardsPage';
 import SubscriptionsPage from './SubscriptionsPage';
 import EntrySessionsPage from './EntrySessionsPage';
 import PricingPage from './PricingPage';
+import Dashboard from './Dashboard';
+import ReportsPage from './ReportsPage';
 import '../styles/pages/AdminLayout.css';
 
 export default function AdminLayout({ children }) {
@@ -46,9 +48,11 @@ export default function AdminLayout({ children }) {
         return <EntrySessionsPage />;
       case 'Pricing':
         return <PricingPage />;
+      case 'Reports':
+        return <ReportsPage />;
       case 'Dashboard':
       default:
-        return <h1>Dashboard Content</h1>;
+        return <Dashboard />;
     }
   };
 
