@@ -5,14 +5,14 @@ import StaffGatePage from './pages/StaffGatePage';
 import './styles/App.css';
 
 function AppContent() {
-  const { isAuthenticated, userType } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   if (!isAuthenticated) {
     return <LoginPage />;
   }
 
   // Route based on user type
-  if (userType === 'staff') {
+  if (user?.type === 'staff') {
     return <StaffGatePage />;
   }
 

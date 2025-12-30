@@ -10,6 +10,39 @@
   border-bottom: 0.8px solid rgba(0, 0, 0, 0.1);
 }
 
+/* Tab Navigation (match SubscriptionsPage) */
+.tab-navigation {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 24px;
+}
+
+.tab-button {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #45556c;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.tab-button:hover {
+  color: #155dfc;
+}
+
+.tab-button.active {
+  color: #155dfc;
+  border-bottom-color: #155dfc;
+}
+
 .vehicles-content {
   display: flex;
   flex-direction: column;

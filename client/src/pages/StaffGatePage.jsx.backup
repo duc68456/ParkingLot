@@ -22,7 +22,7 @@ const StaffGatePage = () => {
   const [activeTab, setActiveTab] = useState('entry');
   const [showShiftReport, setShowShiftReport] = useState(false);
 
-  // Mock data for gates - Enhanced with license plates and more fields
+  // Mock data for gates
   const [gate1Data] = useState({
     gateNumber: 1,
     vehicleType: 'car',
@@ -32,8 +32,6 @@ const StaffGatePage = () => {
     plateInput: 'ABC-1234',
     entryTime: '15:25:30',
     customer: 'John Doe',
-    exitTime: 'Pending',
-    price: '$15.00',
     hasVehicle: true
   });
 
@@ -46,8 +44,6 @@ const StaffGatePage = () => {
     plateInput: 'XYZ-5678',
     entryTime: '16:25:30',
     customer: 'Jane Smith',
-    exitTime: 'Pending',
-    price: '$10.00',
     hasVehicle: true
   });
 
@@ -175,22 +171,18 @@ const StaffGatePage = () => {
 
         {/* Gate Panels - 730.362px height */}
         <div className="gate-panels">
-          {/* Gate 1 */}
+          {/* Gate 1 - Entry */}
           <div className="gate-panel">
             <div className="gate-header gate-1-header">
-              <h2 className="gate-title">Gate 1 - {activeTab === 'entry' ? 'Entry' : 'Exit'}</h2>
+              <h2 className="gate-title">Gate 1 - Entry</h2>
             </div>
 
             <div className="gate-content">
-              {/* License Plate Section */}
+              {/* License Plate Section - 343.188px height */}
               <div className="license-plate-wrapper">
                 <p className="license-plate-label">License Plate</p>
                 <div className="license-plate-box">
-                  {gate1Data.hasVehicle && gate1Data.licensePlate ? (
-                    <div className="license-plate-display">
-                      <p className="license-plate-text">{gate1Data.licensePlate}</p>
-                    </div>
-                  ) : (
+                  {gate1Data.hasVehicle && (
                     <div className="vehicle-icon-wrapper">
                       <div className="vehicle-icon-box" />
                       <p className="vehicle-text">Vehicle at gate</p>
@@ -199,15 +191,10 @@ const StaffGatePage = () => {
                 </div>
               </div>
 
-              {/* Vehicle Info Grid - 3 rows x 2 columns (6 cards) */}
+              {/* Vehicle Info Grid - 167.975px height */}
               <div className="info-grid">
-                {/* Row 1: Card ID & Vehicle Type */}
-                <div className="info-card">
-                  <p className="info-card-label">Card ID</p>
-                  <p className="info-card-value-text card-id-text">{gate1Data.cardId}</p>
-                </div>
-
-                <div className="info-card">
+                {/* Vehicle Type - Top Left */}
+                <div className="info-card info-card-1">
                   <p className="info-card-label">Vehicle Type</p>
                   <div className="info-card-value">
                     <img src={carLargeIcon} alt="" />
@@ -215,67 +202,45 @@ const StaffGatePage = () => {
                   </div>
                 </div>
 
-                {/* Row 2: Plate Queried & Plate Input */}
-                <div className="info-card">
-                  <p className="info-card-label">Plate Queried</p>
-                  <p className="info-card-value-text plate-text">{gate1Data.plateQueried}</p>
+                {/* Card Number - Top Right */}
+                <div className="info-card info-card-2">
+                  <p className="info-card-label">Card Number</p>
+                  <p className={`info-card-value-text ${gate1Data.cardNumber !== 'N/A' ? 'card-number-text' : ''}`}>{gate1Data.cardNumber}</p>
                 </div>
 
-                <div className="info-card">
-                  <p className="info-card-label">Plate Input</p>
-                  <p className="info-card-value-text plate-text">{gate1Data.plateInput}</p>
-                </div>
-
-                {/* Row 3: Entry Time & Customer */}
-                <div className="info-card">
+                {/* Entry Time - Bottom Left */}
+                <div className="info-card info-card-3">
                   <p className="info-card-label">Entry Time</p>
                   <p className="info-card-value-text entry-time-text">{gate1Data.entryTime}</p>
                 </div>
 
-                <div className="info-card">
+                {/* Customer - Bottom Right */}
+                <div className="info-card info-card-4">
                   <p className="info-card-label">Customer</p>
-                  <p className="info-card-value-text">{gate1Data.customer}</p>
+                  <p className="info-card-value-text">{gate1Data.customer || 'N/A'}</p>
                 </div>
-
-                {activeTab === 'exit' && (
-                  <>
-                    <div className="info-card">
-                      <p className="info-card-label">Exit Time</p>
-                      <p className="info-card-value-text pending-text">{gate1Data.exitTime}</p>
-                    </div>
-
-                    <div className="info-card">
-                      <p className="info-card-label">Price</p>
-                      <p className="info-card-value-text">{gate1Data.price}</p>
-                    </div>
-                  </>
-                )}
               </div>
 
-              {/* Process Button */}
+              {/* Process Entry Button - 60px height */}
               <button className="process-btn" onClick={() => handleProcessEntry(1)}>
                 <img src={checkIcon} alt="" />
-                <span>Process {activeTab === 'entry' ? 'Entry' : 'Exit'}</span>
+                <span>Process Entry</span>
               </button>
             </div>
           </div>
 
-          {/* Gate 2 */}
+          {/* Gate 2 - Entry */}
           <div className="gate-panel">
             <div className="gate-header gate-2-header">
-              <h2 className="gate-title">Gate 2 - {activeTab === 'entry' ? 'Entry' : 'Exit'}</h2>
+              <h2 className="gate-title">Gate 2 - Entry</h2>
             </div>
 
             <div className="gate-content">
-              {/* License Plate Section */}
+              {/* License Plate Section - 343.188px height */}
               <div className="license-plate-wrapper">
                 <p className="license-plate-label">License Plate</p>
                 <div className="license-plate-box">
-                  {gate2Data.hasVehicle && gate2Data.licensePlate ? (
-                    <div className="license-plate-display">
-                      <p className="license-plate-text">{gate2Data.licensePlate}</p>
-                    </div>
-                  ) : (
+                  {gate2Data.hasVehicle && (
                     <div className="vehicle-icon-wrapper">
                       <div className="vehicle-icon-box" />
                       <p className="vehicle-text">Vehicle at gate</p>
@@ -284,15 +249,10 @@ const StaffGatePage = () => {
                 </div>
               </div>
 
-              {/* Vehicle Info Grid - 3 rows x 2 columns (6 cards) */}
+              {/* Vehicle Info Grid - 167.975px height */}
               <div className="info-grid">
-                {/* Row 1: Card ID & Vehicle Type */}
-                <div className="info-card">
-                  <p className="info-card-label">Card ID</p>
-                  <p className="info-card-value-text card-id-text">{gate2Data.cardId}</p>
-                </div>
-
-                <div className="info-card">
+                {/* Vehicle Type - Top Left */}
+                <div className="info-card info-card-1">
                   <p className="info-card-label">Vehicle Type</p>
                   <div className="info-card-value">
                     <img src={motorcycleLargeIcon} alt="" />
@@ -300,49 +260,29 @@ const StaffGatePage = () => {
                   </div>
                 </div>
 
-                {/* Row 2: Plate Queried & Plate Input */}
-                <div className="info-card">
-                  <p className="info-card-label">Plate Queried</p>
-                  <p className={`info-card-value-text ${gate2Data.plateQueried === 'Instant' ? 'instant-text' : 'plate-text'}`}>
-                    {gate2Data.plateQueried}
-                  </p>
+                {/* Card Number - Top Right */}
+                <div className="info-card info-card-2">
+                  <p className="info-card-label">Card Number</p>
+                  <p className={`info-card-value-text ${gate2Data.cardNumber !== 'N/A' ? 'card-number-text' : ''}`}>{gate2Data.cardNumber}</p>
                 </div>
 
-                <div className="info-card">
-                  <p className="info-card-label">Plate Input</p>
-                  <p className="info-card-value-text plate-text">{gate2Data.plateInput}</p>
-                </div>
-
-                {/* Row 3: Entry Time & Customer */}
-                <div className="info-card">
+                {/* Entry Time - Bottom Left */}
+                <div className="info-card info-card-3">
                   <p className="info-card-label">Entry Time</p>
                   <p className="info-card-value-text entry-time-text">{gate2Data.entryTime}</p>
                 </div>
 
-                <div className="info-card">
+                {/* Customer - Bottom Right */}
+                <div className="info-card info-card-4">
                   <p className="info-card-label">Customer</p>
-                  <p className="info-card-value-text">{gate2Data.customer}</p>
+                  <p className="info-card-value-text">{gate2Data.customer || 'N/A'}</p>
                 </div>
-
-                {activeTab === 'exit' && (
-                  <>
-                    <div className="info-card">
-                      <p className="info-card-label">Exit Time</p>
-                      <p className="info-card-value-text pending-text">{gate2Data.exitTime}</p>
-                    </div>
-
-                    <div className="info-card">
-                      <p className="info-card-label">Price</p>
-                      <p className="info-card-value-text">{gate2Data.price}</p>
-                    </div>
-                  </>
-                )}
               </div>
 
-              {/* Process Button */}
+              {/* Process Entry Button - 60px height */}
               <button className="process-btn" onClick={() => handleProcessEntry(2)}>
                 <img src={checkIcon} alt="" />
-                <span>Process {activeTab === 'entry' ? 'Entry' : 'Exit'}</span>
+                <span>Process Entry</span>
               </button>
             </div>
           </div>

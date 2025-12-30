@@ -1,9 +1,20 @@
 .tab-navigation {
   display: flex;
   align-items: flex-start;
-  gap: 0;
-  overflow: hidden;
-  width: fit-content;
+  gap: 4px;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  /* Hide scrollbar (keep scroll working) */
+  -ms-overflow-style: none; /* IE/Edge legacy */
+  scrollbar-width: none; /* Firefox */
+  border-bottom: 0.8px solid black;
+  padding-bottom: 0.8px;
+}
+
+.tab-navigation::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Edge */
 }
 
 .tab-button {
@@ -13,7 +24,6 @@
   padding: 0 16px;
   margin: 0;
   height: 44px;
-  padding-bottom: 1.6px;
   background: transparent;
   border: none;
   border-radius: 0;
@@ -36,7 +46,7 @@
 }
 
 .tab-button.active {
-  border-bottom-color: #155DFC;
+  border-bottom-color: #155dfc;
   background: transparent;
   outline: none;
 }
@@ -50,10 +60,11 @@
   line-height: 20px;
   color: #45556C;
   white-space: nowrap;
+  font-weight: 400;
 }
 
 .tab-button.active .tab-label {
-  color: #155DFC;
+  color: #155dfc;
 }
 
 .tab-count {
