@@ -1,13 +1,13 @@
 import '../styles/components/NavItem.css';
 
-export default function NavItem({ icon, label, isActive, onClick, isCollapsed }) {
+export default function NavItem({ icon: Icon, label, isActive, onClick, isCollapsed }) {
   return (
     <button 
       className={`nav-item ${isActive ? 'active' : ''}`}
       onClick={onClick}
       title={isCollapsed ? label : ''}
     >
-      <img src={icon} alt="" className="nav-item-icon" />
+      {Icon ? <Icon className="nav-item-icon" aria-hidden="true" focusable="false" /> : null}
       {!isCollapsed && <span className="nav-item-label">{label}</span>}
     </button>
   );

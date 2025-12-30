@@ -11,14 +11,17 @@
   cursor: pointer;
   transition: background 0.2s ease;
   text-align: left;
+  color: #90a1b9;
 }
 
 .nav-item:hover {
   background: #f8fafc;
+  color: #4a5667;
 }
 
 .nav-item.active {
   background: #eff6ff;
+  color: #1447e6;
 }
 
 .nav-item-icon {
@@ -27,15 +30,19 @@
   flex-shrink: 0;
 }
 
+.nav-item-icon * {
+  stroke: currentColor;
+}
+
 .nav-item-label {
   font-family: 'Arimo', sans-serif;
   font-size: 14px;
   font-weight: 400;
   line-height: 20px;
-  color: #45556c;
+  color: inherit;
   white-space: nowrap;
 }
 
 .nav-item.active .nav-item-label {
-  color: #1447e6;
+  color: inherit;
 }

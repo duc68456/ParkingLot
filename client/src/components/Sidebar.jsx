@@ -3,17 +3,17 @@ import NavItem from './NavItem';
 import '../styles/components/Sidebar.css';
 
 import logoIcon from '../assets/icons/logo.svg';
-import dashboardIcon from '../assets/icons/dashboard.svg';
-import purchaseIcon from '../assets/icons/purchase-card.svg';
-import peopleIcon from '../assets/icons/people.svg';
-import vehiclesIcon from '../assets/icons/vehicles.svg';
-import cardsIcon from '../assets/icons/cards.svg';
-import subscriptionsIcon from '../assets/icons/subscriptions.svg';
-import entryIcon from '../assets/icons/entry-sessions.svg';
-import returnsIcon from '../assets/icons/returns.svg';
-import pricingIcon from '../assets/icons/pricing.svg';
-import shiftsIcon from '../assets/icons/shifts.svg';
-import reportsIcon from '../assets/icons/reports.svg';
+import DashboardIcon from '../assets/icons/dashboard.svg?react';
+import PurchaseIcon from '../assets/icons/purchase-card.svg?react';
+import PeopleIcon from '../assets/icons/people.svg?react';
+import VehiclesIcon from '../assets/icons/vehicles.svg?react';
+import CardsIcon from '../assets/icons/cards.svg?react';
+import SubscriptionsIcon from '../assets/icons/subscriptions.svg?react';
+import EntryIcon from '../assets/icons/entry-sessions.svg?react';
+import ReturnsIcon from '../assets/icons/returns.svg?react';
+import PricingIcon from '../assets/icons/pricing.svg?react';
+import ShiftsIcon from '../assets/icons/shifts.svg?react';
+import ReportsIcon from '../assets/icons/reports.svg?react';
 import collapseIcon from '../assets/icons/collapse.svg';
 import logoutIcon from '../assets/icons/logout.svg';
 
@@ -21,17 +21,17 @@ export default function Sidebar({ currentPage = 'Dashboard', onLogout, isCollaps
   const [activePage, setActivePage] = useState(activeItem || currentPage);
 
   const navItems = [
-    { id: 'Dashboard', label: 'Dashboard', icon: dashboardIcon },
-    { id: 'Purchase Card', label: 'Purchase Card', icon: purchaseIcon },
-    { id: 'People', label: 'People', icon: peopleIcon },
-    { id: 'Vehicles', label: 'Vehicles', icon: vehiclesIcon },
-    { id: 'Cards', label: 'Cards', icon: cardsIcon },
-    { id: 'Subscriptions', label: 'Subscriptions', icon: subscriptionsIcon },
-    { id: 'Entry Sessions', label: 'Entry Sessions', icon: entryIcon },
-    { id: 'Returns', label: 'Returns', icon: returnsIcon },
-    { id: 'Pricing', label: 'Pricing', icon: pricingIcon },
-    { id: 'Shifts', label: 'Shifts', icon: shiftsIcon },
-    { id: 'Reports', label: 'Reports', icon: reportsIcon },
+    { id: 'Dashboard', label: 'Dashboard', icon: DashboardIcon },
+    { id: 'Purchase Card', label: 'Purchase Card', icon: PurchaseIcon },
+    { id: 'People', label: 'People', icon: PeopleIcon },
+    { id: 'Vehicles', label: 'Vehicles', icon: VehiclesIcon },
+    { id: 'Cards', label: 'Cards', icon: CardsIcon },
+    { id: 'Subscriptions', label: 'Subscriptions', icon: SubscriptionsIcon },
+    { id: 'Entry Sessions', label: 'Entry Sessions', icon: EntryIcon },
+    { id: 'Returns', label: 'Returns', icon: ReturnsIcon },
+    { id: 'Pricing', label: 'Pricing', icon: PricingIcon },
+    { id: 'Shifts', label: 'Shifts', icon: ShiftsIcon },
+    { id: 'Reports', label: 'Reports', icon: ReportsIcon },
   ];
 
   const handleNavClick = (label) => {
