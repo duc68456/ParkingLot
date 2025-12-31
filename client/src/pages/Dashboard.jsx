@@ -6,6 +6,18 @@ import UsersIcon from '../assets/icons/dashboard/users.svg?react';
 import PulseIcon from '../assets/icons/dashboard/pulse.svg?react';
 import ArrowUpIcon from '../assets/icons/dashboard/arrow-up.svg?react';
 
+import EntryActivityIcon from '../assets/icons/dashboard/activity-entry.svg?react';
+import ExitActivityIcon from '../assets/icons/dashboard/activity-exit.svg?react';
+
+import AlertWarningIcon from '../assets/icons/dashboard/alert-warning.svg?react';
+import AlertDangerIcon from '../assets/icons/dashboard/alert-danger.svg?react';
+import AlertInfoIcon from '../assets/icons/dashboard/alert-info.svg?react';
+
+import CapacityCarsIcon from '../assets/icons/dashboard/capacity-cars.svg?react';
+import CapacityMotorcyclesIcon from '../assets/icons/dashboard/capacity-motorcycles.svg?react';
+import CapacityTrucksIcon from '../assets/icons/dashboard/capacity-trucks.svg?react';
+import CapacityVansIcon from '../assets/icons/dashboard/capacity-vans.svg?react';
+
 export default function Dashboard() {
   const stats = [
     {
@@ -212,7 +224,13 @@ export default function Dashboard() {
             <div className="dashboard-activityList">
               {recentActivity.map((a) => (
                 <div key={a.id} className="dashboard-activityItem">
-                  <div className={`dashboard-activityIcon dashboard-activityIcon--${a.tone}`} aria-hidden="true" />
+                  <div className={`dashboard-activityIcon dashboard-activityIcon--${a.tone}`} aria-hidden="true">
+                    {a.type === 'ENTRY' ? (
+                      <EntryActivityIcon className="dashboard-activityIconSvg" aria-hidden="true" focusable="false" />
+                    ) : (
+                      <ExitActivityIcon className="dashboard-activityIconSvg" aria-hidden="true" focusable="false" />
+                    )}
+                  </div>
                   <div className="dashboard-activityBody">
                     <div className="dashboard-activityTop">
                       <span className={`dashboard-pill dashboard-pill--${a.tone}`}>{a.type}</span>
@@ -234,6 +252,15 @@ export default function Dashboard() {
             <div className="dashboard-alertList">
               {alerts.map((al) => (
                 <div key={al.id} className={`dashboard-alert dashboard-alert--${al.tone}`}>
+                  <div className="dashboard-alertIcon" aria-hidden="true">
+                    {al.tone === 'warning' ? (
+                      <AlertWarningIcon className="dashboard-alertIconSvg" aria-hidden="true" focusable="false" />
+                    ) : al.tone === 'danger' ? (
+                      <AlertDangerIcon className="dashboard-alertIconSvg" aria-hidden="true" focusable="false" />
+                    ) : (
+                      <AlertInfoIcon className="dashboard-alertIconSvg" aria-hidden="true" focusable="false" />
+                    )}
+                  </div>
                   <div className="dashboard-alertBody">
                     <div className="dashboard-alertTitle">{al.title}</div>
                     <div className="dashboard-alertTime">{al.time}</div>
@@ -252,7 +279,20 @@ export default function Dashboard() {
             {capacity.map((c) => (
               <div key={c.id} className={`dashboard-capacityCard dashboard-capacityCard--${c.tone}`}>
                 <div className="dashboard-capacityTop">
-                  <div className="dashboard-capacityTitle">{c.title}</div>
+                  <div className="dashboard-capacityTitle">
+                    <span className="dashboard-capacityIcon" aria-hidden="true">
+                      {c.id === 'cars' ? (
+                        <CapacityCarsIcon className="dashboard-capacityIconSvg" aria-hidden="true" focusable="false" />
+                      ) : c.id === 'motorcycles' ? (
+                        <CapacityMotorcyclesIcon className="dashboard-capacityIconSvg" aria-hidden="true" focusable="false" />
+                      ) : c.id === 'trucks' ? (
+                        <CapacityTrucksIcon className="dashboard-capacityIconSvg" aria-hidden="true" focusable="false" />
+                      ) : (
+                        <CapacityVansIcon className="dashboard-capacityIconSvg" aria-hidden="true" focusable="false" />
+                      )}
+                    </span>
+                    <span>{c.title}</span>
+                  </div>
                   <div className="dashboard-capacityPercent">{c.percentLabel}</div>
                 </div>
                 <div className={`dashboard-capacityValue dashboard-capacityValue--${c.tone}`}>{c.value}</div>

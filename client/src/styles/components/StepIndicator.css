@@ -3,6 +3,7 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  /* Figma stepper container uses 104px side padding */
   padding: 0 104px;
 }
 
@@ -28,6 +29,11 @@
   background: #155dfc;
 }
 
+.step-circle.completed {
+  background: #155dfc;
+  color: #ffffff;
+}
+
 .step-number {
   font-family: 'Arimo', sans-serif;
   font-weight: 400;
@@ -38,6 +44,15 @@
 
 .step-circle.active .step-number {
   color: white;
+}
+
+.step-circle.completed .step-number {
+  color: white;
+}
+
+.step-check {
+  display: block;
+  color: #ffffff;
 }
 
 .step-info {
@@ -67,4 +82,8 @@
   height: 4px;
   background: #e2e8f0;
   min-width: 40px;
+}
+
+.step-divider.active {
+  background: #155dfc;
 }

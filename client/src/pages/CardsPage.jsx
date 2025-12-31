@@ -3,6 +3,12 @@ import AssignCardModal from '../components/AssignCardModal';
 import AddCategoryModal from '../components/AddCategoryModal';
 import EditCategoryModal from '../components/EditCategoryModal';
 import ViewCardModal from '../components/ViewCardModal';
+import {
+  CardsActionEditIcon,
+  CardsActionSearchIcon,
+  CardsActionViewIcon,
+  CardsGlyphListIcon
+} from '../assets/icons/cards';
 import '../styles/pages/CardsPage.css';
 
 // Mock data for cards
@@ -99,25 +105,21 @@ function CardsPage() {
     {
       label: 'Total Cards',
       value: '6',
-      icon: 'http://localhost:3845/assets/a8ca772dbbf61997217d0a90cf4574fa8cefb7cf.svg',
       gradient: 'linear-gradient(135deg, rgb(43, 127, 255) 0%, rgb(21, 93, 252) 100%)'
     },
     {
       label: 'Unassigned',
       value: '1',
-      icon: 'http://localhost:3845/assets/73ad19f3b093246f1e830faeba484b5e142eaf9e.svg',
       gradient: 'linear-gradient(135deg, rgb(240, 177, 0) 0%, rgb(208, 135, 0) 100%)'
     },
     {
       label: 'Active Cards',
       value: '3',
-      icon: 'http://localhost:3845/assets/cd8a1275cff7628ece0ac7c869b4c0cb895043f6.svg',
       gradient: 'linear-gradient(135deg, rgb(0, 201, 80) 0%, rgb(0, 166, 62) 100%)'
     },
     {
       label: 'Categories',
       value: '4',
-      icon: 'http://localhost:3845/assets/5d5d3a4944eb57523233f0560defded7a238da47.svg',
       gradient: 'linear-gradient(135deg, rgb(173, 70, 255) 0%, rgb(152, 16, 250) 100%)'
     }
   ];
@@ -259,7 +261,9 @@ function CardsPage() {
               className="stat-icon"
               style={{ backgroundImage: stat.gradient }}
             >
-              <img src={stat.icon} alt="" />
+              <div className="cards-statIcon" aria-hidden="true">
+                <CardsActionSearchIcon />
+              </div>
             </div>
             <div className="stat-content">
               <p className="stat-label">{stat.label}</p>
@@ -289,11 +293,9 @@ function CardsPage() {
           <div className="filters-section">
             {/* Search */}
             <div className="search-input-wrapper">
-              <img
-                src="http://localhost:3845/assets/576f3afeb315c88345b0812bf4010526d76b3d5b.svg"
-                alt=""
-                className="search-icon"
-              />
+              <span className="search-icon" aria-hidden="true">
+                <CardsActionSearchIcon />
+              </span>
               <input
                 type="text"
                 placeholder="Search cards..."
@@ -374,10 +376,9 @@ function CardsPage() {
                           className="card-icon"
                           style={{ backgroundImage: card.gradient }}
                         >
-                          <img
-                            src="http://localhost:3845/assets/48c5ec2984942afc7a9f1923cb9d463027cdf83f.svg"
-                            alt=""
-                          />
+                          <div className="cards-cardGlyph" aria-hidden="true">
+                            <CardsGlyphListIcon />
+                          </div>
                         </div>
                         <div className="card-details">
                           <p className="card-uid">{card.uid}</p>
@@ -404,20 +405,14 @@ function CardsPage() {
                           onClick={() => handleViewCard(card.id)}
                           title="View"
                         >
-                          <img
-                            src="http://localhost:3845/assets/fff43459d23d75a693e463832b4f1a77eebd5c88.svg"
-                            alt="View"
-                          />
+                          <CardsActionViewIcon aria-hidden="true" />
                         </button>
                         <button
                           className="action-btn"
                           onClick={() => handleEditCard(card.id)}
                           title="Edit"
                         >
-                          <img
-                            src="http://localhost:3845/assets/22ed6fed4c4d56385d3b4d40f1a0236ded42a86e.svg"
-                            alt="Edit"
-                          />
+                          <CardsActionEditIcon aria-hidden="true" />
                         </button>
                       </div>
                     </td>
@@ -473,10 +468,9 @@ function CardsPage() {
                           className="card-icon"
                           style={{ backgroundImage: card.gradient }}
                         >
-                          <img
-                            src="http://localhost:3845/assets/48c5ec2984942afc7a9f1923cb9d463027cdf83f.svg"
-                            alt=""
-                          />
+                          <div className="cards-cardGlyph" aria-hidden="true">
+                            <CardsGlyphListIcon />
+                          </div>
                         </div>
                         <div className="card-details">
                           <p className="card-uid">{card.uid}</p>
@@ -564,10 +558,7 @@ function CardsPage() {
                           onClick={() => handleEditCategory(category.id)}
                           title="Edit"
                         >
-                          <img
-                            src="http://localhost:3845/assets/22ed6fed4c4d56385d3b4d40f1a0236ded42a86e.svg"
-                            alt="Edit"
-                          />
+                          <CardsActionEditIcon aria-hidden="true" />
                         </button>
                         <button
                           className="action-btn action-btn-delete"

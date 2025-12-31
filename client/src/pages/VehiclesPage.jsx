@@ -12,7 +12,7 @@ import EditVehicleModal from '../components/EditVehicleModal';
 import EditVehicleTypeModal from '../components/EditVehicleTypeModal';
 import '../styles/pages/VehiclesPage.css';
 
-const searchIcon = "http://localhost:3845/assets/48c5ec2984942afc7a9f1923cb9d463027cdf83f.svg";
+import searchIcon from '../assets/icons/common/actions/search.svg';
 
 // Mock data
 const mockVehicles = [

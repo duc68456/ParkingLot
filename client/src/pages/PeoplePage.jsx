@@ -9,13 +9,14 @@ import AddEmployeeModal from '../components/AddEmployeeModal';
 import ViewCardsModal from '../components/ViewCardsModal';
 import ViewCustomerModal from '../components/ViewCustomerModal';
 import EditCustomerModal from '../components/EditCustomerModal';
+import { CommonActionAddIcon, CommonActionSearchIcon } from '../assets/icons/common';
+import { PeopleTabCustomerIcon, PeopleTabEmployeeIcon } from '../assets/icons/people';
 import '../styles/pages/PeoplePage.css';
 
-const phoneIcon = "http://localhost:3845/assets/48c5ec2984942afc7a9f1923cb9d463027cdf83f.svg";
-const searchIcon = "http://localhost:3845/assets/38e660c2c89b4d9e1fe6e4909c5ddaa96ff8b7d8.svg";
-const customerIcon = "http://localhost:3845/assets/f73e3e770325ea0770695a7e8611212600652187.svg";
-const employeeIcon = "http://localhost:3845/assets/d13ba3401db8728892168a5e71047a1e4cf7408b.svg";
-const addIcon = "http://localhost:3845/assets/10fef702e521cd978007cbf6b09f2fa3cf287e8a.svg";
+// Some shared components (SearchInput / CustomersTable) currently expect an image URL.
+// For those, we keep using the existing local SVG strings already in the repo.
+import searchInputIconUrl from '../assets/icons/cards/actions/search.svg';
+import phoneIconUrl from '../assets/icons/common/objects/phone.svg';
 
 // Mock data
 const mockCustomers = [
@@ -136,13 +137,13 @@ export default function PeoplePage() {
     { 
       id: 'customers', 
       label: 'Customers', 
-      icon: customerIcon,
+      icon: <PeopleTabCustomerIcon aria-hidden="true" />,
       count: customers.length 
     },
     { 
       id: 'employees', 
       label: 'Employees', 
-      icon: employeeIcon,
+      icon: <PeopleTabEmployeeIcon aria-hidden="true" />,
       count: mockEmployees.length 
     }
   ];
@@ -220,7 +221,9 @@ export default function PeoplePage() {
         />
         {activeTab === 'employees' && (
           <button className="add-employee-btn" onClick={handleAddEmployee}>
-            <img src={addIcon} alt="" className="btn-icon" />
+            <span className="btn-icon" aria-hidden="true">
+              <CommonActionAddIcon />
+            </span>
             <span>Add Employee</span>
           </button>
         )}
@@ -240,7 +243,7 @@ export default function PeoplePage() {
             placeholder={activeTab === 'customers' ? 'Search customers...' : 'Search employees...'}
             value={searchQuery}
             onChange={setSearchQuery}
-            icon={searchIcon}
+            icon={searchInputIconUrl}
           />
           <StatusFilter
             value={statusFilter}
@@ -255,7 +258,7 @@ export default function PeoplePage() {
         {activeTab === 'customers' ? (
           <CustomersTable 
             customers={filteredCustomers} 
-            phoneIcon={phoneIcon}
+            phoneIcon={phoneIconUrl}
             onView={handleViewCustomer}
             onViewCards={handleViewCards}
             onEdit={handleEditCustomer}

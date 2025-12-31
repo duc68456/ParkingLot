@@ -5,8 +5,15 @@ import SearchInput from '../components/SearchInput';
 import CustomerCard from '../components/CustomerCard';
 import '../styles/pages/PurchaseCardPage.css';
 
-const searchIcon = "http://localhost:3845/assets/da9097a84ec21b5d04531a516eeb0578b045e45f.svg";
-const plusIcon = "http://localhost:3845/assets/d5adc677833421c90551d173e93323a33412b09b.svg";
+import {
+  PurchaseCardPlusIcon,
+  PurchaseCardSearchIconUrl,
+  PurchaseCardTrashIcon,
+  PurchaseCardCloseIcon,
+  PurchaseCardCheckCircleIcon,
+  PurchaseCardPrintIcon,
+  PurchaseCardDownloadIcon,
+} from '../assets/icons/purchase-card';
 
 // Mock customer data
 const mockCustomers = [
@@ -38,6 +45,7 @@ export default function PurchaseCardPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -50,24 +58,29 @@ export default function PurchaseCardPage() {
   const [cards, setCards] = useState([]);
   const [cardForm, setCardForm] = useState({
     category: '',
+    quantity: 1,
     expiryDate: '',
-    plateNumber: '',
-    vehicleType: ''
   });
   const [cardErrors, setCardErrors] = useState({});
+
+  // Keep invoice meta stable for the session so Step 3 matches the design.
+  const [invoiceNumber] = useState(() => `INV-${Date.now()}`);
+  const [invoiceDate] = useState(() => new Date().toLocaleDateString('en-GB'));
 
   const steps = [
     {
       number: 1,
       title: 'Customer',
       subtitle: 'Select or Create',
-      active: currentStep === 1
+      active: currentStep === 1,
+      completed: currentStep > 1
     },
     {
       number: 2,
       title: 'Purchase Cards',
       subtitle: 'Add Cards',
-      active: currentStep === 2
+      active: currentStep === 2,
+      completed: currentStep > 2
     },
     {
       number: 3,
@@ -186,12 +199,9 @@ export default function PurchaseCardPage() {
       newErrors.category = 'Card category is required';
     }
 
-    if (!cardForm.plateNumber.trim()) {
-      newErrors.plateNumber = 'Plate number is required';
-    }
-
-    if (!cardForm.vehicleType) {
-      newErrors.vehicleType = 'Vehicle type is required';
+    const qty = Number(cardForm.quantity);
+    if (!Number.isFinite(qty) || qty < 1) {
+      newErrors.quantity = 'Quantity must be at least 1';
     }
 
     setCardErrors(newErrors);
@@ -204,19 +214,20 @@ export default function PurchaseCardPage() {
       return;
     }
 
-    const newCard = {
-      id: `CARD${String(cards.length + 1).padStart(3, '0')}`,
-      ...cardForm
-    };
+    const qty = Number(cardForm.quantity) || 1;
+    const newCards = Array.from({ length: qty }).map((_, idx) => ({
+      id: `CARD${String(cards.length + idx + 1).padStart(3, '0')}`,
+      category: cardForm.category,
+      expiryDate: cardForm.expiryDate,
+    }));
 
-    setCards(prev => [...prev, newCard]);
+    setCards((prev) => [...prev, ...newCards]);
     
     // Reset form
     setCardForm({
       category: '',
+      quantity: 1,
       expiryDate: '',
-      plateNumber: '',
-      vehicleType: ''
     });
     setCardErrors({});
   };
@@ -231,8 +242,13 @@ export default function PurchaseCardPage() {
     }
   };
 
-  const handleRemoveCard = (cardId) => {
-    setCards(cards.filter(card => card.id !== cardId));
+  const handleRemoveCard = (cardIdOrCategory) => {
+    // Backwards compatible: can remove by card id or by category string
+    if (!cardIdOrCategory) return;
+
+    setCards((prev) =>
+      prev.filter((card) => card.id !== cardIdOrCategory && card.category !== cardIdOrCategory)
+    );
   };
 
   const getCategoryPrice = (category) => {
@@ -270,13 +286,30 @@ export default function PurchaseCardPage() {
     return calculateSubtotal() + calculateTax();
   };
 
+  const getInvoiceNumber = () => invoiceNumber;
+  const getInvoiceDate = () => invoiceDate;
+
   const handleConfirmPayment = () => {
     console.log('Payment confirmed!');
     console.log('Customer:', selectedCustomer);
     console.log('Cards:', cards);
     console.log('Total:', calculateTotal());
-    // TODO: Integrate with backend API
-    alert(`Payment of $${calculateTotal().toFixed(2)} confirmed!`);
+
+    setShowInvoiceModal(true);
+  };
+
+  const handleCloseInvoiceModal = () => {
+    setShowInvoiceModal(false);
+  };
+
+  const handleDownloadInvoice = () => {
+    // TODO: Implement actual PDF generation
+    console.log('Download invoice PDF');
+  };
+
+  const handlePrintInvoice = () => {
+    // TODO: Print only modal content (needs dedicated print CSS)
+    window.print();
   };
 
   const filteredCustomers = mockCustomers.filter(customer => {
@@ -313,7 +346,7 @@ export default function PurchaseCardPage() {
             placeholder="Search by name, email, or phone..."
             value={searchQuery}
             onChange={setSearchQuery}
-            icon={searchIcon}
+            icon={PurchaseCardSearchIconUrl}
             className="customer-search"
           />
 
@@ -334,7 +367,7 @@ export default function PurchaseCardPage() {
           {/* Create New Customer Button */}
           <div className="create-customer-section">
             <button className="create-customer-btn" onClick={handleCreateCustomer}>
-              <img src={plusIcon} alt="" />
+              <PurchaseCardPlusIcon className="purchaseCardPlusIcon" aria-hidden="true" focusable="false" />
               Create New Customer
             </button>
           </div>
@@ -478,17 +511,9 @@ export default function PurchaseCardPage() {
             </p>
           </div>
 
-          {/* Selected Customer Info */}
-          <div className="selected-customer-info">
-            <div className="customer-avatar-large" style={{
-              backgroundImage: 'linear-gradient(135deg, rgb(43, 127, 255) 0%, rgb(21, 93, 252) 100%)'
-            }}>
-              {selectedCustomer.initials}
-            </div>
-            <div className="customer-details">
-              <p className="customer-name">{selectedCustomer.name}</p>
-              <p className="customer-email">{selectedCustomer.email}</p>
-            </div>
+          {/* Selected Customer */}
+          <div className="purchase-customerBanner">
+            <CustomerCard customer={selectedCustomer} variant="compact" />
           </div>
 
           {/* Add New Card Form */}
@@ -501,7 +526,7 @@ export default function PurchaseCardPage() {
             </div>
 
             <div className="card-form-fields">
-              {/* Row 1: Card Category and Expiry Date */}
+              {/* Row 1: Card Category + Quantity */}
               <div className="card-form-row">
                 <div className="form-field">
                   <label className="form-label">
@@ -523,52 +548,31 @@ export default function PurchaseCardPage() {
                 </div>
 
                 <div className="form-field">
-                  <label className="form-label">Expiry Date (Optional)</label>
+                  <label className="form-label">
+                    Quantity<span className="required">*</span>
+                  </label>
                   <input
-                    type="date"
-                    name="expiryDate"
-                    value={cardForm.expiryDate}
+                    type="number"
+                    name="quantity"
+                    min="1"
+                    value={cardForm.quantity || 1}
                     onChange={handleCardFormChange}
-                    className="form-input"
+                    className={`form-input ${cardErrors.quantity ? 'error' : ''}`}
                   />
+                  {cardErrors.quantity && <span className="error-message">{cardErrors.quantity}</span>}
                 </div>
               </div>
 
-              {/* Row 2: Plate Number and Vehicle Type */}
-              <div className="card-form-row">
-                <div className="form-field">
-                  <label className="form-label">
-                    Plate Number<span className="required">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="plateNumber"
-                    value={cardForm.plateNumber}
-                    onChange={handleCardFormChange}
-                    placeholder="ABC-1234"
-                    className={`form-input plate-input ${cardErrors.plateNumber ? 'error' : ''}`}
-                  />
-                  {cardErrors.plateNumber && <span className="error-message">{cardErrors.plateNumber}</span>}
-                </div>
-
-                <div className="form-field">
-                  <label className="form-label">
-                    Vehicle Type<span className="required">*</span>
-                  </label>
-                  <select
-                    name="vehicleType"
-                    value={cardForm.vehicleType}
-                    onChange={handleCardFormChange}
-                    className={`form-select ${cardErrors.vehicleType ? 'error' : ''}`}
-                  >
-                    <option value="">Select Type</option>
-                    <option value="Car">Car</option>
-                    <option value="Motorcycle">Motorcycle</option>
-                    <option value="Truck">Truck</option>
-                    <option value="Van">Van</option>
-                  </select>
-                  {cardErrors.vehicleType && <span className="error-message">{cardErrors.vehicleType}</span>}
-                </div>
+              {/* Row 2: Expiry (full width) */}
+              <div className="form-field">
+                <label className="form-label">Expiry Date (Optional)</label>
+                <input
+                  type="date"
+                  name="expiryDate"
+                  value={cardForm.expiryDate}
+                  onChange={handleCardFormChange}
+                  className="form-input"
+                />
               </div>
             </div>
 
@@ -593,11 +597,12 @@ export default function PurchaseCardPage() {
               </div>
 
               <div className="cards-list">
-                {cards.map((card) => {
-                  const price = getCategoryPrice(card.category);
+                {Object.entries(getGroupedCards()).map(([category, categoryCards]) => {
+                  const price = getCategoryPrice(category);
+                  const quantity = categoryCards.length;
 
                   return (
-                    <div key={card.id} className="card-group-item">
+                    <div key={category} className="card-group-item">
                       <div className="card-group-content">
                         <div className="card-icon">
                           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -607,26 +612,22 @@ export default function PurchaseCardPage() {
                         </div>
                         <div className="card-group-details">
                           <div className="card-group-header">
-                            <span className="card-type">{card.category}</span>
+                            <span className="card-type">{category}</span>
                             <span className="card-price-badge">${price}</span>
                           </div>
-                          <div className="card-plate-info">
-                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M2 5.5L4.5 3L7 5.5M9 3L11.5 5.5" stroke="#312c85" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                            <span className="plate-text">{card.plateNumber} ({card.vehicleType})</span>
+                          <div className="card-quantityPill">
+                            <span className="card-quantityIcon" aria-hidden="true">+</span>
+                            <span>Quantity: {quantity}</span>
                           </div>
                         </div>
                       </div>
-                      <button 
+                      <button
                         type="button"
-                        onClick={() => handleRemoveCard(card.id)}
+                        onClick={() => handleRemoveCard(category)}
                         className="card-delete-btn"
                         aria-label="Remove card"
                       >
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M13 4L3 14M3 4L13 14" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
+                        <PurchaseCardTrashIcon className="purchaseCardTrashIcon" aria-hidden="true" focusable="false" />
                       </button>
                     </div>
                   );
@@ -677,69 +678,68 @@ export default function PurchaseCardPage() {
             <p className="review-subtitle">Review the details before confirming payment</p>
           </div>
 
-          {/* Customer Info */}
-          <div className="review-customer-info">
-            <div className="review-customer-avatar">
-              {selectedCustomer.initials}
-            </div>
-            <div className="review-customer-details">
-              <p className="review-customer-name">{selectedCustomer.name}</p>
-              <p className="review-customer-email">{selectedCustomer.email}</p>
+          <div className="reviewCustomerCard">
+            <div className="reviewCustomerAvatar">{selectedCustomer?.initials}</div>
+            <div className="reviewCustomerInfo">
+              <div className="reviewCustomerName">{selectedCustomer?.name}</div>
+              <div className="reviewCustomerEmail">{selectedCustomer?.email}</div>
             </div>
           </div>
 
-          {/* Invoice Details */}
-          <div className="invoice-details">
-            <div className="invoice-detail-item">
-              <label className="invoice-label">Invoice Number</label>
-              <p className="invoice-value invoice-number">INV-{Date.now()}</p>
+          <div className="reviewInvoiceMeta">
+            <div className="reviewInvoiceMetaItem">
+              <div className="reviewInvoiceMetaLabel">Invoice Number</div>
+              <div className="reviewInvoiceMetaValue reviewInvoiceNumber">{getInvoiceNumber()}</div>
             </div>
-            <div className="invoice-detail-item">
-              <label className="invoice-label">Date</label>
-              <p className="invoice-value">{new Date().toLocaleDateString('en-GB')}</p>
+            <div className="reviewInvoiceMetaItem">
+              <div className="reviewInvoiceMetaLabel">Date</div>
+              <div className="reviewInvoiceMetaValue">{getInvoiceDate()}</div>
             </div>
           </div>
 
-          {/* Items Section */}
-          <div className="invoice-items-section">
-            <div className="invoice-items-header">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="2" y="3" width="12" height="10" rx="2" stroke="#0f172b" strokeWidth="1.5" fill="none"/>
-                <path d="M2 6H14" stroke="#0f172b" strokeWidth="1.5"/>
-              </svg>
-              <h3 className="invoice-items-title">Items ({cards.length})</h3>
+          <div className="reviewItemsBlock">
+            <div className="reviewItemsHeaderRow">
+              <div className="reviewItemsHeaderLeft">
+                <div className="reviewItemsHeaderIcon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="2" y="3" width="12" height="10" rx="2" stroke="#00BC7D" strokeWidth="1.5" fill="none" />
+                    <path d="M2 6H14" stroke="#00BC7D" strokeWidth="1.5" />
+                  </svg>
+                </div>
+                <div className="reviewItemsHeaderTitle">Items ({Object.keys(getGroupedCards()).length})</div>
+              </div>
             </div>
 
-            <div className="invoice-items-list">
+            <div className="reviewItemsList">
               {Object.entries(getGroupedCards()).map(([category, categoryCards]) => {
                 const price = getCategoryPrice(category);
-                const count = categoryCards.length;
-                const total = price * count;
+                const qty = categoryCards.length;
+                const total = price * qty;
 
                 return (
-                  <div key={category} className="invoice-item">
-                    <div className="invoice-item-content">
-                      <div className="invoice-item-icon">
+                  <div key={category} className="reviewItemRow">
+                    <div className="reviewItemLeft">
+                      <div className="reviewItemIcon" aria-hidden="true">
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <rect x="3" y="4" width="14" height="12" rx="2" stroke="white" strokeWidth="1.5" fill="none"/>
-                          <path d="M3 8H17" stroke="white" strokeWidth="1.5"/>
+                          <rect x="3" y="4" width="14" height="12" rx="2" stroke="white" strokeWidth="1.5" fill="none" />
+                          <path d="M3 8H17" stroke="white" strokeWidth="1.5" />
                         </svg>
                       </div>
-                      <div className="invoice-item-details">
-                        <div className="invoice-item-header">
-                          <span className="invoice-item-category">{category}</span>
-                          <span className="invoice-item-count">{count} card{count > 1 ? 's' : ''}</span>
+                      <div className="reviewItemMain">
+                        <div className="reviewItemNameRow">
+                          <div className="reviewItemName">{category}</div>
+                          <div className="reviewItemEachBadge">${price} each</div>
                         </div>
-                        <div className="invoice-item-calculation">
-                          ${price} × {count} = ${total.toFixed(2)}
+                        <div className="reviewItemQtyPill">
+                          <span className="reviewItemQtyHash" aria-hidden="true">#</span>
+                          <span className="reviewItemQtyText">Quantity: {qty}</span>
                         </div>
                       </div>
                     </div>
-                    <div className="invoice-item-actions">
-                      <span className="invoice-item-total">${total.toFixed(2)}</span>
-                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M6 8L10 12L14 8" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
+
+                    <div className="reviewItemRight">
+                      <div className="reviewItemCalc">${price} × {qty}</div>
+                      <div className="reviewItemTotal">${total.toFixed(2)}</div>
                     </div>
                   </div>
                 );
@@ -747,44 +747,187 @@ export default function PurchaseCardPage() {
             </div>
           </div>
 
-          {/* Payment Summary */}
-          <div className="payment-summary">
-            <div className="payment-row">
-              <span className="payment-label">Subtotal:</span>
-              <span className="payment-value">${calculateSubtotal().toFixed(2)}</span>
-            </div>
-            <div className="payment-row payment-row-border">
-              <span className="payment-label">Tax (10%):</span>
-              <span className="payment-value">${calculateTax().toFixed(2)}</span>
-            </div>
-            <div className="payment-total-row">
-              <span className="payment-total-label">Total:</span>
-              <span className="payment-total-value">${calculateTotal().toFixed(2)}</span>
+          <div className="reviewTotalsCard">
+            <div className="reviewTotalsRows">
+              <div className="reviewTotalsRow">
+                <div className="reviewTotalsLabel">Subtotal:</div>
+                <div className="reviewTotalsValue">${calculateSubtotal().toFixed(2)}</div>
+              </div>
+              <div className="reviewTotalsRow reviewTotalsRowBorder">
+                <div className="reviewTotalsLabel">Tax (10%):</div>
+                <div className="reviewTotalsValue">${calculateTax().toFixed(2)}</div>
+              </div>
+              <div className="reviewTotalsTotalRow">
+                <div className="reviewTotalsTotalLabel">Total:</div>
+                <div className="reviewTotalsTotalValue">${calculateTotal().toFixed(2)}</div>
+              </div>
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="review-actions">
-            <button
-              type="button"
-              onClick={() => setCurrentStep(2)}
-              className="review-back-btn"
-            >
+            <button type="button" onClick={() => setCurrentStep(2)} className="review-back-btn">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               Back
             </button>
-            <button 
+            <button
               type="button"
               onClick={handleConfirmPayment}
               className="confirm-payment-btn"
+              disabled={!selectedCustomer || cards.length === 0}
             >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M16.667 5L7.5 14.167L3.333 10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              <PurchaseCardCheckCircleIcon className="confirmPaymentIcon" aria-hidden="true" focusable="false" />
               Confirm Payment
             </button>
+          </div>
+        </div>
+      )}
+
+      {showInvoiceModal && (
+        <div className="invoiceModalOverlay" role="dialog" aria-modal="true" aria-label="Invoice">
+          <button
+            type="button"
+            className="invoiceModalOverlayBg"
+            aria-label="Close invoice"
+            onClick={handleCloseInvoiceModal}
+          />
+
+          <div className="invoiceModal">
+            <div className="invoiceModalHeader">
+              <div className="invoiceModalTitle">Invoice</div>
+              <button
+                type="button"
+                className="invoiceModalClose"
+                aria-label="Close"
+                onClick={handleCloseInvoiceModal}
+              >
+                <PurchaseCardCloseIcon className="invoiceModalCloseIcon" aria-hidden="true" focusable="false" />
+              </button>
+            </div>
+
+            <div className="invoiceModalBody">
+              <div className="invoiceSuccessBanner">
+                <div className="invoiceSuccessIconWrap" aria-hidden="true">
+                  <PurchaseCardCheckCircleIcon className="invoiceSuccessIcon" />
+                </div>
+                <div className="invoiceSuccessText">
+                  <div className="invoiceSuccessTitle">Payment Successful!</div>
+                  <div className="invoiceSuccessSubtitle">
+                    Customer has been registered and parking cards have been issued.
+                  </div>
+                </div>
+              </div>
+
+              <div className="invoicePaper">
+                <div className="invoiceTop">
+                  <div className="invoiceTopLeft">
+                    <div className="invoiceHeading">INVOICE</div>
+                    <div className="invoiceMeta">
+                      <div className="invoiceMetaRow">
+                        <div className="invoiceMetaKey">Invoice #</div>
+                        <div className="invoiceMetaValue">{getInvoiceNumber()}</div>
+                      </div>
+                      <div className="invoiceMetaRow">
+                        <div className="invoiceMetaKey">Date:</div>
+                        <div className="invoiceMetaValue">{getInvoiceDate()}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="invoiceTopRight">
+                    <div className="invoiceVendorLabel">From</div>
+                    <div className="invoiceVendorName">Parking System</div>
+                    <div className="invoiceVendorNameSecondary">Gate Management Co.</div>
+                    <div className="invoiceVendorAddress">123 Main Street, City</div>
+                    <div className="invoiceVendorAddress">support@parking.com</div>
+                  </div>
+                </div>
+
+                <div className="invoiceBillTo">
+                  <div className="invoiceSectionLabel">Bill To</div>
+                  <div className="invoiceBillCard">
+                    <div className="invoiceBillAvatar">{selectedCustomer?.initials}</div>
+                    <div>
+                      <div className="invoiceBillName">{selectedCustomer?.name}</div>
+                      <div className="invoiceBillLine">{selectedCustomer?.email}</div>
+                      <div className="invoiceBillLine">{selectedCustomer?.phone}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="invoiceItems">
+                  <div className="invoiceItemsHeader">
+                    <div className="invoiceItemsTitle">Items</div>
+                    <div className="invoiceItemsCount">{cards.length}</div>
+                  </div>
+
+                  <div className="invoiceItemsList">
+                    {Object.entries(getGroupedCards()).map(([category, categoryCards]) => {
+                      const price = getCategoryPrice(category);
+                      const qty = categoryCards.length;
+                      const rowTotal = price * qty;
+
+                      return (
+                        <div key={category} className="invoiceItemRow">
+                          <div className="invoiceItemLeft">
+                            <div className="invoiceItemNameRow">
+                              <div className="invoiceItemName">{category} Card</div>
+                              <div className="invoiceItemBadge">${price} each</div>
+                            </div>
+                            <div className="invoiceItemDesc">Parking access card</div>
+                          </div>
+
+                          <div className="invoiceItemQtyWrap">
+                            <div className="invoiceQtyPill">{qty}</div>
+                          </div>
+
+                          <div className="invoiceItemRight">
+                            <div className="invoiceItemCalc">${price} × {qty}</div>
+                            <div className="invoiceItemTotal">${rowTotal.toFixed(2)}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="invoiceTotals">
+                  <div className="invoiceTotalsRow">
+                    <div className="invoiceTotalsKey">Subtotal</div>
+                    <div className="invoiceTotalsValue">${calculateSubtotal().toFixed(2)}</div>
+                  </div>
+                  <div className="invoiceTotalsRow">
+                    <div className="invoiceTotalsKey">Tax (10%)</div>
+                    <div className="invoiceTotalsValue">${calculateTax().toFixed(2)}</div>
+                  </div>
+                  <div className="invoiceTotalsDivider" />
+                  <div className="invoiceTotalsRow invoiceTotalsRowTotal">
+                    <div className="invoiceTotalsKeyTotal">Total</div>
+                    <div className="invoiceTotalsValueTotal">${calculateTotal().toFixed(2)}</div>
+                  </div>
+                </div>
+
+                <div className="invoiceFooterNotes">
+                  <div className="invoiceFooterLine">Thank you for your purchase.</div>
+                  <div className="invoiceFooterLine">Please keep this invoice for your records.</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="invoiceModalFooter">
+              <button type="button" className="invoiceActionBtn" onClick={handlePrintInvoice}>
+                <PurchaseCardPrintIcon className="invoiceActionIcon" aria-hidden="true" focusable="false" />
+                Print
+              </button>
+              <button type="button" className="invoiceActionBtn invoiceActionBtnBlue" onClick={handleDownloadInvoice}>
+                <PurchaseCardDownloadIcon className="invoiceActionIcon" aria-hidden="true" focusable="false" />
+                Download PDF
+              </button>
+              <button type="button" className="invoiceActionBtn invoiceActionBtnGreen" onClick={handleCloseInvoiceModal}>
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}

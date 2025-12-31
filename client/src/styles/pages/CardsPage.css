@@ -150,6 +150,38 @@
   pointer-events: none;
 }
 
+.search-icon svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+.cards-statIcon {
+  color: #fff;
+}
+
+.cards-statIcon svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+.cards-cardGlyph {
+  color: #fff;
+}
+
+.cards-cardGlyph svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+.action-btn svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
 .search-input {
   width: 100%;
   height: 41.6px;

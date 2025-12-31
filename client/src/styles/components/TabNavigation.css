@@ -56,6 +56,12 @@
   height: 16px;
 }
 
+.tab-icon svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
 .tab-label {
   line-height: 20px;
   color: #45556C;

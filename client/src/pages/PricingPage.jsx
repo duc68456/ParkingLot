@@ -4,9 +4,9 @@ import TabNavigation from '../components/TabNavigation';
 import PricingRulesTable from '../components/PricingRulesTable';
 import '../styles/pages/PricingPage.css';
 
-const addIcon = "http://localhost:3845/assets/25c699331c374458f53e2c0a64f9f8de133e7e81.svg";
-const editIcon = "http://localhost:3845/assets/2364e2571592b9a3dae086ea57a266ba122c58bb.svg";
-const deleteIcon = "http://localhost:3845/assets/44c73e1229f34e8f21d184b426c1ea73cf4ffc60.svg";
+import addIcon from '../assets/icons/common/actions/add.svg';
+import editIcon from '../assets/icons/common/actions/edit.svg';
+import deleteIcon from '../assets/icons/common/actions/trash.svg';
 
 // Mock data for entry pricing rules
 const mockEntryPricingRules = [
