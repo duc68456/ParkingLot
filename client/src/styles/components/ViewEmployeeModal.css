@@ -1,0 +1,158 @@
+.view-employee-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 43, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.view-employee-modal {
+  width: 760px;
+  max-width: calc(100vw - 32px);
+  background: #FFFFFF;
+  border-radius: 16px;
+  box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.view-employee-modal__header {
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 0.8px solid #E2E8F0;
+}
+
+.view-employee-modal__title {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 28px;
+  color: #0F172B;
+}
+
+.view-employee-modal__close {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 36px;
+  color: #45556C;
+}
+
+.view-employee-modal__close:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.view-employee-modal__body {
+  padding: 24px;
+}
+
+.view-employee-modal__top {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.view-employee-modal__avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #AD46FF 0%, #9810FA 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 28px;
+  flex-shrink: 0;
+}
+
+.view-employee-modal__who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.view-employee-modal__name {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 28px;
+  color: #0F172B;
+}
+
+.view-employee-modal__role {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #45556C;
+}
+
+.view-employee-modal__status {
+  margin-top: 8px;
+}
+
+.view-employee-modal__status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #F0FDF4;
+  color: #008236;
+  border: 0.8px solid #B9F8CF;
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.view-employee-modal__divider {
+  height: 1px;
+  background: #E2E8F0;
+  margin: 24px 0;
+}
+
+.view-employee-modal__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 24px;
+  row-gap: 24px;
+}
+
+.view-employee-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.view-employee-modal__label {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.06em;
+  color: #62748E;
+  text-transform: uppercase;
+}
+
+.view-employee-modal__value {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #0F172B;
+}
+
+@media (max-width: 640px) {
+  .view-employee-modal__grid {
+    grid-template-columns: 1fr;
+    column-gap: 0;
+  }
+}

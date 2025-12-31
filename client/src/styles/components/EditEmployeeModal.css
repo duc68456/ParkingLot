@@ -1,0 +1,204 @@
+/* Matches Figma node 245:6 (Edit Employee) */
+
+.edit-employee-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+.edit-employee-modal-container {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 112px 311.6px;
+  z-index: 1001;
+}
+
+.edit-employee-modal {
+  width: 100%;
+  max-width: 672px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+}
+
+.edit-employee-modal__header {
+  height: 68.8px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 0.8px solid #E2E8F0;
+}
+
+.edit-employee-modal__title {
+  margin: 0;
+  font-family: 'Arimo', sans-serif;
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 400;
+  color: #0F172B;
+}
+
+.edit-employee-modal__close {
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.edit-employee-modal__close:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.edit-employee-modal__close img {
+  width: 20px;
+  height: 20px;
+}
+
+.edit-employee-modal__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.edit-employee-modal__section {
+  padding: 24px;
+}
+
+.edit-employee-modal__sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.edit-employee-modal__sectionIcon {
+  width: 16px;
+  height: 16px;
+}
+
+.edit-employee-modal__sectionTitle {
+  margin: 0;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  color: #0F172B;
+}
+
+.edit-employee-modal__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.edit-employee-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.edit-employee-modal__label {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #314158;
+}
+
+.edit-employee-modal__required {
+  color: #FB2C36;
+  margin-left: 2px;
+}
+
+.edit-employee-modal__input,
+.edit-employee-modal__select {
+  width: 100%;
+  height: 41.6px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 0.8px solid #CAD5E2;
+  background: #ffffff;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #0A0A0A;
+}
+
+.edit-employee-modal__input::placeholder {
+  color: rgba(10, 10, 10, 0.5);
+}
+
+.edit-employee-modal__input:focus,
+.edit-employee-modal__select:focus {
+  outline: none;
+  border-color: #155DFC;
+}
+
+.edit-employee-modal__select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23314158' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.edit-employee-modal__footer {
+  height: 78.4px;
+  margin-top: auto;
+  padding: 16px 24px;
+  background: #F8FAFC;
+  border-top: 0.8px solid #E2E8F0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+.edit-employee-modal__btn {
+  height: 44px;
+  padding: 0 24px;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-employee-modal__btn--cancel {
+  background: #ffffff;
+  border: 0.8px solid #CAD5E2;
+  color: #314158;
+}
+
+.edit-employee-modal__btn--cancel:hover {
+  background: #F8FAFC;
+}
+
+.edit-employee-modal__btn--submit {
+  background: linear-gradient(135deg, #155DFC 0%, #1447E6 100%);
+  border: none;
+  color: #ffffff;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0,  0, 0, 0.1);
+}
+
+.edit-employee-modal__btn--submit:hover {
+  background: linear-gradient(135deg, #1447E6 0%, #1237C6 100%);
+}
+
+.edit-employee-modal__btn--submit:active {
+  transform: translateY(1px);
+}

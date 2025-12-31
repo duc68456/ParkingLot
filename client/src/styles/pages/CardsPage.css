@@ -510,6 +510,197 @@
   box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
 }
 
+/* ===== Card Inventory (Figma: 249:1139) ===== */
+.cards-inventory-table .data-table {
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.cards-inventory-table .data-table thead th {
+  background: #f8fafc;
+  color: #45556c;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  font-size: 12px;
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.cards-inventory-table .data-table tbody tr {
+  height: 72px;
+}
+
+.cards-inventory-table .data-table tbody td {
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+.cards-inventory-table .data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.cards-inventory-table .col-id {
+  width: 72px;
+}
+
+.cards-inventory-table .col-actions {
+  width: 120px;
+}
+
+.inventory-cardCell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.inventory-cardIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background-size: 200% 200%;
+  background-position: center;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.inventory-cardText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.inventory-cardUid {
+  margin: 0;
+  font-family: 'Cousine', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 18px;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inventory-cardType {
+  margin: 0;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 16px;
+  color: #64748b;
+}
+
+.inventory-twoLine {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.inventory-primaryText {
+  margin: 0;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 18px;
+  color: #0f172a;
+}
+
+.inventory-secondaryText {
+  margin: 0;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 16px;
+  color: #64748b;
+}
+
+.inventory-monoText {
+  font-family: 'Cousine', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  font-weight: 400;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  border: 1px solid #e2e8f0;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.status-pill--active {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.status-pill--inactive,
+.status-pill--expired {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #9a3412;
+}
+
+.status-pill--lost,
+.status-pill--damaged {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.inventory-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.inventory-actionBtn {
+  width: 33.6px;
+  height: 33.6px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  display: grid;
+  place-items: center;
+  color: #314158;
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.inventory-actionBtn:hover {
+  background: #f8fafc;
+}
+
+.inventory-actionBtn:active {
+	background: #f1f5f9;
+}
+
+.inventory-actionBtn:focus-visible {
+	outline: 2px solid rgba(21, 93, 252, 0.35);
+	outline-offset: 2px;
+}
+
+.inventory-actionBtn svg {
+  width: 18px;
+  height: 18px;
+}
+
 .tab-placeholder p {
   font-family: 'Arimo', sans-serif;
   font-weight: 400;

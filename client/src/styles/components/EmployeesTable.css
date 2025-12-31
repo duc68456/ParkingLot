@@ -68,3 +68,90 @@
   color: #1447E6;
   border-color: #BEDBFF;
 }
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  border: 0.8px solid;
+}
+
+.status-badge.active {
+  background: #F0FDF4;
+  color: #008236;
+  border-color: #B9F8CF;
+}
+
+.status-badge.inactive {
+  background: #FEF2F2;
+  color: #991B1B;
+  border-color: #FECACA;
+}
+
+.table-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.action-btn img {
+  width: 16px;
+  height: 16px;
+}
+
+.action-btn--card {
+  background: #F0FDF4;
+}
+
+.action-btn--card:hover {
+  background: #DCFCE7;
+}
+
+.action-btn--card img {
+  color: #008236;
+}
+
+.action-btn--view {
+  background: #EFF6FF;
+}
+
+.action-btn--view:hover {
+  background: #DBEAFE;
+}
+
+.action-btn--edit {
+  background: #F8FAFC;
+}
+
+.action-btn--edit:hover {
+  background: #F1F5F9;
+}
+
+.action-btn--delete {
+  background: #FEF2F2;
+}
+
+.action-btn--delete:hover {
+  background: #FEE2E2;
+}

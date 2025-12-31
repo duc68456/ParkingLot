@@ -1,9 +1,17 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import '../styles/components/AssignCardModal.css';
 
-function AssignCardModal({ card, onClose, onAssign }) {
-  const [assignType, setAssignType] = useState('');
-  const [selectedPerson, setSelectedPerson] = useState('');
+const cardIcon = "http://localhost:3845/assets/016247162025cce483fc4b098b7f2094b688d944.svg";
+
+function AssignCardModal({ card, onClose, onAssign, defaultAssignType = '', defaultPersonId = '' }) {
+  // Figma 241:1604 uses a single dropdown listing both customers and employees.
+  // We keep internal compatibility with the old onAssign({type, personId}) shape.
+  const initialAssignKey = useMemo(() => {
+    if (!defaultPersonId || !defaultAssignType) return '';
+    return `${defaultAssignType}:${String(defaultPersonId)}`;
+  }, [defaultAssignType, defaultPersonId]);
+
+  const [selectedAssignKey, setSelectedAssignKey] = useState(initialAssignKey);
 
   // Mock data for people
   const customers = [
@@ -18,19 +26,35 @@ function AssignCardModal({ card, onClose, onAssign }) {
     { id: 6, name: 'Sarah Manager', type: 'Employee' },
   ];
 
-  const getPeopleList = () => {
-    if (assignType === 'customer') return customers;
-    if (assignType === 'employee') return employees;
-    return [];
-  };
+  const peopleOptions = useMemo(() => {
+    const customerOptions = customers.map((c) => ({
+      key: `customer:${c.id}`,
+      label: `${c.name} (Customer)`,
+      type: 'customer',
+      id: String(c.id),
+    }));
+    const employeeOptions = employees.map((e) => ({
+      key: `employee:${e.id}`,
+      label: `${e.name} (Employee)`,
+      type: 'employee',
+      id: String(e.id),
+    }));
+    return [...customerOptions, ...employeeOptions];
+  }, [customers, employees]);
+
+  const selectedPersonMeta = useMemo(() => {
+    if (!selectedAssignKey) return null;
+    const [type, id] = selectedAssignKey.split(':');
+    if (!type || !id) return null;
+    return { type, id };
+  }, [selectedAssignKey]);
 
   const handleAssign = () => {
-    if (!assignType || !selectedPerson) return;
-    
+    if (!selectedPersonMeta) return;
     onAssign({
       cardId: card.id,
-      personId: selectedPerson,
-      type: assignType
+      personId: selectedPersonMeta.id,
+      type: selectedPersonMeta.type,
     });
   };
 
@@ -43,69 +67,54 @@ function AssignCardModal({ card, onClose, onAssign }) {
   return (
     <div className="assign-card-overlay" onClick={handleOverlayClick}>
       <div className="assign-card-modal">
-        <div className="modal-header">
-          <h3>Assign Card</h3>
-          <button className="close-button" onClick={onClose}>
+        <div className="assign-card-header">
+          <h3 className="assign-card-title">Assign Card</h3>
+          <button className="assign-card-close" onClick={onClose} aria-label="Close">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M5 5L15 15M15 5L5 15" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round"/>
+              <path d="M5 5L15 15M15 5L5 15" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
           </button>
         </div>
 
-        <div className="modal-content">
-          <div className="card-info">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="6" width="18" height="13" rx="2" stroke="#1447e6" strokeWidth="1.5"/>
-              <path d="M3 10h18" stroke="#1447e6" strokeWidth="1.5"/>
-            </svg>
-            <div className="card-details">
-              <div className="card-uid">{card.uid}</div>
-              <div className="card-category">{card.category}</div>
+        <div className="assign-card-content">
+          {card && (
+            <div className="assign-card-cardinfo" aria-label="Card information">
+              <div className="assign-card-cardinfo-icon" aria-hidden="true">
+                <img src={cardIcon} alt="" />
+              </div>
+              <div className="assign-card-cardinfo-text">
+                <div className="assign-card-carduid">{card.uid}</div>
+                <div className="assign-card-cardcat">{card.category}</div>
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="form-group">
-            <label>Assign To</label>
-            <select 
-              value={assignType} 
-              onChange={(e) => {
-                setAssignType(e.target.value);
-                setSelectedPerson('');
-              }}
-              className="form-select"
-            >
-              <option value="">Select type...</option>
-              <option value="customer">Customer</option>
-              <option value="employee">Employee</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Select Person</label>
-            <select 
-              value={selectedPerson} 
-              onChange={(e) => setSelectedPerson(e.target.value)}
-              className="form-select"
-              disabled={!assignType}
+          <div className="assign-card-fieldblock">
+            <label className="assign-card-label">Assign To</label>
+            <select
+              className="assign-card-select"
+              value={selectedAssignKey}
+              onChange={(e) => setSelectedAssignKey(e.target.value)}
             >
               <option value="">Select...</option>
-              {getPeopleList().map(person => (
-                <option key={person.id} value={person.id}>
-                  {person.name} ({person.type})
+              {peopleOptions.map((opt) => (
+                <option key={opt.key} value={opt.key}>
+                  {opt.label}
                 </option>
               ))}
             </select>
           </div>
         </div>
 
-        <div className="modal-footer">
-          <button className="btn-cancel" onClick={onClose}>
+        <div className="assign-card-footer">
+          <button className="assign-card-cancel" type="button" onClick={onClose}>
             Cancel
           </button>
-          <button 
-            className="btn-assign" 
+          <button
+            className="assign-card-assign"
+            type="button"
             onClick={handleAssign}
-            disabled={!assignType || !selectedPerson}
+            disabled={!selectedPersonMeta}
           >
             Assign Card
           </button>

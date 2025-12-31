@@ -9,6 +9,7 @@ import AddEmployeeModal from '../components/AddEmployeeModal';
 import ViewCardsModal from '../components/ViewCardsModal';
 import ViewCustomerModal from '../components/ViewCustomerModal';
 import EditCustomerModal from '../components/EditCustomerModal';
+import EditEmployeeModal from '../components/EditEmployeeModal';
 import { CommonActionAddIcon, CommonActionSearchIcon } from '../assets/icons/common';
 import { PeopleTabCustomerIcon, PeopleTabEmployeeIcon } from '../assets/icons/people';
 import '../styles/pages/PeoplePage.css';
@@ -132,6 +133,8 @@ export default function PeoplePage() {
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showEditCustomerModal, setShowEditCustomerModal] = useState(false);
   const [customers, setCustomers] = useState(mockCustomers);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [showEditEmployeeModal, setShowEditEmployeeModal] = useState(false);
 
   const tabs = [
     { 
@@ -204,6 +207,22 @@ export default function PeoplePage() {
     ));
   };
 
+  const handleEditEmployee = (employee) => {
+    setSelectedEmployee(employee);
+    setShowEditEmployeeModal(true);
+  };
+
+  const handleCloseEditEmployeeModal = () => {
+    setShowEditEmployeeModal(false);
+    setSelectedEmployee(null);
+  };
+
+  const handleSaveEmployee = (updatedEmployee) => {
+    setEmployees(employees.map(e =>
+      e.id === updatedEmployee.id ? updatedEmployee : e
+    ));
+  };
+
   const filteredCustomers = customers.filter(customer => 
     customer.status === 'Active' || statusFilter === 'All Status'
   );
@@ -264,7 +283,7 @@ export default function PeoplePage() {
             onEdit={handleEditCustomer}
           />
         ) : (
-          <EmployeesTable employees={filteredEmployees} />
+          <EmployeesTable employees={filteredEmployees} onEdit={handleEditEmployee} />
         )}
       </div>
 
@@ -295,6 +314,14 @@ export default function PeoplePage() {
           customer={selectedCustomer}
           onClose={handleCloseEditCustomerModal}
           onSave={handleSaveCustomer}
+        />
+      )}
+
+      {showEditEmployeeModal && selectedEmployee && (
+        <EditEmployeeModal
+          employee={selectedEmployee}
+          onClose={handleCloseEditEmployeeModal}
+          onSave={handleSaveEmployee}
         />
       )}
     </div>

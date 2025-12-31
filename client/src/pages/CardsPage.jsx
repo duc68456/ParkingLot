@@ -138,6 +138,23 @@ function CardsPage() {
     // TODO: Filter cards based on search query
   };
 
+  const getStatusBadgeClass = (status) => {
+    switch ((status || '').toLowerCase()) {
+      case 'active':
+        return 'status-pill status-pill--active';
+      case 'inactive':
+        return 'status-pill status-pill--inactive';
+      case 'lost':
+        return 'status-pill status-pill--lost';
+      case 'damaged':
+        return 'status-pill status-pill--damaged';
+      case 'expired':
+        return 'status-pill status-pill--expired';
+      default:
+        return 'status-pill';
+    }
+  };
+
   const handleViewCard = (cardId) => {
     const card = [...mockCards, ...mockUnassignedCards].find(c => c.id === cardId);
     if (card) {
@@ -354,61 +371,64 @@ function CardsPage() {
           </div>
 
           {/* Data Table */}
-          <div className="data-table-container">
+          <div className="data-table-container cards-inventory-table">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>CARD</th>
-                  <th>OWNER</th>
-                  <th>STATUS</th>
-                  <th>EXPIRY</th>
-                  <th className="text-right">ACTIONS</th>
+                  <th className="col-id">ID</th>
+                  <th className="col-card">CARD</th>
+                  <th className="col-owner">OWNER</th>
+                  <th className="col-vehicle">VEHICLE</th>
+                  <th className="col-status">STATUS</th>
+                  <th className="col-actions text-right">ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredCards.map((card) => (
                   <tr key={card.id}>
-                    <td className="card-id-cell">{card.id}</td>
-                    <td>
-                      <div className="card-info">
+                    <td className="table-cell col-id">{card.id}</td>
+                    <td className="table-cell col-card">
+                      <div className="inventory-cardCell">
                         <div
-                          className="card-icon"
+                          className="inventory-cardIcon"
                           style={{ backgroundImage: card.gradient }}
                         >
                           <div className="cards-cardGlyph" aria-hidden="true">
                             <CardsGlyphListIcon />
                           </div>
                         </div>
-                        <div className="card-details">
-                          <p className="card-uid">{card.uid}</p>
-                          <p className="card-type">{card.type}</p>
+                        <div className="inventory-cardText">
+                          <p className="inventory-cardUid">{card.uid}</p>
+                          <p className="inventory-cardType">{card.type}</p>
                         </div>
                       </div>
                     </td>
-                    <td>
-                      <div className="owner-info">
-                        <p className="owner-name">{card.owner}</p>
-                        <p className="owner-type">{card.ownerType}</p>
+                    <td className="table-cell col-owner">
+                      <div className="inventory-twoLine">
+                        <p className="inventory-primaryText">{card.owner}</p>
+                        <p className="inventory-secondaryText">{card.ownerType}</p>
                       </div>
                     </td>
-                    <td>
-                      <span className="status-badge status-active">
-                        {card.status}
-                      </span>
+                    <td className="table-cell col-vehicle">
+                      <div className="inventory-twoLine">
+                        <p className="inventory-primaryText inventory-monoText">{card.vehiclePlate || 'ABC-1234'}</p>
+                        <p className="inventory-secondaryText">{card.vehicleType || 'N/A'}</p>
+                      </div>
                     </td>
-                    <td className="expiry-cell">{card.expiry}</td>
-                    <td>
-                      <div className="action-buttons">
+                    <td className="table-cell col-status">
+                      <span className={getStatusBadgeClass(card.status)}>{card.status}</span>
+                    </td>
+                    <td className="table-cell col-actions">
+                      <div className="inventory-actions">
                         <button
-                          className="action-btn"
+                          className="inventory-actionBtn"
                           onClick={() => handleViewCard(card.id)}
                           title="View"
                         >
                           <CardsActionViewIcon aria-hidden="true" />
                         </button>
                         <button
-                          className="action-btn"
+                          className="inventory-actionBtn"
                           onClick={() => handleEditCard(card.id)}
                           title="Edit"
                         >
