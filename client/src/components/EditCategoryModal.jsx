@@ -1,19 +1,34 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import '../styles/components/EditCategoryModal.css';
 
+function normalizePriceToNumber(price) {
+  if (price === null || price === undefined) return '';
+  if (typeof price === 'number') return Number.isFinite(price) ? String(price) : '';
+  if (typeof price !== 'string') return '';
+
+  // Supports "$10.00", "10", "10.00"
+  const cleaned = price.replace(/[^0-9.]/g, '');
+  return cleaned;
+}
+
 function EditCategoryModal({ category, onClose, onUpdate }) {
-  const [categoryName, setCategoryName] = useState(category.name);
-  const [price, setPrice] = useState(category.price.replace('$', ''));
+  const initialName = useMemo(() => category?.name ?? '', [category?.name]);
+  const initialPrice = useMemo(() => normalizePriceToNumber(category?.price), [category?.price]);
+
+  const [categoryName, setCategoryName] = useState(() => initialName);
+  const [price, setPrice] = useState(() => initialPrice);
 
   const handleSubmit = () => {
-    if (!categoryName.trim() || !price) {
+    const trimmedName = categoryName.trim();
+
+    if (!trimmedName || price === '' || Number.isNaN(Number(price))) {
       alert('Please fill in all fields');
       return;
     }
 
     onUpdate({
-      id: category.id,
-      name: categoryName,
+      id: category?.id,
+      name: trimmedName,
       price: parseFloat(price)
     });
   };
@@ -26,12 +41,12 @@ function EditCategoryModal({ category, onClose, onUpdate }) {
 
   return (
     <div className="edit-category-overlay" onClick={handleOverlayClick}>
-      <div className="edit-category-modal">
+      <div className="edit-category-modal" role="dialog" aria-modal="true" aria-label="Edit Category">
         <div className="modal-header">
           <h3>Edit Category</h3>
-          <button className="close-button" onClick={onClose}>
+          <button className="close-button" onClick={onClose} aria-label="Close">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M5 5L15 15M15 5L5 15" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round"/>
+              <path d="M5 5L15 15M15 5L5 15" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
           </button>
         </div>
@@ -42,7 +57,7 @@ function EditCategoryModal({ category, onClose, onUpdate }) {
             <input
               type="text"
               className="form-input"
-              placeholder="Premium, VIP, Standard..."
+              placeholder="Standard"
               value={categoryName}
               onChange={(e) => setCategoryName(e.target.value)}
             />
@@ -55,7 +70,7 @@ function EditCategoryModal({ category, onClose, onUpdate }) {
               <input
                 type="number"
                 className="form-input price-input"
-                placeholder="0.00"
+                placeholder="10"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 step="0.01"
@@ -69,10 +84,7 @@ function EditCategoryModal({ category, onClose, onUpdate }) {
           <button className="btn-cancel" onClick={onClose}>
             Cancel
           </button>
-          <button 
-            className="btn-update" 
-            onClick={handleSubmit}
-          >
+          <button className="btn-update" onClick={handleSubmit}>
             Update Category
           </button>
         </div>

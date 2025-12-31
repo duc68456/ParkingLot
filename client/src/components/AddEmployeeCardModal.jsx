@@ -6,19 +6,8 @@ const closeIcon = "http://localhost:3845/assets/ea632bee3622f9ce524687f090e3e13c
 export default function AddEmployeeCardModal({ employee, onBackToCards, onClose, onCreate }) {
   if (!employee) return null;
 
-  const [category, setCategory] = useState('');
+  const [cardUid, setCardUid] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
-
-  // Temporary mock categories until backend/API is wired.
-  const categories = useMemo(
-    () => [
-      { id: 'standard', label: 'Standard - $10.00' },
-      { id: 'premium', label: 'Premium - $25.00' },
-      { id: 'vip', label: 'VIP - $50.00' },
-      { id: 'staff', label: 'Staff - $15.00' }
-    ],
-    []
-  );
 
   const initials = employee.initials || employee.name?.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
 
@@ -26,14 +15,16 @@ export default function AddEmployeeCardModal({ employee, onBackToCards, onClose,
     if (e.target === e.currentTarget) onClose();
   };
 
-  const canSubmit = Boolean(category);
+  const canSubmit = Boolean(cardUid.trim());
 
   const handleSubmit = () => {
     if (!canSubmit) return;
 
     const payload = {
       employeeId: employee.id,
-      category,
+      uid: cardUid.trim(),
+      category: 'staff',
+      status: 'Active',
       expiryDate: expiryDate || null
     };
 
@@ -58,7 +49,7 @@ export default function AddEmployeeCardModal({ employee, onBackToCards, onClose,
               <div className="employee-summary-info">
                 <div className="employee-summary-name">{employee.name}</div>
                 <div className="employee-summary-meta">
-                  {employee.role}  Employee
+                  {employee.role}  Employee
                 </div>
                 <div className="employee-summary-hint">
                   This card will be automatically assigned to this employee upon creation.
@@ -75,20 +66,18 @@ export default function AddEmployeeCardModal({ employee, onBackToCards, onClose,
 
             <div className="form-group">
               <label className="form-label">
-                Card Category<span className="required">*</span>
+                Card UID<span className="required">*</span>
               </label>
-              <select
-                className="form-control"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                <option value="">Select category...</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
+              <input
+                type="text"
+                className="form-control add-employee-card-uid"
+                value={cardUid}
+                onChange={(e) => setCardUid(e.target.value)}
+                placeholder="Enter or scan card UID (e.g., UID-123456)"
+              />
+              <div className="add-employee-card-help">
+                Enter the card UID manually or use a card reader to scan it
+              </div>
             </div>
 
             <div className="form-group">
@@ -104,7 +93,7 @@ export default function AddEmployeeCardModal({ employee, onBackToCards, onClose,
             </div>
 
             <div className="card-info">
-              <strong>Info:</strong> The card UID will be automatically generated and the status will be set to "Active" by default.
+              <strong>Info:</strong> The card category will be automatically set to "Staff" and the status will be "Active" by default.
             </div>
           </div>
 

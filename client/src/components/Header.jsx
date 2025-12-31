@@ -1,6 +1,6 @@
 import '../styles/components/Header.css';
 
-const companyLogo = "http://localhost:3845/assets/1acb3050167d6a4814823522ee5128257328b234.svg";
+import companyLogo from '../assets/company-logo.svg';
 
 export default function Header() {
   return (

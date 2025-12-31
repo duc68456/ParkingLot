@@ -95,9 +95,9 @@ function CardsPage() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
-  const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null);
   const [categories, setCategories] = useState(mockCategories);
+  const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
+  const [categoryToEdit, setCategoryToEdit] = useState(null);
   const [showViewCardModal, setShowViewCardModal] = useState(false);
   const [cardToView, setCardToView] = useState(null);
 
@@ -222,44 +222,41 @@ function CardsPage() {
     alert(`Category "${categoryData.name}" created successfully!`);
   };
 
-  const handleEditCategory = (categoryId) => {
-    const category = categories.find(cat => cat.id === categoryId);
-    if (category) {
-      setSelectedCategory(category);
-      setShowEditCategoryModal(true);
-    }
-  };
-
-  const handleCloseEditCategoryModal = () => {
-    setShowEditCategoryModal(false);
-    setSelectedCategory(null);
-  };
-
-  const handleUpdateCategory = (updatedData) => {
-    const today = new Date().toLocaleDateString('en-GB');
-    
-    const updatedCategories = categories.map(cat => 
-      cat.id === updatedData.id 
-        ? {
-            ...cat,
-            name: updatedData.name,
-            price: `$${updatedData.price.toFixed(2)}`,
-            lastUpdated: today
-          }
-        : cat
-    );
-
-    setCategories(updatedCategories);
-    setShowEditCategoryModal(false);
-    setSelectedCategory(null);
-    alert(`Category "${updatedData.name}" updated successfully!`);
-  };
-
   const handleDeleteCategory = (categoryId) => {
     if (confirm(`Are you sure you want to delete category ${categoryId}?`)) {
       setCategories(categories.filter(cat => cat.id !== categoryId));
       alert(`Category ${categoryId} deleted successfully!`);
     }
+  };
+
+  const handleEditCategory = (categoryId) => {
+    const found = categories.find((c) => c.id === categoryId);
+    if (!found) return;
+    setCategoryToEdit(found);
+    setShowEditCategoryModal(true);
+  };
+
+  const handleCloseEditCategoryModal = () => {
+    setShowEditCategoryModal(false);
+    setCategoryToEdit(null);
+  };
+
+  const handleUpdateCategory = (updated) => {
+    const today = new Date().toLocaleDateString('en-GB');
+    setCategories((prev) =>
+      prev.map((c) => {
+        if (c.id !== updated.id) return c;
+        return {
+          ...c,
+          name: updated.name,
+          price: `$${Number(updated.price).toFixed(2)}`,
+          lastUpdated: today
+        };
+      })
+    );
+
+    handleCloseEditCategoryModal();
+    alert(`Category "${updated.name}" updated successfully!`);
   };
 
   return (
@@ -483,18 +480,18 @@ function CardsPage() {
                   <tr key={card.id}>
                     <td className="card-id-cell">{card.id}</td>
                     <td>
-                      <div className="card-info">
+                      <div className="inventory-cardCell">
                         <div
-                          className="card-icon"
+                          className="inventory-cardIcon"
                           style={{ backgroundImage: card.gradient }}
                         >
                           <div className="cards-cardGlyph" aria-hidden="true">
                             <CardsGlyphListIcon />
                           </div>
                         </div>
-                        <div className="card-details">
-                          <p className="card-uid">{card.uid}</p>
-                          <p className="card-type">{card.category}</p>
+                        <div className="inventory-cardText">
+                          <p className="inventory-cardUid">{card.uid}</p>
+                          <p className="inventory-cardType">{card.category}</p>
                         </div>
                       </div>
                     </td>
@@ -635,9 +632,10 @@ function CardsPage() {
       )}
 
       {/* Edit Category Modal */}
-      {showEditCategoryModal && selectedCategory && (
+      {showEditCategoryModal && categoryToEdit && (
         <EditCategoryModal
-          category={selectedCategory}
+          key={categoryToEdit.id}
+          category={categoryToEdit}
           onClose={handleCloseEditCategoryModal}
           onUpdate={handleUpdateCategory}
         />

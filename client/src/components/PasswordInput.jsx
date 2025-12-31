@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import '../styles/components/PasswordInput.css';
 
-const eyeIcon = "http://localhost:3845/assets/aea4ffb257aed259c9f20eab867d62a24cebf892.svg";
-const eyeSlashIcon = "http://localhost:3845/assets/e6ba4a03794833ec2a09e661eecc3c46bb95c132.svg";
+import eyeIcon from '../assets/eye-icon.svg';
+import eyeSlashIcon from '../assets/eye-slash-icon.svg';
 
 export default function PasswordInput({ label, placeholder, value, onChange }) {
   const [showPassword, setShowPassword] = useState(false);

@@ -34,7 +34,7 @@
 }
 
 .view-session-modal {
-  width: 448px;
+  width: 640px;
 }
 
 /* Modal Header */
@@ -85,65 +85,210 @@
 .session-details {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
 }
 
-.detail-row {
+/* Summary (top gradient card) */
+.session-summary {
+  background: linear-gradient(90deg, #eff6ff 0%, #eef2ff 100%);
+  border: 0.8px solid #bedbff;
+  border-radius: 14px;
+  padding: 24px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  min-height: 24px;
 }
 
-.detail-label {
-  font-family: 'Arimo', sans-serif;
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 24px;
-  color: #0a0a0a;
-}
-
-.detail-value {
-  font-family: 'Arimo', sans-serif;
-  font-size: 16px;
-  font-weight: 400;
-  line-height: 24px;
-  color: #0a0a0a;
-  text-align: right;
-}
-
-/* Status Badge */
-.detail-row .status-badge {
-  padding: 4px 8px;
-  border-radius: 4px;
+.session-summary-label {
   font-family: 'Arimo', sans-serif;
   font-size: 12px;
   font-weight: 400;
   line-height: 16px;
-  display: inline-block;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #155dfc;
+  margin-bottom: 4px;
 }
 
-.status-badge.status-completed {
+.session-summary-id {
+  font-family: 'Cousine', monospace;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 28px;
+  color: #0f172b;
+}
+
+.session-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 99999px;
+  border: 0.8px solid transparent;
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.session-status-pill.status-completed {
   background-color: #dcfce7;
+  border-color: #7bf1a8;
   color: #008236;
 }
 
-.status-badge.status-active {
+.session-status-pill.status-active {
   background-color: #dbeafe;
+  border-color: #bedbff;
   color: #1447e6;
 }
 
-/* Subscription Badge */
-.subscription-badge {
-  padding: 4px 8px;
-  border-radius: 4px;
-  background-color: #f1f5f9;
-  color: #314158;
+/* Grid cards */
+.session-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.session-grid-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.session-info-card {
+  background: #ffffff;
+  border: 0.8px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.session-info-label {
   font-family: 'Arimo', sans-serif;
   font-size: 12px;
   font-weight: 400;
   line-height: 16px;
-  display: inline-block;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #62748e;
+}
+
+.session-info-mono {
+  font-family: 'Cousine', monospace;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 28px;
+  color: #0f172b;
+}
+
+.session-fee {
+  font-family: 'Cousine', monospace;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 28px;
+  color: #0f172b;
+}
+
+/* Card type single block */
+.session-block {
+  background: #ffffff;
+  border: 0.8px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.session-type-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: #e0e7ff;
+  border: 0.8px solid #a3b3ff;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #432dd7;
+  margin-top: 8px;
+}
+
+.session-subscription-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 99999px;
+  background: #f1f5f9;
+  border: 0.8px solid #cad5e2;
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: #45556c;
+  width: fit-content;
+}
+
+/* Section blocks */
+.session-section-title {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: #314158;
+  margin-bottom: 12px;
+}
+
+.session-section-card {
+  background: #f8fafc;
+  border: 0.8px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.session-kv-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.session-kv-key {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #45556c;
+  white-space: nowrap;
+}
+
+.session-kv-value {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #0f172b;
+  text-align: right;
+}
+
+.session-divider {
+  height: 1px;
+  width: 100%;
+  background: #e2e8f0;
+}
+
+/* Status Badge */
+/* Legacy styles kept for safety (old markup). */
+.detail-row,
+.detail-label,
+.detail-value,
+.status-badge,
+.subscription-badge {
+  display: none;
 }
 
 /* Responsive Design */
@@ -162,22 +307,17 @@
     padding: 20px;
   }
 
-  .detail-row {
+  .session-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .session-kv-row {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
   }
 
-  .detail-value {
+  .session-kv-value {
     text-align: left;
-  }
-
-  .detail-label {
-    font-size: 14px;
-  }
-
-  .detail-value {
-    font-size: 14px;
   }
 }
 

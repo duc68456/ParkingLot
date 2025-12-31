@@ -1,18 +1,21 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import '../styles/components/EditCustomerModal.css';
 
 const closeIcon = "http://localhost:3845/assets/f3b68ee63c00f3b4ed26718b9bc9abea1cd47155.svg";
-const userIcon = "http://localhost:3845/assets/d38c2540fd134289cfebec39e7d204dae339d6b1.svg";
+const userIcon = "http://localhost:3845/assets/ce6e1b5cac3f3258bc604e23da6816baa66e4602.svg";
 
 const EditCustomerModal = ({ customer, onClose, onSave }) => {
   const [formData, setFormData] = useState({
     name: customer?.name || '',
-    phone: customer?.phone || '',
-    email: customer?.email || '',
-    address: customer?.address || '',
-    hometown: customer?.hometown || '',
-    gender: customer?.gender || ''
+    phone: customer?.phone || ''
   });
+
+  useEffect(() => {
+    setFormData({
+      name: customer?.name || '',
+      phone: customer?.phone || ''
+    });
+  }, [customer]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -23,7 +26,7 @@ const EditCustomerModal = ({ customer, onClose, onSave }) => {
   };
 
   const handleSubmit = () => {
-    onSave({ ...customer, ...formData });
+    onSave({ ...customer, name: formData.name, phone: formData.phone });
     onClose();
   };
 
@@ -79,62 +82,6 @@ const EditCustomerModal = ({ customer, onClose, onSave }) => {
                     placeholder="+1234567890"
                     className="field-input"
                   />
-                </div>
-
-                {/* Row 2: Email (full width) */}
-                <div className="field-wrapper field-email">
-                  <label className="field-label">
-                    Email <span className="required-mark">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="john.doe@email.com"
-                    className="field-input"
-                  />
-                </div>
-
-                {/* Row 3: Address (full width) */}
-                <div className="field-wrapper field-address">
-                  <label className="field-label">Address</label>
-                  <input
-                    type="text"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    placeholder="123 Main St, City"
-                    className="field-input"
-                  />
-                </div>
-
-                {/* Row 4: Hometown & Gender */}
-                <div className="field-wrapper field-hometown">
-                  <label className="field-label">Hometown</label>
-                  <input
-                    type="text"
-                    name="hometown"
-                    value={formData.hometown}
-                    onChange={handleChange}
-                    placeholder="Springfield"
-                    className="field-input"
-                  />
-                </div>
-
-                <div className="field-wrapper field-gender">
-                  <label className="field-label">Gender</label>
-                  <select
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleChange}
-                    className="field-input field-select"
-                  >
-                    <option value="">Select gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
                 </div>
               </div>
             </div>

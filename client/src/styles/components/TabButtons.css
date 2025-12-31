@@ -1,5 +1,6 @@
 .tab-buttons {
   display: flex;
+  height: 56.8px;
   border-bottom: 0.8px solid #e2e8f0;
 }
 

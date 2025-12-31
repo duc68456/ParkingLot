@@ -5,7 +5,7 @@ import PinInput from '../components/PinInput';
 import Button from '../components/Button';
 import '../styles/pages/StaffLoginForm.css';
 
-const staffIcon = "http://localhost:3845/assets/fd1d48cb3a7b000f034556812f92351cbb70d0bc.svg";
+import staffIcon from '../assets/staff-icon.svg';
 
 export default function StaffLoginForm({ type }) {
   const [pin, setPin] = useState(['', '', '', '', '', '']);

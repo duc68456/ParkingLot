@@ -5,8 +5,10 @@ const closeIcon = "http://localhost:3845/assets/ea632bee3622f9ce524687f090e3e13c
 export default function ViewEntrySessionModal({ session, onClose }) {
   if (!session) return null;
 
+  const safeLower = (value) => (value ?? '').toString().toLowerCase();
+
   const getStatusClass = (status) => {
-    switch (status.toLowerCase()) {
+    switch (safeLower(status)) {
       case 'completed':
         return 'status-completed';
       case 'active':
@@ -15,6 +17,36 @@ export default function ViewEntrySessionModal({ session, onClose }) {
         return '';
     }
   };
+
+  const formatDateTime = (value) => {
+    if (!value) return '-';
+
+    // If backend already sends a formatted string, keep it.
+    if (typeof value === 'string') return value;
+
+    try {
+      const dt = value instanceof Date ? value : new Date(value);
+      if (Number.isNaN(dt.getTime())) return '-';
+      return dt.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return '-';
+    }
+  };
+
+  const cardType = session.cardType || session.type || session.cardCategory || 'Standard';
+  const subscriptionLabel = session.subscriptionName ||
+    session.subscription ||
+    (session.inSubscription ? 'Active' : 'None');
+  const finalFeeValue = typeof session.finalFee === 'number'
+    ? session.finalFee
+    : Number(session.finalFee);
+  const finalFeeText = Number.isFinite(finalFeeValue) ? `$${finalFeeValue.toFixed(2)}` : '-';
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -30,58 +62,79 @@ export default function ViewEntrySessionModal({ session, onClose }) {
         {/* Modal Body */}
         <div className="modal-body">
           <div className="session-details">
-            <div className="detail-row">
-              <span className="detail-label">Session ID:</span>
-              <span className="detail-value">{session.id}</span>
-            </div>
-
-            <div className="detail-row">
-              <span className="detail-label">Card:</span>
-              <span className="detail-value">{session.cardId}</span>
-            </div>
-
-            <div className="detail-row">
-              <span className="detail-label">Plate:</span>
-              <span className="detail-value">{session.plate}</span>
-            </div>
-
-            <div className="detail-row">
-              <span className="detail-label">Entry Time:</span>
-              <span className="detail-value">{session.entryTime}</span>
-            </div>
-
-            <div className="detail-row">
-              <span className="detail-label">Exit Time:</span>
-              <span className="detail-value">{session.exitTime || '-'}</span>
-            </div>
-
-            <div className="detail-row">
-              <span className="detail-label">Status:</span>
-              <span className={`status-badge ${getStatusClass(session.status)}`}>
+            {/* Summary */}
+            <div className="session-summary">
+              <div className="session-summary-left">
+                <div className="session-summary-label">Session ID</div>
+                <div className="session-summary-id">{session.id}</div>
+              </div>
+              <span className={`session-status-pill ${getStatusClass(session.status)}`}>
                 {session.status}
               </span>
             </div>
 
-            <div className="detail-row">
-              <span className="detail-label">In Subscription:</span>
-              <span className="subscription-badge">
-                {session.inSubscription ? 'Yes' : 'No'}
-              </span>
+            {/* Quick Info */}
+            <div className="session-grid session-grid-2">
+              <div className="session-info-card">
+                <div className="session-info-label">Vehicle Plate</div>
+                <div className="session-info-mono">{session.plate || '-'}</div>
+              </div>
+              <div className="session-info-card">
+                <div className="session-info-label">Card ID</div>
+                <div className="session-info-mono">{session.cardId || '-'}</div>
+              </div>
             </div>
 
-            <div className="detail-row">
-              <span className="detail-label">Final Fee:</span>
-              <span className="detail-value">${session.finalFee.toFixed(2)}</span>
+            {/* Card Type */}
+            <div className="session-block">
+              <div className="session-info-label">Card Type</div>
+              <div className="session-type-pill">{cardType}</div>
             </div>
 
-            <div className="detail-row">
-              <span className="detail-label">Processed By Entry:</span>
-              <span className="detail-value">{session.processedByEntry || session.staff}</span>
+            {/* Time Information */}
+            <div className="session-section">
+              <div className="session-section-title">Time Information</div>
+              <div className="session-section-card">
+                <div className="session-kv-row">
+                  <div className="session-kv-key">Entry Time</div>
+                  <div className="session-kv-value">{formatDateTime(session.entryTime)}</div>
+                </div>
+                <div className="session-divider" />
+                <div className="session-kv-row">
+                  <div className="session-kv-key">Exit Time</div>
+                  <div className="session-kv-value">{formatDateTime(session.exitTime)}</div>
+                </div>
+              </div>
             </div>
 
-            <div className="detail-row">
-              <span className="detail-label">Processed By Exit:</span>
-              <span className="detail-value">{session.processedByExit || 'Sarah Manager'}</span>
+            {/* Subscription + Final Fee */}
+            <div className="session-grid session-grid-2">
+              <div className="session-info-card">
+                <div className="session-info-label">Subscription</div>
+                <div className="session-subscription-pill">{subscriptionLabel}</div>
+              </div>
+              <div className="session-info-card">
+                <div className="session-info-label">Final Fee</div>
+                <div className="session-fee">{finalFeeText}</div>
+              </div>
+            </div>
+
+            {/* Processing Staff */}
+            <div className="session-section">
+              <div className="session-section-title">Processing Staff</div>
+              <div className="session-section-card">
+                <div className="session-kv-row">
+                  <div className="session-kv-key">Entry Processed By</div>
+                  <div className="session-kv-value">
+                    {session.processedByEntry || session.staff || '-'}
+                  </div>
+                </div>
+                <div className="session-divider" />
+                <div className="session-kv-row">
+                  <div className="session-kv-key">Exit Processed By</div>
+                  <div className="session-kv-value">{session.processedByExit || '-'}</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

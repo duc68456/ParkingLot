@@ -18,19 +18,19 @@
 /* Wrapper - padding 112px top, 311.6px sides */
 .edit-customer-modal-wrapper {
   width: 100%;
-  padding: 112px 311.6px 0 311.6px;
+  padding: 240.4px 311.6px 0 311.6px;
   display: flex;
   justify-content: center;
   min-height: 777.6px;
 }
 
-/* Content - 672px width (calculated: 1295.2px - 2*311.6px), 553.6px height */
+/* Content - 672px width (calculated: 1295.2px - 2*311.6px), 296.8px height */
 .edit-customer-modal-content {
   background: white;
   border-radius: 16px;
   box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
   width: 672px;
-  height: 553.6px;
+  height: 296.8px;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -82,9 +82,9 @@
   height: 20px;
 }
 
-/* Body - 406.4px height, 24px padding */
+/* Body */
 .edit-modal-body {
-  height: 406.4px;
+  height: 149.6px;
   padding: 24px;
   padding-top: 24px;
   overflow-y: auto;
@@ -92,12 +92,12 @@
   flex-shrink: 0;
 }
 
-/* Form Content - 358.4px height, 12px gap */
+/* Form Content */
 .form-content {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  height: 358.4px;
+  height: 101.6px;
 }
 
 /* Section Title Row - 20px height */
@@ -129,9 +129,9 @@
   top: -1.2px;
 }
 
-/* Form Fields Container - 326.4px height */
+/* Form Fields Container - 69.6px height */
 .form-fields-container {
-  height: 326.4px;
+  height: 69.6px;
   position: relative;
   width: 100%;
 }
@@ -188,6 +188,14 @@
   top: 256.8px;
   width: 304px;
   height: 69.6px;
+}
+
+/* Hide legacy rows if present (kept for safety) */
+.field-email,
+.field-address,
+.field-hometown,
+.field-gender {
+  display: none;
 }
 
 /* Field Label - 20px height */

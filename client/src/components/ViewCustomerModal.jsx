@@ -7,6 +7,24 @@ const carIcon = "http://localhost:3845/assets/e0acfd868c31bc907b5d6ba4b8ad7e5d76
 function ViewCustomerModal({ customer, vehicles, onClose }) {
   if (!customer) return null;
 
+  const safeText = (value, fallback = '-') => {
+    if (value === null || value === undefined) return fallback;
+    const str = String(value).trim();
+    return str.length ? str : fallback;
+  };
+
+  const formatDateShort = (value) => {
+    if (!value) return '-';
+    if (typeof value === 'string') return value;
+    try {
+      const dt = value instanceof Date ? value : new Date(value);
+      if (Number.isNaN(dt.getTime())) return '-';
+      return dt.toLocaleDateString(undefined);
+    } catch {
+      return '-';
+    }
+  };
+
   const getInitials = (name) => {
     if (!name) return '';
     const parts = name.split(' ');
@@ -45,7 +63,6 @@ function ViewCustomerModal({ customer, vehicles, onClose }) {
                 </div>
                 <div className="profile-info">
                   <h3 className="profile-name">{customer.name || customer.fullName}</h3>
-                  <p className="profile-email">{customer.email}</p>
                   <span className="profile-status-badge">
                     {customer.status || 'Active'}
                   </span>
@@ -54,34 +71,32 @@ function ViewCustomerModal({ customer, vehicles, onClose }) {
 
               {/* Details Grid */}
               <div className="details-grid-container">
-                {/* Row 1 */}
                 <div className="detail-field detail-field-phone">
                   <label className="detail-field-label">Phone</label>
-                  <p className="detail-field-value">{customer.phone || customer.phoneNumber || '+1234567890'}</p>
-                </div>
-                <div className="detail-field detail-field-gender">
-                  <label className="detail-field-label">Gender</label>
-                  <p className="detail-field-value">{customer.gender || 'Male'}</p>
+                  <p className="detail-field-value">
+                    {safeText(customer.phone || customer.phoneNumber, '+1234567890')}
+                  </p>
                 </div>
 
-                {/* Row 2 */}
-                <div className="detail-field detail-field-address">
-                  <label className="detail-field-label">Address</label>
-                  <p className="detail-field-value">{customer.address || '123 Main St, City'}</p>
-                </div>
-                <div className="detail-field detail-field-hometown">
-                  <label className="detail-field-label">Hometown</label>
-                  <p className="detail-field-value">{customer.hometown || 'Springfield'}</p>
+                <div className="detail-field detail-field-registered-day">
+                  <label className="detail-field-label">Registered Day</label>
+                  <p className="detail-field-value">
+                    {formatDateShort(customer.registeredDay || customer.registeredAt || customer.createdAt) || '15/01/2023'}
+                  </p>
                 </div>
 
-                {/* Row 3 */}
                 <div className="detail-field detail-field-cards">
                   <label className="detail-field-label">Cards Count</label>
-                  <p className="detail-field-value">{customer.cardsCount || customer.cards?.length || 2}</p>
+                  <p className="detail-field-value">
+                    {customer.cardsCount ?? customer.cards?.length ?? 2}
+                  </p>
                 </div>
+
                 <div className="detail-field detail-field-subscriptions">
                   <label className="detail-field-label">Active Subscriptions</label>
-                  <p className="detail-field-value">{customer.activeSubscriptions || customer.subscriptions?.length || 1}</p>
+                  <p className="detail-field-value">
+                    {customer.activeSubscriptions ?? customer.subscriptions?.length ?? 1}
+                  </p>
                 </div>
               </div>
 
@@ -104,13 +119,15 @@ function ViewCustomerModal({ customer, vehicles, onClose }) {
                             <img src={carIcon} alt="Car" />
                           </div>
                           <div className="vehicle-card-info">
-                            <p className="vehicle-plate-number">{vehicle.plateNumber}</p>
+                            <p className="vehicle-plate-number">{safeText(vehicle.plateNumber)}</p>
                             <p className="vehicle-type-text">{vehicle.vehicleType || 'Car'}</p>
                           </div>
                         </div>
                         <div className="vehicle-card-right">
                           <span className="vehicle-registered-label">Registered</span>
-                          <p className="vehicle-registered-date">{vehicle.registeredDate || '15/01/2023'}</p>
+                          <p className="vehicle-registered-date">
+                            {formatDateShort(vehicle.registeredDate) || '15/01/2023'}
+                          </p>
                         </div>
                       </div>
                     ))

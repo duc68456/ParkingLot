@@ -19,11 +19,11 @@
   right: 0;
   bottom: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   z-index: 1001;
   pointer-events: none;
-  padding: 24px;
+  padding: 228.413px 199.6px 0 199.6px;
 }
 
 /* Modal Container */
@@ -33,6 +33,7 @@
   box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
   width: 896px;
   max-width: 90vw;
+  height: 320.775px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -89,6 +90,54 @@
   flex: 1;
 }
 
+/* Employee state warning (Figma: Active Card Exists) */
+.employee-card-warning {
+  background: #fffbeb;
+  border: 0.8px solid #fee685;
+  border-radius: 10px;
+  padding: 16.8px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.employee-card-warning-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #fe9a00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.employee-card-warning-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.employee-card-warning-title {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #7b3306;
+}
+
+.employee-card-warning-subtitle {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  color: #973c00;
+}
+
 .view-cards-toolbar {
   display: flex;
   justify-content: flex-end;
@@ -113,6 +162,11 @@
   transition: filter 0.2s, transform 0.05s;
 }
 
+.view-cards-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .view-cards-add-btn:hover {
   filter: brightness(0.98);
 }
@@ -130,6 +184,157 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* Make the customer cards list match the Figma item spacing */
+.view-cards-item + .view-cards-item {
+  margin-top: 12px;
+}
+
+/* Figma-style employee cards list */
+.employee-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.employee-cards-item {
+  background: #f8fafc;
+  border: 0.8px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16.8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.employee-cards-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.employee-cards-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ad46ff 0%, #9810fa 100%);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.employee-cards-icon img {
+  width: 24px;
+  height: 24px;
+}
+
+.employee-cards-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.employee-cards-line {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.employee-cards-label {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #0f172b;
+}
+
+.employee-cards-mono {
+  font-family: 'Cousine', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 20px;
+  color: #0f172b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.employee-cards-subline {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.employee-cards-subLabel {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  color: #62748e;
+}
+
+.employee-cards-subMono {
+  font-family: 'Cousine', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 16px;
+  color: #62748e;
+}
+
+.employee-cards-right {
+  display: flex;
+  flex-direction: column;
+  gap: 4.8px;
+  align-items: flex-end;
+  flex: 0 0 auto;
+}
+
+.employee-cards-statusLabel {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  color: #62748e;
+}
+
+.employee-cards-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 0.8px solid;
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+/* Map existing status variants to the new list */
+.employee-cards-status.view-cards-status-active {
+  background: #f0fdf4;
+  border-color: #b9f8cf;
+  color: #008236;
+}
+
+.employee-cards-status.view-cards-status-inactive {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #62748e;
+}
+
+.employee-cards-status.view-cards-status-damaged {
+  background: #fff7ed;
+  border-color: #ffd6a7;
+  color: #ca3500;
+}
+
+.employee-cards-status.view-cards-status-default {
+  background: #f1f5f9;
+  border-color: #cad5e2;
+  color: #45556c;
 }
 
 /* Empty state */
@@ -389,6 +594,12 @@
     max-width: 100%;
     max-height: 100%;
     border-radius: 0;
+    height: auto;
+  }
+
+  .view-cards-modal-wrapper {
+    padding: 0;
+    align-items: stretch;
   }
 
   .view-cards-item {

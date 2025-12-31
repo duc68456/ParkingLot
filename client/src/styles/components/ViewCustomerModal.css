@@ -23,17 +23,17 @@
   justify-content: center;
   z-index: 1001;
   pointer-events: none;
-  padding: 93.6px 199.6px;
+  padding: 132.8px 199.6px;
   overflow: hidden;
 }
 
-/* Modal Content - 896px width, 590.4px height */
+/* Modal Content - 896px width, 512px height */
 .view-customer-modal-content {
   background: white;
   border-radius: 16px;
   box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
   width: 896px;
-  height: 590.4px;
+  height: 512px;
   display: flex;
   flex-direction: column;
   pointer-events: auto;
@@ -97,7 +97,7 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  height: 483.188px;
+  height: auto;
 }
 
 /* Profile Section - 104.787px height, border-bottom 0.8px */
@@ -105,7 +105,7 @@
   display: flex;
   gap: 16px;
   align-items: flex-start;
-  height: 104.787px;
+  height: 88.8px;
   padding-bottom: 24px;
   border-bottom: 0.8px solid #e2e8f0;
 }
@@ -129,7 +129,7 @@
 .profile-info {
   display: flex;
   flex-direction: column;
-  height: 79.988px;
+  height: auto;
 }
 
 .profile-name {
@@ -140,16 +140,6 @@
   color: #0f172b;
   margin: 0;
   height: 28px;
-}
-
-.profile-email {
-  font-family: 'Arimo', sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 20px;
-  color: #45556c;
-  margin: 0;
-  height: 20px;
 }
 
 .profile-status-badge {
@@ -172,7 +162,7 @@
 /* Details Grid Container - 192px height, 2 columns */
 .details-grid-container {
   position: relative;
-  height: 192px;
+  height: 120px;
   width: 100%;
 }
 
@@ -216,31 +206,20 @@
   top: 0;
 }
 
-.detail-field-gender {
+.detail-field-registered-day {
   left: 428.4px;
   top: 0;
 }
 
 /* Row 2 */
-.detail-field-address {
-  left: 0;
-  top: 72px;
-}
-
-.detail-field-hometown {
-  left: 428.4px;
-  top: 72px;
-}
-
-/* Row 3 */
 .detail-field-cards {
   left: 0;
-  top: 144px;
+  top: 72px;
 }
 
 .detail-field-subscriptions {
   left: 428.4px;
-  top: 144px;
+  top: 72px;
 }
 
 /* Vehicles Section - 138.4px height, border-top 0.8px, padding-top 24.8px */
@@ -427,12 +406,10 @@
     gap: 24px;
   }
 
-  .detail-field-customer-id,
-  .detail-field-card-number,
-  .detail-field-registration-date,
-  .detail-field-card-type,
-  .detail-field-issued-date,
-  .detail-field-expiry-date {
+  .detail-field-phone,
+  .detail-field-registered-day,
+  .detail-field-cards,
+  .detail-field-subscriptions {
     position: static;
     width: auto;
     height: auto;
@@ -474,12 +451,10 @@
     gap: 16px;
   }
 
-  .detail-field-customer-id,
-  .detail-field-card-number,
-  .detail-field-registration-date,
-  .detail-field-card-type,
-  .detail-field-issued-date,
-  .detail-field-expiry-date {
+  .detail-field-phone,
+  .detail-field-registered-day,
+  .detail-field-cards,
+  .detail-field-subscriptions {
     position: static;
     width: 100%;
     height: auto;

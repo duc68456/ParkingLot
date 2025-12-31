@@ -1,6 +1,6 @@
 import '../styles/components/FormHeader.css';
 
-const adminIcon = "http://localhost:3845/assets/af824e0bea873c71370fc00e95f0408094a8778b.svg";
+import adminIcon from '../assets/admin-icon.svg';
 
 export default function FormHeader({ 
   title = 'Login', 
