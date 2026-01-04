@@ -10,6 +10,7 @@ import TablePagination from '../components/TablePagination';
 import ViewVehicleModal from '../components/ViewVehicleModal';
 import EditVehicleModal from '../components/EditVehicleModal';
 import EditVehicleTypeModal from '../components/EditVehicleTypeModal';
+import DeleteVehicleModal from '../components/DeleteVehicleModal';
 import '../styles/pages/VehiclesPage.css';
 
 import searchIcon from '../assets/icons/common/actions/search.svg';
@@ -63,6 +64,7 @@ export default function VehiclesPage() {
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [vehicles, setVehicles] = useState(mockVehicles);
   const [vehicleTypes, setVehicleTypes] = useState(mockVehicleTypes);
   const [currentPage, setCurrentPage] = useState(1);
@@ -102,8 +104,18 @@ export default function VehiclesPage() {
     setIsEditModalOpen(true);
   };
 
+  const handleDeleteVehicle = (vehicle) => {
+    setSelectedVehicle(vehicle);
+    setIsDeleteModalOpen(true);
+  };
+
   const handleCloseEditModal = () => {
     setIsEditModalOpen(false);
+    setSelectedVehicle(null);
+  };
+
+  const handleCloseDeleteModal = () => {
+    setIsDeleteModalOpen(false);
     setSelectedVehicle(null);
   };
 
@@ -113,6 +125,14 @@ export default function VehiclesPage() {
         v.id === updatedVehicle.id ? updatedVehicle : v
       )
     );
+  };
+
+  const handleConfirmDeleteVehicle = (vehicleToDelete) => {
+    if (!vehicleToDelete) return;
+
+    // Figma says "cannot be undone"; for our mock UI we remove it from the list.
+    setVehicles(prev => prev.filter(v => v.id !== vehicleToDelete.id));
+    handleCloseDeleteModal();
   };
 
   const handleEditType = (type) => {
@@ -203,6 +223,7 @@ export default function VehiclesPage() {
             vehicles={filteredVehicles}
             onViewVehicle={handleViewVehicle}
             onEditVehicle={handleEditVehicle}
+            onDeleteVehicle={handleDeleteVehicle}
           />
         </div>
       )}
@@ -246,6 +267,14 @@ export default function VehiclesPage() {
           vehicle={selectedVehicle}
           onClose={handleCloseEditModal}
           onSave={handleSaveVehicle}
+        />
+      )}
+
+      {isDeleteModalOpen && selectedVehicle && (
+        <DeleteVehicleModal
+          vehicle={selectedVehicle}
+          onClose={handleCloseDeleteModal}
+          onConfirm={handleConfirmDeleteVehicle}
         />
       )}
 

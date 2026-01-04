@@ -1,0 +1,272 @@
+// ============================================
+// PARKING SYSTEM - PARTIAL RETURN SUPPORT
+// Updated: 2025-12-30
+// ============================================
+
+Table Person {
+  ID   varchar [pk]
+  FullName   varchar(50)
+  // Address    varchar(256)
+  Phone      varchar(15)
+  Gender varchar(15)
+  IsActive bool
+}
+
+Table Customer {
+  ID varchar [pk, ref: > Person.ID]
+  RegisteredDay date
+  Status varchar(20) 
+}
+
+Table Employee {
+  ID    varchar [pk, ref: > Person.ID]
+  EmployeeType  varchar(20)
+  HiredDate     date
+  Status varchar(20) 
+}
+
+Table StaffAccount {
+  ID varchar [pk]
+  EmployeeID         varchar [ref: > Employee.ID, unique]
+  PINCode            varchar(8) [unique]
+  Status             varchar(20)
+  LastLoginAt        datetime [null]
+  CreatedAt          datetime [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table AdminAccount {
+  ID varchar [pk]
+  EmployeeID     varchar [ref: > Employee.ID, unique]
+  Username       varchar(32) [unique]
+  PasswordHash   varchar(64)
+  Status         varchar(20)
+  LastLoginAt    datetime [null]
+  CreatedAt      datetime [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table VehicleType {
+  VehicleTypeID   varchar [pk]
+  Name varchar(30)
+  IsActive bool
+}
+
+Table Vehicle {
+  VehicleID     varchar [pk]
+  PlateNumber   varchar(30) [unique]
+  VehicleTypeID varchar [ref: > VehicleType.VehicleTypeID]
+  Color varchar(20)
+  Status varchar(20)
+  IsActive bool
+}
+
+Table CardCategory {
+  ID varchar [pk]
+  Name varchar(30)
+  IsActive bool
+}
+
+Table CardPrice {
+  ID varchar [pk]
+  CardPricePrev varchar [ref: > CardPrice.ID, null]
+  CardCategoryID  varchar [ref: > CardCategory.ID]
+  Price money
+  StartDateApply date
+  
+  ChangedBy varchar [ref: > Employee.ID]
+  // CreatedBy varchar [ref: > Employee.ID]  
+  // CreatedAt         datetime [not null, default: `CURRENT_TIMESTAMP`]
+  Reason            varchar(256) [null]
+}
+
+Table Card {
+  CardID    varchar [pk]
+  CardCategoryID varchar [ref: > CardCategory.ID]
+  OwnerID varchar [ref: > Person.ID, null]
+  VehicleId varchar [ref: > Vehicle.VehicleID, null]
+  
+  ActiveDay date
+  ExpireDay date [null]
+  UID       varchar(64) [unique]
+  IsActive bool
+}
+
+Table CardPurchaseInvoice {
+  ID    varchar [pk]
+  CustomerID   varchar [ref: > Customer.ID]
+  SaledBy varchar [ref: > Employee.ID]
+  InvoiceDate  date
+  Status varchar
+  TotalAmount  money
+}
+
+Table CardPurchaseDetail {
+  InvoiceID     varchar [ref: > CardPurchaseInvoice.ID]
+  CardID  varchar [ref: > Card.CardID]
+  Price money
+  Notes varchar
+  
+  indexes {
+    (InvoiceID, CardID) [pk]
+  }
+}
+
+// ============================================
+// PARTIAL RETURN: 2 NEW TABLES
+// ============================================
+
+Table CardReturn {
+  ID varchar [pk, note: 'NEW: Per-card return (replaces CardPurchaseReturn)']
+  
+  // LIÊN KẾT
+  CardID varchar [ref: > Card.CardID, unique, 
+    note: 'Mỗi thẻ 1 return record']
+  InvoiceID varchar [ref: > CardPurchaseInvoice.ID, 
+    note: 'Link về hóa đơn gốc']
+  
+  // THÔNG TIN HOÀN
+  ReturnReason varchar(100) [note: 'NOT_USED, DAMAGED, DEFECTIVE, CHANGED_MIND']
+  ReturnRequestDate date
+  // ReturnApprovalDate date [null]
+  ReturnApprovalBy varchar [ref: > Employee.ID, null]
+  
+  // GIÁ HOÀN
+  OriginalPrice money [note: 'Giá lúc mua']
+  // UsageDays int [null, note: 'Số ngày đã dùng (nếu dùng rồi)']
+  RefundPrice money [note: 'Giá hoàn lại (có thể < OriginalPrice)']
+  RefundReason varchar(100) [note: 'Chưa sử dụng / Dùng 10 ngày, giảm 10%']
+  
+  // TRẠNG THÁI HOÀN
+  Status varchar(20) [note: 'PENDING, APPROVED, REJECTED, PROCESSED']
+  RefundMethod varchar(20) [note: 'CASH, BANK_TRANSFER, EWALLET, CREDIT']
+  RefundTime datetime [null]
+  
+  // TRACKING
+  Notes varchar(256)
+  CreatedAt datetime [default: `CURRENT_TIMESTAMP`]
+  
+  indexes {
+    (InvoiceID, Status)
+    (CardID, Status)
+    (ReturnRequestDate)
+  }
+}
+
+Table ReturnBatch {
+  ID varchar [pk, note: 'NEW: Nhóm hoàn thẻ từ cùng hóa đơn']
+  
+  InvoiceID varchar [ref: > CardPurchaseInvoice.ID, unique, 
+    note: '1 invoice : 1 batch']
+  
+  // THỐNG KÊ HOÀN
+  TotalCardsInInvoice int [note: 'Tổng thẻ lúc mua']
+  TotalCardsRequested int [note: 'Tổng thẻ request hoàn']
+  TotalCardsApproved int [note: 'Tổng thẻ đã duyệt']
+  TotalCardsRejected int [note: 'Tổng thẻ bị từ chối']
+  
+  TotalOriginalAmount money [note: 'Tổng giá gốc']
+  TotalRefundAmount money [note: 'Tổng tiền hoàn']
+  RefundStatus varchar(20) [note: 'PARTIAL, FULL, ZERO, FULL_PROCESSED, PARTIAL_PROCESSED']
+  
+  CreatedAt datetime [default: `CURRENT_TIMESTAMP`]
+  LastUpdatedAt datetime
+}
+
+// ============================================
+// PRICING RULES
+// ============================================
+
+Table SinglePricingRule {
+  ID varchar [pk]
+  SinglePricingRulePrev varchar [ref: > SinglePricingRule.ID, null]
+  CardCategoryID varchar [ref: > CardCategory.ID]
+  VehicleTypeID varchar [ref: > VehicleType.VehicleTypeID]
+  DayPrice money
+  HourPrice money
+  NextHourPrice money
+  
+  ChangedAt datetime [not null, default: `CURRENT_TIMESTAMP`]
+  ChangedBy varchar [ref: > Employee.ID]  
+  Reason varchar(256) [null]
+  StartDateApply date
+}
+
+Table SubscriptionType {
+  ID varchar [pk]
+  TypeName           varchar(30)
+  DurationDays       int
+  Description        varchar(256)
+}
+
+Table SubscriptionPricingRule {
+  ID varchar [pk]
+  CardCategoryID varchar [ref: > CardCategory.ID]
+  VehicleTypeID varchar [ref: > VehicleType.VehicleTypeID]
+  SubscriptionTypeID varchar [ref: > SubscriptionType.ID]
+  
+  indexes {
+    (CardCategoryID, VehicleTypeID, SubscriptionTypeID) [unique]
+  }
+}
+
+Table SubscriptionPricingRuleDetail {
+  ID varchar [pk]
+  SubscriptionPricingRuleDetailPrev varchar [ref: > SubscriptionPricingRuleDetail.ID]
+  SubscriptionPricingRuleID varchar [ref: > SubscriptionPricingRule.ID]
+  
+  Price money
+  StartDateApply date
+  
+  ChangedBy varchar [ref: > Employee.ID]
+  // ChangedAt         datetime [not null, default: `CURRENT_TIMESTAMP`]
+  Reason            varchar(256) [null]
+}
+
+// ============================================
+// SUBSCRIPTION
+// ============================================
+
+Table Subscription {
+  ID     varchar [pk]
+  ProcessedBy varchar [ref: > Employee.ID]
+  ProcessedAt timestamp
+  
+  CustomerID         varchar [ref: > Customer.ID, null]
+  VehicleID varchar [ref: > Vehicle.VehicleID]
+  VehicleTypeID varchar [ref: > VehicleType.VehicleTypeID]
+  CardID             varchar [ref: > Card.CardID]
+  SubscriptionTypeID varchar [ref: > SubscriptionType.ID]
+  PricePaid money
+  
+  StartDate          date
+  EndDate            date
+  IsSuspended        boolean
+}
+
+// ============================================
+// ENTRY SESSION
+// ============================================
+
+Table EntrySession {
+  ID varchar [pk]
+  
+  VehicleID varchar [ref: > Vehicle.VehicleID]
+  VehicleTypeID varchar [ref: > VehicleType.VehicleTypeID]
+  
+  CardID         varchar [ref: > Card.CardID]
+  
+  EntryTime      datetime
+  ProcessedEntryBy  varchar [ref: > Employee.ID]
+  
+  ExitTime       datetime [null]
+  ProcessedExitBy   varchar [ref: > Employee.ID, null]
+  
+  Status         varchar(20)
+  
+  CalculatedFee  money
+  FinalFee       money
+  DiscountReason varchar(50) [null, note: 'STAFF_FREE, SUBSCRIPTION, PROMO, ...']
+  
+  indexes {
+    (CardID, EntryTime) [unique]
+  }
+}

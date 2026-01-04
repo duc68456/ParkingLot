@@ -1,0 +1,137 @@
+.delete-customer-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.delete-customer-modal {
+  position: relative;
+  width: 448px;
+  height: 337.587px;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+  padding: 24px;
+}
+
+.delete-customer-modal-close {
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.delete-customer-modal-close img {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.delete-customer-modal-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 9999px;
+  background: #FFE2E2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-customer-modal-icon img {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+
+.delete-customer-modal-title {
+  margin-top: 16px;
+  font-family: Arimo, sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 28px;
+  color: #0f172b;
+}
+
+.delete-customer-modal-subtitle {
+  margin-top: 8px;
+  font-family: Arimo, sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #45556c;
+  max-width: 379px;
+}
+
+.delete-customer-modal-item {
+  margin-top: 4px;
+  width: 400px;
+  height: 45.6px;
+  background: #FEF2F2;
+  border: 0.8px solid #FFC9C9;
+  border-radius: 10px;
+  padding: 12.8px 12px;
+  font-family: Arimo, sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #45556c;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.delete-customer-modal-item-label {
+  color: #45556c;
+}
+
+.delete-customer-modal-item-value {
+  color: #0f172b;
+}
+
+.delete-customer-modal-footnote {
+  margin-top: 16px;
+  font-family: Arimo, sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+  color: #62748e;
+}
+
+.delete-customer-modal-actions {
+  margin-top: 23.6px;
+  display: flex;
+  gap: 12px;
+  width: 400px;
+}
+
+.delete-customer-modal-btn {
+  flex: 1;
+  height: 44px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-family: Arimo, sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.delete-customer-modal-btn.cancel {
+  background: #f1f5f9;
+  color: #314158;
+}
+
+.delete-customer-modal-btn.delete {
+  background: #e7000b;
+  color: #ffffff;
+}

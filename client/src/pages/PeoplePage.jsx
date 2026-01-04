@@ -9,6 +9,7 @@ import AddEmployeeModal from '../components/AddEmployeeModal';
 import ViewCardsModal from '../components/ViewCardsModal';
 import ViewCustomerModal from '../components/ViewCustomerModal';
 import EditCustomerModal from '../components/EditCustomerModal';
+import DeleteCustomerModal from '../components/DeleteCustomerModal';
 import EditEmployeeModal from '../components/EditEmployeeModal';
 import { CommonActionAddIcon, CommonActionSearchIcon } from '../assets/icons/common';
 import { PeopleTabCustomerIcon, PeopleTabEmployeeIcon } from '../assets/icons/people';
@@ -132,6 +133,7 @@ export default function PeoplePage() {
   const [showCardsModal, setShowCardsModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showEditCustomerModal, setShowEditCustomerModal] = useState(false);
+  const [showDeleteCustomerModal, setShowDeleteCustomerModal] = useState(false);
   const [customers, setCustomers] = useState(mockCustomers);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [showEditEmployeeModal, setShowEditEmployeeModal] = useState(false);
@@ -196,8 +198,18 @@ export default function PeoplePage() {
     setShowEditCustomerModal(true);
   };
 
+  const handleDeleteCustomer = (customer) => {
+    setSelectedCustomer(customer);
+    setShowDeleteCustomerModal(true);
+  };
+
   const handleCloseEditCustomerModal = () => {
     setShowEditCustomerModal(false);
+    setSelectedCustomer(null);
+  };
+
+  const handleCloseDeleteCustomerModal = () => {
+    setShowDeleteCustomerModal(false);
     setSelectedCustomer(null);
   };
 
@@ -205,6 +217,16 @@ export default function PeoplePage() {
     setCustomers(customers.map(c => 
       c.id === updatedCustomer.id ? updatedCustomer : c
     ));
+  };
+
+  const handleConfirmDeleteCustomer = (customerToDelete) => {
+    if (!customerToDelete) return;
+
+    // UI-only for now: Figma copy says "mark them as inactive".
+    setCustomers(prev => prev.map(c => (
+      c.id === customerToDelete.id ? { ...c, status: 'Inactive' } : c
+    )));
+    handleCloseDeleteCustomerModal();
   };
 
   const handleEditEmployee = (employee) => {
@@ -281,6 +303,7 @@ export default function PeoplePage() {
             onView={handleViewCustomer}
             onViewCards={handleViewCards}
             onEdit={handleEditCustomer}
+            onDelete={handleDeleteCustomer}
           />
         ) : (
           <EmployeesTable employees={filteredEmployees} onEdit={handleEditEmployee} />
@@ -314,6 +337,14 @@ export default function PeoplePage() {
           customer={selectedCustomer}
           onClose={handleCloseEditCustomerModal}
           onSave={handleSaveCustomer}
+        />
+      )}
+
+      {showDeleteCustomerModal && selectedCustomer && (
+        <DeleteCustomerModal
+          customer={selectedCustomer}
+          onClose={handleCloseDeleteCustomerModal}
+          onConfirm={handleConfirmDeleteCustomer}
         />
       )}
 

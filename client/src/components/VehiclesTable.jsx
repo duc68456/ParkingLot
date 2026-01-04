@@ -7,7 +7,7 @@ const viewIcon = "http://localhost:3845/assets/fff43459d23d75a693e463832b4f1a77e
 const editIcon = "http://localhost:3845/assets/22ed6fed4c4d56385d3b4d40f1a0236ded42a86e.svg";
 const deleteIcon = "http://localhost:3845/assets/1fdb1f29273b223332a28061a714a4354ee0c9ae.svg";
 
-export default function VehiclesTable({ vehicles, onViewVehicle, onEditVehicle }) {
+export default function VehiclesTable({ vehicles, onViewVehicle, onEditVehicle, onDeleteVehicle }) {
   const [currentPage, setCurrentPage] = useState(1);
 
   const getVehicleIcon = (type) => {
@@ -70,7 +70,11 @@ export default function VehiclesTable({ vehicles, onViewVehicle, onEditVehicle }
                     >
                       <img src={editIcon} alt="Edit" />
                     </button>
-                    <button className="action-btn" title="Delete">
+                    <button
+                      className="action-btn"
+                      title="Delete"
+                      onClick={() => onDeleteVehicle && onDeleteVehicle(vehicle)}
+                    >
                       <img src={deleteIcon} alt="Delete" />
                     </button>
                   </div>

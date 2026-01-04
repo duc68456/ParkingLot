@@ -1,0 +1,137 @@
+.delete-vehicle-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.delete-vehicle-modal {
+  position: relative;
+  width: 448px;
+  height: 337.587px;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+  padding: 24px;
+}
+
+.delete-vehicle-modal-close {
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.delete-vehicle-modal-close img {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.delete-vehicle-modal-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 9999px;
+  background: #ffe2e2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-vehicle-modal-icon img {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+
+.delete-vehicle-modal-title {
+  margin-top: 16px;
+  font-family: Arimo, sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 28px;
+  color: #0f172b;
+}
+
+.delete-vehicle-modal-subtitle {
+  margin-top: 8px;
+  font-family: Arimo, sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #45556c;
+  max-width: 393px;
+}
+
+.delete-vehicle-modal-item {
+  margin-top: 4px;
+  width: 400px;
+  height: 45.6px;
+  background: #fef2f2;
+  border: 0.8px solid #ffc9c9;
+  border-radius: 10px;
+  padding: 12.8px 12px;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+
+  font-family: Arimo, sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.delete-vehicle-modal-item-label {
+  color: #45556c;
+}
+
+.delete-vehicle-modal-item-value {
+  color: #0f172b;
+}
+
+.delete-vehicle-modal-footnote {
+  margin-top: 16px;
+  font-family: Arimo, sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+  color: #62748e;
+}
+
+.delete-vehicle-modal-actions {
+  margin-top: 23.6px;
+  display: flex;
+  gap: 12px;
+  width: 400px;
+}
+
+.delete-vehicle-modal-btn {
+  flex: 1;
+  height: 44px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-family: Arimo, sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.delete-vehicle-modal-btn.cancel {
+  background: #f1f5f9;
+  color: #314158;
+}
+
+.delete-vehicle-modal-btn.delete {
+  background: #e7000b;
+  color: #ffffff;
+}

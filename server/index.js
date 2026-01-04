@@ -1,15 +1,7 @@
-const express = require('express');
-const cors = require('cors');
-const app = express();
-const PORT = 5000;
+const app = require('./app')
+const config = require('./utils/config')
+const logger = require('./utils/logger')
 
-app.use(cors());
-app.use(express.json());
-
-app.get('/', (req, res) => {
-    res.send('ParkingLot Backend is running!');
-});
-
-app.listen(PORT, () => {
-    console.log('Server is running on port ' + PORT);
-});
+app.listen(config.PORT, () => {
+  logger.info(`Server running on port ${config.PORT}`)
+})
