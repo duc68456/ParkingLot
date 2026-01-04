@@ -3,6 +3,7 @@ const mongoose = require('mongoose')
 const config = require('./utils/config')
 const logger = require('./utils/logger')
 const middleware = require('./utils/middleware')
+const cors = require('cors')
 
 // Phase 1: Core Entities
 const personsRouter = require('./controllers/persons')
@@ -53,6 +54,18 @@ mongoose
   })
 
 app.use(express.static('dist'))
+app.use(
+  cors({
+    origin: [
+      // Vite dev server (common ports)
+      'http://localhost:5173',
+      'http://localhost:5174'
+    ],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+  })
+)
 app.use(express.json())
 app.use(middleware.requestLogger)
 

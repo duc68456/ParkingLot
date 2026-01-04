@@ -260,14 +260,6 @@ export default function PeoplePage() {
           title="Manage People"
           subtitle="Manage customers and employees in your parking system"
         />
-        {activeTab === 'employees' && (
-          <button className="add-employee-btn" onClick={handleAddEmployee}>
-            <span className="btn-icon" aria-hidden="true">
-              <CommonActionAddIcon />
-            </span>
-            <span>Add Employee</span>
-          </button>
-        )}
       </div>
 
       <div className="tab-navigation-wrapper">
@@ -280,12 +272,24 @@ export default function PeoplePage() {
 
       <div className="people-content">
         <div className="people-controls">
-          <SearchInput
-            placeholder={activeTab === 'customers' ? 'Search customers...' : 'Search employees...'}
-            value={searchQuery}
-            onChange={setSearchQuery}
-            icon={searchInputIconUrl}
-          />
+          <div className="people-controls-top">
+            <SearchInput
+              placeholder={activeTab === 'customers' ? 'Search customers...' : 'Search employees...'}
+              value={searchQuery}
+              onChange={setSearchQuery}
+              icon={searchInputIconUrl}
+            />
+
+            {activeTab === 'employees' && (
+              <button className="add-employee-btn" onClick={handleAddEmployee} type="button">
+                <span className="btn-icon" aria-hidden="true">
+                  <CommonActionAddIcon />
+                </span>
+                <span>Add Employee</span>
+              </button>
+            )}
+          </div>
+
           <StatusFilter
             value={statusFilter}
             onChange={setStatusFilter}

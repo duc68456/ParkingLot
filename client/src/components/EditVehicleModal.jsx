@@ -5,15 +5,17 @@ const closeIcon = "http://localhost:3845/assets/ea632bee3622f9ce524687f090e3e13c
 
 export default function EditVehicleModal({ vehicle, onClose, onSave }) {
   const [plateNumber, setPlateNumber] = useState(vehicle?.licensePlate || '');
+  const [color, setColor] = useState(vehicle?.color || '');
 
   if (!vehicle) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (plateNumber.trim()) {
+    if (plateNumber.trim() && color.trim()) {
       onSave({
         ...vehicle,
-        licensePlate: plateNumber.toUpperCase()
+        licensePlate: plateNumber.toUpperCase(),
+        color: color.trim()
       });
       onClose();
     }
@@ -41,7 +43,7 @@ export default function EditVehicleModal({ vehicle, onClose, onSave }) {
             <form onSubmit={handleSubmit}>
               <div className="edit-vehicle-warning">
                 <p className="edit-vehicle-warning-text">
-                  <strong>Note:</strong> Only the plate number can be edited. Vehicle type cannot be changed.
+                  <strong>Note:</strong> Plate number and color can be edited. Vehicle type cannot be changed.
                 </p>
               </div>
 
@@ -67,6 +69,20 @@ export default function EditVehicleModal({ vehicle, onClose, onSave }) {
                   value={vehicle.type}
                   disabled
                   readOnly
+                />
+              </div>
+
+              <div className="edit-vehicle-form-group">
+                <label className="edit-vehicle-label">
+                  Color <span className="edit-vehicle-required">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="edit-vehicle-input"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  placeholder="Black"
+                  required
                 />
               </div>
 

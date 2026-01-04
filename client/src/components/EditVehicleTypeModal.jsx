@@ -3,13 +3,22 @@ import '../styles/components/EditVehicleTypeModal.css';
 
 export default function EditVehicleTypeModal({ vehicleType, onClose, onSave }) {
   const [typeName, setTypeName] = useState(vehicleType.name || '');
+  const [isActive, setIsActive] = useState(
+    vehicleType?.IsActive !== undefined
+      ? vehicleType.IsActive
+      : vehicleType?.status
+        ? vehicleType.status === 'Active'
+        : true
+  );
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (typeName.trim()) {
       onSave({
         ...vehicleType,
-        name: typeName.trim()
+        name: typeName.trim(),
+        IsActive: isActive,
+        status: isActive ? 'Active' : 'Inactive'
       });
       onClose();
     }
@@ -47,7 +56,7 @@ export default function EditVehicleTypeModal({ vehicleType, onClose, onSave }) {
               {/* Warning Note */}
               <div className="edit-type-warning">
                 <p>
-                  <strong>Note:</strong> Only the type name can be edited.
+                  <strong>Note:</strong> You can edit the name and status.
                 </p>
               </div>
 
@@ -77,6 +86,19 @@ export default function EditVehicleTypeModal({ vehicleType, onClose, onSave }) {
                   placeholder="Car"
                   required
                 />
+              </div>
+
+              {/* Status Field (Editable) */}
+              <div className="edit-type-form-group">
+                <label className="edit-type-label">Status</label>
+                <select
+                  className="edit-type-input edit-type-select"
+                  value={isActive ? 'Active' : 'Inactive'}
+                  onChange={(e) => setIsActive(e.target.value === 'Active')}
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
               </div>
             </div>
 

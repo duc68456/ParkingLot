@@ -31,6 +31,7 @@ export default function VehiclesTable({ vehicles, onViewVehicle, onEditVehicle, 
               <th className="table-header-cell">ID</th>
               <th className="table-header-cell">VEHICLE</th>
               <th className="table-header-cell">TYPE</th>
+              <th className="table-header-cell">COLOR</th>
               <th className="table-header-cell">STATUS</th>
               <th className="table-header-cell align-right">ACTIONS</th>
             </tr>
@@ -51,6 +52,7 @@ export default function VehiclesTable({ vehicles, onViewVehicle, onEditVehicle, 
                   </div>
                 </td>
                 <td className="table-cell">{vehicle.type}</td>
+                <td className="table-cell">{vehicle.color || '—'}</td>
                 <td className="table-cell">
                   <span className="status-badge status-active">Active</span>
                 </td>

@@ -14,8 +14,8 @@
   background: white;
   border-radius: 10px;
   border: 0.8px solid #e2e8f0;
-  width: 976px;
-  max-width: 95vw;
+  width: 100%;
+  max-width: 991.2px;
   max-height: 90vh;
   overflow-y: auto;
   z-index: 1001;
@@ -24,7 +24,7 @@
 
 /* Form */
 .create-customer-form {
-  padding: 24px 104px;
+  padding: 24.8px 111.6px;
 }
 
 /* Header */
@@ -62,6 +62,19 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+}
+
+/* Match Figma field widths (376px columns) */
+.create-customer-field {
+  max-width: 376px;
+}
+
+.create-customer-row .create-customer-field {
+  width: 376px;
+}
+
+.create-customer-field-full {
+  width: 376px;
 }
 
 .create-customer-field {
@@ -113,6 +126,10 @@
 }
 
 .create-customer-input.error {
+  border-color: #fb2c36;
+}
+
+.create-customer-select.error {
   border-color: #fb2c36;
 }
 
@@ -202,6 +219,13 @@
 @media (max-width: 1024px) {
   .create-customer-form {
     padding: 24px 40px;
+  }
+
+  .create-customer-row .create-customer-field,
+  .create-customer-field-full,
+  .create-customer-field {
+    width: 100%;
+    max-width: unset;
   }
 }
 

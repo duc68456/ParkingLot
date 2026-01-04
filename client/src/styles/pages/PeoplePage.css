@@ -11,6 +11,11 @@
   align-items: flex-start;
 }
 
+/* Match VehiclesPage top-right button vertical alignment */
+.add-employee-btn {
+  height: 40px;
+}
+
 .tab-navigation-wrapper {
   width: 100%;
   border-bottom: 0.8px solid rgba(0, 0, 0, 0.1);
@@ -54,7 +59,7 @@
   align-items: center;
   gap: 8px;
   padding: 0 16px;
-  height: 44px;
+  height: 40px;
   background: linear-gradient(135deg, #155DFC 0%, #1447E6 100%);
   color: white;
   border: none;
@@ -86,4 +91,12 @@
   flex-direction: column;
   gap: 12px;
   align-items: flex-start;
+}
+
+.people-controls-top {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }

@@ -15,7 +15,7 @@ export default function VehicleTypesTable({ vehicleTypes, onEditType, onDeleteTy
         <tbody>
           {vehicleTypes.map((type) => (
             <tr key={type.id}>
-              <td>{type.id}</td>
+              <td>{type.VehicleTypeID}</td>
               <td>{type.name}</td>
               <td className="actions-cell">
                 <div className="action-buttons">

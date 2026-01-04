@@ -151,6 +151,12 @@
   color: #008236;
 }
 
+.view-vehicle-status-inactive {
+  background-color: #f1f5f9;
+  border: 0.8px solid #e2e8f0;
+  color: #45556c;
+}
+
 /* Owner Section */
 .view-vehicle-owner-section {
   background: linear-gradient(171.47deg, rgb(239, 246, 255) 0%, rgb(238, 242, 255) 100%);

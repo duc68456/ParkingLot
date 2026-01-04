@@ -1,0 +1,76 @@
+.add-vehicle-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: block;
+  z-index: 9999;
+}
+
+.add-vehicle-modal-wrapper {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.add-vehicle-modal {
+  width: 520px;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+  padding: 20px 24px;
+}
+
+.add-vehicle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.add-vehicle-title {
+  font-family: Arimo, sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 28px;
+  color: #0f172b;
+}
+
+.add-vehicle-close-btn {
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.add-vehicle-close-btn img { width: 20px; height: 20px; }
+
+.add-vehicle-body { margin-top: 12px; }
+
+.add-vehicle-form-group { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+
+.add-vehicle-label { font-family: Arimo, sans-serif; color: #45556c; font-size: 14px; }
+.add-vehicle-required { color: #e7000b; }
+
+.add-vehicle-input, .add-vehicle-select {
+  height: 40px;
+  padding: 8px 12px;
+  border: 0.8px solid #E2E8F0;
+  border-radius: 10px;
+  font-family: Arimo, sans-serif;
+  font-size: 14px;
+}
+
+.add-vehicle-footer { margin-top: 20px; display: flex; gap: 12px; justify-content: flex-end; }
+
+.add-vehicle-btn-cancel {
+  height: 44px; padding: 0 16px; background: #f1f5f9; border: none; border-radius: 10px; color: #314158; cursor: pointer;
+}
+
+.add-vehicle-btn-submit {
+  height: 44px; padding: 0 16px; background: #155dfc; border: none; border-radius: 10px; color: white; cursor: pointer;
+}

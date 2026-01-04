@@ -5,9 +5,6 @@ const CreateCustomerModal = ({ onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
-    email: '',
-    address: '',
-    hometown: '',
     gender: ''
   });
 
@@ -39,10 +36,8 @@ const CreateCustomerModal = ({ onClose, onSubmit }) => {
       newErrors.phone = 'Phone is required';
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+    if (!formData.gender) {
+      newErrors.gender = 'Gender is required';
     }
 
     setErrors(newErrors);
@@ -101,63 +96,23 @@ const CreateCustomerModal = ({ onClose, onSubmit }) => {
               </div>
             </div>
 
-            {/* Row 2: Email */}
+            {/* Row 2: Gender */}
             <div className="create-customer-field create-customer-field-full">
               <label className="create-customer-label">
-                Email<span className="create-customer-required">*</span>
+                Gender<span className="create-customer-required">*</span>
               </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
+              <select
+                name="gender"
+                value={formData.gender}
                 onChange={handleChange}
-                placeholder="john@example.com"
-                className={`create-customer-input ${errors.email ? 'error' : ''}`}
-              />
-              {errors.email && <span className="create-customer-error">{errors.email}</span>}
-            </div>
-
-            {/* Row 3: Address */}
-            <div className="create-customer-field create-customer-field-full">
-              <label className="create-customer-label">Address</label>
-              <input
-                type="text"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                placeholder="123 Main Street"
-                className="create-customer-input"
-              />
-            </div>
-
-            {/* Row 4: Hometown and Gender */}
-            <div className="create-customer-row">
-              <div className="create-customer-field">
-                <label className="create-customer-label">Hometown</label>
-                <input
-                  type="text"
-                  name="hometown"
-                  value={formData.hometown}
-                  onChange={handleChange}
-                  placeholder="City Name"
-                  className="create-customer-input"
-                />
-              </div>
-
-              <div className="create-customer-field">
-                <label className="create-customer-label">Gender</label>
-                <select
-                  name="gender"
-                  value={formData.gender}
-                  onChange={handleChange}
-                  className="create-customer-select"
-                >
-                  <option value="">Select Gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
+                className={`create-customer-select ${errors.gender ? 'error' : ''}`}
+              >
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+              {errors.gender && <span className="create-customer-error">{errors.gender}</span>}
             </div>
           </div>
 

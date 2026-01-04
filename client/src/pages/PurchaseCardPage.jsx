@@ -49,9 +49,6 @@ export default function PurchaseCardPage() {
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
-    email: '',
-    address: '',
-    hometown: '',
     gender: ''
   });
   const [errors, setErrors] = useState({});
@@ -104,9 +101,6 @@ export default function PurchaseCardPage() {
     setFormData({
       fullName: '',
       phone: '',
-      email: '',
-      address: '',
-      hometown: '',
       gender: ''
     });
     setErrors({});
@@ -138,10 +132,8 @@ export default function PurchaseCardPage() {
       newErrors.phone = 'Phone is required';
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+    if (!formData.gender) {
+      newErrors.gender = 'Gender is required';
     }
 
     setErrors(newErrors);
@@ -165,10 +157,7 @@ export default function PurchaseCardPage() {
         .map(n => n[0])
         .join('')
         .toUpperCase(),
-      email: formData.email,
       phone: formData.phone,
-      address: formData.address,
-      hometown: formData.hometown,
       gender: formData.gender
     };
     
@@ -418,63 +407,23 @@ export default function PurchaseCardPage() {
                 </div>
               </div>
 
-              {/* Row 2: Email */}
+              {/* Row 2: Gender */}
               <div className="form-field form-field-full">
                 <label className="form-label">
-                  Email<span className="required">*</span>
+                  Gender<span className="required">*</span>
                 </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
+                <select
+                  name="gender"
+                  value={formData.gender}
                   onChange={handleFormChange}
-                  placeholder="john@example.com"
-                  className={`form-input ${errors.email ? 'error' : ''}`}
-                />
-                {errors.email && <span className="error-message">{errors.email}</span>}
-              </div>
-
-              {/* Row 3: Address */}
-              <div className="form-field form-field-full">
-                <label className="form-label">Address</label>
-                <input
-                  type="text"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleFormChange}
-                  placeholder="123 Main Street"
-                  className="form-input"
-                />
-              </div>
-
-              {/* Row 4: Hometown and Gender */}
-              <div className="form-row">
-                <div className="form-field">
-                  <label className="form-label">Hometown</label>
-                  <input
-                    type="text"
-                    name="hometown"
-                    value={formData.hometown}
-                    onChange={handleFormChange}
-                    placeholder="City Name"
-                    className="form-input"
-                  />
-                </div>
-
-                <div className="form-field">
-                  <label className="form-label">Gender</label>
-                  <select
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleFormChange}
-                    className="form-select"
-                  >
-                    <option value="">Select Gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
+                  className={`form-select ${errors.gender ? 'error' : ''}`}
+                >
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+                {errors.gender && <span className="error-message">{errors.gender}</span>}
               </div>
             </div>
 

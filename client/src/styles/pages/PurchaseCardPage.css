@@ -161,7 +161,8 @@
   background: white;
   border: 0.8px solid #e2e8f0;
   border-radius: 10px;
-  padding: 24px 104px;
+  /* Figma uses 24.8px 111.6px */
+  padding: 24.8px 111.6px;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -190,6 +191,17 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+/* Match Figma field widths (376px columns) */
+.form-row .form-field {
+  width: 376px;
+  max-width: 376px;
+}
+
+.form-field-full {
+  width: 376px;
+  max-width: 376px;
 }
 
 .form-field-full {
@@ -233,6 +245,10 @@
 }
 
 .form-input.error {
+  border-color: #fb2c36;
+}
+
+.form-select.error {
   border-color: #fb2c36;
 }
 
@@ -322,6 +338,12 @@
 @media (max-width: 1024px) {
   .create-customer-form-section {
     padding: 24px 40px;
+  }
+
+  .form-row .form-field,
+  .form-field-full {
+    width: 100%;
+    max-width: unset;
   }
 }
 

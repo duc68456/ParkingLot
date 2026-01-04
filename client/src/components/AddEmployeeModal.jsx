@@ -2,16 +2,13 @@ import { useState } from 'react';
 import '../styles/components/AddEmployeeModal.css';
 
 const closeIcon = "http://localhost:3845/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
-const infoIcon = "http://localhost:3845/assets/75a784162eadb383fb8b7b9265d6f214fe3ead16.svg";
+const infoIcon = "http://localhost:3845/assets/84b076413c866695910facc32be718e0755169e2.svg";
 
 export default function AddEmployeeModal({ isOpen, onClose, onSubmit }) {
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
-    birthDate: '',
     gender: '',
-    address: '',
-    hometown: '',
     employeeType: ''
   });
 
@@ -29,10 +26,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSubmit }) {
     setFormData({
       fullName: '',
       phone: '',
-      birthDate: '',
       gender: '',
-      address: '',
-      hometown: '',
       employeeType: ''
     });
     onClose();
@@ -90,55 +84,6 @@ export default function AddEmployeeModal({ isOpen, onClose, onSubmit }) {
 
                 <div className="form-field">
                   <label className="form-label">
-                    Birth Date<span className="required">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    className="form-input"
-                    value={formData.birthDate}
-                    onChange={(e) => handleChange('birthDate', e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="form-field">
-                  <label className="form-label">Gender</label>
-                  <select
-                    className="form-select"
-                    value={formData.gender}
-                    onChange={(e) => handleChange('gender', e.target.value)}
-                  >
-                    <option value="">Select gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-
-                <div className="form-field full-width">
-                  <label className="form-label">Address</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="123 Main Street"
-                    value={formData.address}
-                    onChange={(e) => handleChange('address', e.target.value)}
-                  />
-                </div>
-
-                <div className="form-field">
-                  <label className="form-label">Hometown</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="City Name"
-                    value={formData.hometown}
-                    onChange={(e) => handleChange('hometown', e.target.value)}
-                  />
-                </div>
-
-                <div className="form-field">
-                  <label className="form-label">
                     Employee Type<span className="required">*</span>
                   </label>
                   <select
@@ -151,6 +96,23 @@ export default function AddEmployeeModal({ isOpen, onClose, onSubmit }) {
                     <option value="ADMIN">Admin</option>
                     <option value="MANAGER">Manager</option>
                     <option value="GATE_STAFF">Gate Staff</option>
+                  </select>
+                </div>
+
+                <div className="form-field">
+                  <label className="form-label">
+                    Gender<span className="required">*</span>
+                  </label>
+                  <select
+                    className="form-select"
+                    value={formData.gender}
+                    onChange={(e) => handleChange('gender', e.target.value)}
+                    required
+                  >
+                    <option value="">Select gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
                   </select>
                 </div>
               </div>

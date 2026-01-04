@@ -55,6 +55,44 @@
   gap: 12px;
 }
 
+.vehicles-controls-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.add-vehicle-btn {
+  background: #155dfc;
+  border: none;
+  border-radius: 10px;
+  height: 40px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-vehicle-btn:hover {
+  background: #1447e6;
+}
+
+.add-vehicle-btn:active {
+  background: #0f3acc;
+}
+
+.add-vehicle-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
 .filters-row {
   display: flex;
   align-items: center;
