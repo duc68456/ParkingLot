@@ -9,6 +9,18 @@ const deleteIcon = "http://localhost:3845/assets/1fdb1f29273b223332a28061a714a43
 export default function CustomersTable({ customers, phoneIcon, onView, onViewCards, onEdit, onDelete }) {
   const headers = ['ID', 'Customer', 'Contact', 'Status', 'Registered', 'Actions'];
 
+  const getStatusBadgeClass = (status) => {
+    const s = (status || '').toLowerCase()
+    switch (s) {
+      case 'active':
+        return 'status-pill status-pill--active'
+      case 'inactive':
+        return 'status-pill status-pill--inactive'
+      default:
+        return 'status-pill'
+    }
+  }
+
   const handleView = (customer) => {
     if (onView) {
       onView(customer);
@@ -59,9 +71,7 @@ export default function CustomersTable({ customers, phoneIcon, onView, onViewCar
       </div>
     ),
     status: (
-      <span className={`status-badge ${customer.status.toLowerCase()}`}>
-        {customer.status}
-      </span>
+      <span className={getStatusBadgeClass(customer.status)}>{customer.status}</span>
     ),
     registered: customer.registered,
     actions: (

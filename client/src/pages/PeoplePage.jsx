@@ -11,6 +11,7 @@ import ViewCustomerModal from '../components/ViewCustomerModal';
 import EditCustomerModal from '../components/EditCustomerModal';
 import DeleteCustomerModal from '../components/DeleteCustomerModal';
 import EditEmployeeModal from '../components/EditEmployeeModal';
+import CreateCustomerModal from '../components/CreateCustomerModal';
 import { CommonActionAddIcon, CommonActionSearchIcon } from '../assets/icons/common';
 import { PeopleTabCustomerIcon, PeopleTabEmployeeIcon } from '../assets/icons/people';
 import '../styles/pages/PeoplePage.css';
@@ -136,7 +137,8 @@ export default function PeoplePage() {
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showEditCustomerModal, setShowEditCustomerModal] = useState(false);
   const [showDeleteCustomerModal, setShowDeleteCustomerModal] = useState(false);
-  const [customers, setCustomers] = useState(mockCustomers);
+  const [customers, setCustomers] = useState([]);
+  const [showCreateCustomerModal, setShowCreateCustomerModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [showEditEmployeeModal, setShowEditEmployeeModal] = useState(false);
 
@@ -161,7 +163,7 @@ export default function PeoplePage() {
     const phone = person?.Phone ?? e?.Phone ?? e?.phone ?? ''
     const gender = person?.Gender ?? e?.Gender ?? e?.gender
     const employeeType = e?.EmployeeType ?? e?.employeeType ?? e?.role ?? 'STAFF'
-    const statusRaw = e?.Status ?? e?.status ?? 'ACTIVE'
+    const isActive = person?.IsActive
     const hiredDateRaw = e?.HiredDate ?? e?.hiredDate
 
     const initials = fullName
@@ -192,8 +194,50 @@ export default function PeoplePage() {
       gender,
       role: employeeType,
       initials,
-      status: statusRaw.toString().toUpperCase() === 'ACTIVE' ? 'Active' : 'Inactive',
+      status: isActive === false ? 'Inactive' : 'Active',
       hiredDate
+    }
+  }
+
+  const normalizeCustomer = (c) => {
+    const person = c?.PersonID ?? c?.person
+    const fullName = person?.FullName ?? c?.FullName ?? c?.name ?? ''
+    const phone = person?.Phone ?? c?.Phone ?? c?.phone ?? ''
+    const gender = person?.Gender ?? c?.Gender ?? c?.gender
+
+    const isActive = person?.IsActive
+    const registeredRaw = c?.RegisteredDay ?? c?.registeredDay ?? c?.createdAt
+
+    const registered = registeredRaw
+      ? new Date(registeredRaw).toLocaleDateString('en-GB')
+      : ''
+
+    const initials = fullName
+      ? fullName
+          .trim()
+          .split(/\s+/)
+          .slice(0, 2)
+          .map((n) => n[0]?.toUpperCase())
+          .join('')
+      : ''
+
+    return {
+      id: c?.ID ?? c?.id ?? c?._id,
+      _id: c?._id ?? c?.id,
+      CustomerID: c?.ID ?? c?.id,
+
+      personId: person?.id ?? person?._id ?? c?.PersonID,
+
+      name: fullName,
+      initials,
+      phone,
+      gender,
+      // CustomersTable expects some fields; keep them safe
+      email: c?.Email ?? c?.email ?? '',
+      status: isActive === false ? 'Inactive' : 'Active',
+      registered,
+      address: c?.Address ?? c?.address ?? '',
+      hometown: c?.Hometown ?? c?.hometown ?? ''
     }
   }
 
@@ -220,6 +264,36 @@ export default function PeoplePage() {
         if (err?.name !== 'AbortError') {
           console.error('Fetch employees error:', err)
           setEmployees([])
+        }
+      }
+    })()
+
+    return () => controller.abort()
+  }, [])
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    ;(async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/customers?limit=100`, {
+          signal: controller.signal
+        })
+
+        if (!res.ok) {
+          throw new Error(`Failed to fetch customers (${res.status})`)
+        }
+
+        const json = await res.json()
+        const list = Array.isArray(json?.data?.customers)
+          ? json.data.customers
+          : []
+
+        setCustomers(list.map(normalizeCustomer))
+      } catch (err) {
+        if (err?.name !== 'AbortError') {
+          console.error('Fetch customers error:', err)
+          setCustomers([])
         }
       }
     })()
@@ -321,6 +395,67 @@ export default function PeoplePage() {
     setShowDeleteCustomerModal(true);
   };
 
+  const handleCreateCustomer = () => {
+    setShowCreateCustomerModal(true)
+  }
+
+  const handleCloseCreateCustomerModal = () => {
+    setShowCreateCustomerModal(false)
+  }
+
+  const handleSubmitCreateCustomer = (formData) => {
+    ;(async () => {
+      try {
+        // 1) create person
+        const personRes = await fetch(`${API_BASE_URL}/api/persons`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            FullName: formData.fullName,
+            Phone: formData.phone,
+            Gender: formData.gender
+          })
+        })
+
+        const personJson = await personRes.json()
+        if (!personRes.ok) {
+          const msg = personJson?.error?.message || `Create person failed (${personRes.status})`
+          throw new Error(msg)
+        }
+
+        const person = personJson?.data
+        const personId = person?.id ?? person?._id
+        if (!personId) throw new Error('Create person succeeded but no id returned')
+
+        // 2) create customer referencing that person
+        const customerRes = await fetch(`${API_BASE_URL}/api/customers`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            PersonID: personId,
+            Status: 'ACTIVE'
+          })
+        })
+
+        const customerJson = await customerRes.json()
+        if (!customerRes.ok) {
+          const msg = customerJson?.error?.message || `Create customer failed (${customerRes.status})`
+          throw new Error(msg)
+        }
+
+        const created = customerJson?.data
+        if (created) {
+          setCustomers((prev) => [normalizeCustomer(created), ...prev])
+        }
+
+        setShowCreateCustomerModal(false)
+      } catch (error) {
+        console.error('Create customer error:', error)
+        window.alert(error?.message || 'Failed to create customer')
+      }
+    })()
+  }
+
   const handleCloseEditCustomerModal = () => {
     setShowEditCustomerModal(false);
     setSelectedCustomer(null);
@@ -332,19 +467,86 @@ export default function PeoplePage() {
   };
 
   const handleSaveCustomer = (updatedCustomer) => {
-    setCustomers(customers.map(c => 
-      c.id === updatedCustomer.id ? updatedCustomer : c
-    ));
+    ;(async () => {
+      try {
+        const id = updatedCustomer?._id ?? updatedCustomer?.id
+        if (!id) return
+
+        // Update Person fields first (name/phone live on Person)
+        const personId = updatedCustomer?.personId
+        if (personId) {
+          const personRes = await fetch(`${API_BASE_URL}/api/persons/${personId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              FullName: updatedCustomer?.name,
+              Phone: updatedCustomer?.phone,
+              Gender: updatedCustomer?.gender,
+              IsActive: (updatedCustomer?.status || '').toLowerCase() === 'active'
+            })
+          })
+
+          const personJson = await personRes.json()
+          if (!personRes.ok) {
+            const msg = personJson?.error?.message || `Update person failed (${personRes.status})`
+            throw new Error(msg)
+          }
+        }
+
+        const res = await fetch(`${API_BASE_URL}/api/customers/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            Status: (updatedCustomer?.status || '').toLowerCase() === 'active' ? 'ACTIVE' : 'INACTIVE'
+          })
+        })
+
+        const json = await res.json()
+
+        if (!res.ok) {
+          const msg = json?.error?.message || `Update failed (${res.status})`
+          throw new Error(msg)
+        }
+
+        const saved = json?.data
+        const normalized = saved ? normalizeCustomer(saved) : updatedCustomer
+        setCustomers((prev) => prev.map((c) => (c._id === normalized._id ? normalized : c)))
+      } catch (error) {
+        console.error('Update customer error:', error)
+        window.alert(error?.message || 'Failed to update customer')
+      }
+    })()
   };
 
   const handleConfirmDeleteCustomer = (customerToDelete) => {
     if (!customerToDelete) return;
 
-    // UI-only for now: Figma copy says "mark them as inactive".
-    setCustomers(prev => prev.map(c => (
-      c.id === customerToDelete.id ? { ...c, status: 'Inactive' } : c
-    )));
-    handleCloseDeleteCustomerModal();
+    ;(async () => {
+      try {
+        const id = customerToDelete?._id ?? customerToDelete?.id
+        if (!id) return
+
+        const res = await fetch(`${API_BASE_URL}/api/customers/${id}`, {
+          method: 'DELETE'
+        })
+
+        const json = await res.json()
+
+        if (!res.ok) {
+          const msg = json?.error?.message || `Delete failed (${res.status})`
+          throw new Error(msg)
+        }
+
+        // Backend soft-deletes by setting Status=INACTIVE; reflect in UI
+        setCustomers((prev) => prev.map((c) => (
+          c._id === customerToDelete._id ? { ...c, status: 'Inactive' } : c
+        )))
+        handleCloseDeleteCustomerModal();
+      } catch (error) {
+        console.error('Delete customer error:', error)
+        window.alert(error?.message || 'Failed to delete customer')
+      }
+    })()
   };
 
   const handleEditEmployee = (employee) => {
@@ -443,13 +645,29 @@ export default function PeoplePage() {
     })()
   }
 
-  const filteredCustomers = customers.filter(customer => 
-    customer.status === 'Active' || statusFilter === 'All Status'
-  );
+  const filteredCustomers = customers
+    .filter(customer => customer.status === 'Active' || statusFilter === 'All Status')
+    .filter((customer) => {
+      if (!searchQuery) return true
+      const q = searchQuery.toLowerCase()
+      return (
+        (customer?.name || '').toLowerCase().includes(q) ||
+        (customer?.phone || '').toLowerCase().includes(q) ||
+        (customer?.email || '').toLowerCase().includes(q)
+      )
+    })
 
-  const filteredEmployees = employees.filter(employee => 
-    employee.status === 'Active' || statusFilter === 'All Status'
-  );
+  const filteredEmployees = employees
+    .filter(employee => employee.status === 'Active' || statusFilter === 'All Status')
+    .filter((employee) => {
+      if (!searchQuery) return true
+      const q = searchQuery.toLowerCase()
+      return (
+        (employee?.name || '').toLowerCase().includes(q) ||
+        (employee?.phone || '').toLowerCase().includes(q) ||
+        (employee?.role || '').toLowerCase().includes(q)
+      )
+    })
 
   return (
     <div className="people-page">
@@ -477,6 +695,15 @@ export default function PeoplePage() {
               onChange={setSearchQuery}
               icon={searchInputIconUrl}
             />
+
+            {activeTab === 'customers' && (
+              <button className="add-employee-btn" onClick={handleCreateCustomer} type="button">
+                <span className="btn-icon" aria-hidden="true">
+                  <CommonActionAddIcon />
+                </span>
+                <span>Create Customer</span>
+              </button>
+            )}
 
             {activeTab === 'employees' && (
               <button className="add-employee-btn" onClick={handleAddEmployee} type="button">
@@ -551,6 +778,13 @@ export default function PeoplePage() {
           customer={selectedCustomer}
           onClose={handleCloseDeleteCustomerModal}
           onConfirm={handleConfirmDeleteCustomer}
+        />
+      )}
+
+      {showCreateCustomerModal && (
+        <CreateCustomerModal
+          onClose={handleCloseCreateCustomerModal}
+          onSubmit={handleSubmitCreateCustomer}
         />
       )}
 

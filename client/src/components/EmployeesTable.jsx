@@ -14,6 +14,18 @@ const deleteIcon = "http://localhost:3845/assets/1fdb1f29273b223332a28061a714a43
 export default function EmployeesTable({ employees, onEdit, onDelete }) {
   const headers = ['ID', 'Employee', 'Role', 'Status', 'Hired Date', 'Actions'];
 
+  const getStatusBadgeClass = (status) => {
+    const s = (status || '').toLowerCase()
+    switch (s) {
+      case 'active':
+        return 'status-pill status-pill--active'
+      case 'inactive':
+        return 'status-pill status-pill--inactive'
+      default:
+        return 'status-pill'
+    }
+  }
+
   const [showViewCardsModal, setShowViewCardsModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
 
@@ -130,9 +142,7 @@ export default function EmployeesTable({ employees, onEdit, onDelete }) {
       </span>
     ),
     status: (
-      <span className={`status-badge ${employee.status.toLowerCase()}`}>
-        {employee.status}
-      </span>
+      <span className={getStatusBadgeClass(employee.status)}>{employee.status}</span>
     ),
     hiredDate: employee.hiredDate,
     actions: (

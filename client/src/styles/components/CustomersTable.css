@@ -81,6 +81,33 @@
   border-color: #FECACA;
 }
 
+/* Cards-style status pills (used across Vehicles/VehicleTypes/Cards) */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  border: 0.8px solid transparent;
+  text-transform: capitalize;
+}
+
+.status-pill--active {
+  background: #F0FDF4;
+  color: #008236;
+  border-color: #B9F8CF;
+}
+
+.status-pill--inactive {
+  background: #FEF2F2;
+  color: #991B1B;
+  border-color: #FECACA;
+}
+
 .table-actions {
   display: flex;
   gap: 4px;
