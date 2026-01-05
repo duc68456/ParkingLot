@@ -136,6 +136,9 @@ export default function PeoplePage() {
   const [employees, setEmployees] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [showCardsModal, setShowCardsModal] = useState(false);
+  const [customerCards, setCustomerCards] = useState([]);
+  const [customerCardsLoading, setCustomerCardsLoading] = useState(false);
+  const [customerCardsError, setCustomerCardsError] = useState('');
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showEditCustomerModal, setShowEditCustomerModal] = useState(false);
   const [showDeleteCustomerModal, setShowDeleteCustomerModal] = useState(false);
@@ -372,11 +375,73 @@ export default function PeoplePage() {
   const handleViewCards = (customer) => {
     setSelectedCustomer(customer);
     setShowCardsModal(true);
+
+    const customerId = customer?.id || customer?.ID;
+    if (!customerId) {
+      setCustomerCards([]);
+      setCustomerCardsError('Missing customer id');
+      return;
+    }
+
+    ;(async () => {
+      try {
+        setCustomerCardsError('');
+        setCustomerCardsLoading(true);
+
+        const res = await fetch(`${API_BASE_URL}/api/cards?limit=200&ownerId=${encodeURIComponent(customerId)}`, {
+          headers: { ...authHeaders }
+        })
+
+        const json = await res.json().catch(() => null)
+        if (!res.ok) {
+          const msg = json?.error?.message || `Failed to fetch customer cards (${res.status})`
+          throw new Error(msg)
+        }
+
+        const items = Array.isArray(json?.data?.items) ? json.data.items : []
+        const normalized = items.map((c) => {
+          const categoryName = c?.CardCategoryID?.Name || c?.CardCategoryID?.ID || c?.CardCategoryID
+          const rawStatus = String(c?.Status || '')
+          const status = rawStatus
+            ? rawStatus.charAt(0) + rawStatus.slice(1).toLowerCase().replace(/_(.)/g, (_, ch) => ` ${ch.toUpperCase()}`)
+            : '-'
+
+          const expiryDate = c?.ExpireDay
+            ? (() => {
+              const d = new Date(c.ExpireDay)
+              if (Number.isNaN(d.getTime())) return '-'
+              return d.toLocaleDateString('en-GB')
+            })()
+            : '-'
+
+          return {
+            cardId: c?.CardID || c?.id || c?._id,
+            uid: c?.UID,
+            status,
+            expiryDate,
+            category: categoryName || '-',
+            plateNumber: c?.VehiclePlate || c?.VehicleID?.PlateNumber,
+            vehicleType: c?.VehicleID?.VehicleTypeID?.Name || c?.VehicleType || ''
+          }
+        })
+
+        setCustomerCards(normalized)
+      } catch (err) {
+        console.error('Fetch customer cards error:', err)
+        setCustomerCards([])
+        setCustomerCardsError(err?.message || 'Failed to fetch customer cards')
+      } finally {
+        setCustomerCardsLoading(false)
+      }
+    })()
   };
 
   const handleCloseCardsModal = () => {
     setShowCardsModal(false);
     setSelectedCustomer(null);
+    setCustomerCards([]);
+    setCustomerCardsError('');
+    setCustomerCardsLoading(false);
   };
 
   const handleViewCustomer = (customer) => {
@@ -758,7 +823,9 @@ export default function PeoplePage() {
       {showCardsModal && selectedCustomer && (
         <ViewCardsModal
           customer={selectedCustomer}
-          cards={mockCustomerCards[selectedCustomer.id] || []}
+          cards={customerCards}
+          loading={customerCardsLoading}
+          error={customerCardsError}
           onClose={handleCloseCardsModal}
         />
       )}

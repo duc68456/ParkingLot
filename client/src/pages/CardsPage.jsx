@@ -84,6 +84,7 @@ function CardsPage() {
   const { authHeaders } = useAuth();
   const [activeTab, setActiveTab] = useState('inventory');
   const [searchQuery, setSearchQuery] = useState('');
+  const [invoiceSearchQuery, setInvoiceSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [expiryFilter, setExpiryFilter] = useState('all');
@@ -99,6 +100,16 @@ function CardsPage() {
   const [categoryToEdit, setCategoryToEdit] = useState(null);
   const [showViewCardModal, setShowViewCardModal] = useState(false);
   const [cardToView, setCardToView] = useState(null);
+
+  // Purchase invoices (Cards -> Invoices tab)
+  const [purchaseInvoices, setPurchaseInvoices] = useState([]);
+  const [purchaseInvoicesLoading, setPurchaseInvoicesLoading] = useState(false);
+  const [purchaseInvoicesError, setPurchaseInvoicesError] = useState('');
+
+  const [invoiceDetailOpen, setInvoiceDetailOpen] = useState(false);
+  const [invoiceDetailLoading, setInvoiceDetailLoading] = useState(false);
+  const [invoiceDetailError, setInvoiceDetailError] = useState('');
+  const [invoiceDetail, setInvoiceDetail] = useState(null);
 
   // Load cards when visiting inventory/assign tab
   useEffect(() => {
@@ -168,6 +179,50 @@ function CardsPage() {
     return () => controller.abort();
   }, [activeTab, authHeaders]);
 
+  // Load purchase invoices from backend when visiting Invoices tab
+  useEffect(() => {
+    if (activeTab !== 'invoices') return;
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        setPurchaseInvoicesLoading(true);
+        setPurchaseInvoicesError('');
+
+        const res = await fetch(`${API_BASE_URL}/api/card-purchase-invoices?limit=100`, {
+          signal: controller.signal,
+          headers: { ...authHeaders }
+        });
+
+        const json = await res.json().catch(() => null);
+        if (!res.ok) {
+          const msg = json?.error?.message || `Failed to fetch invoices (${res.status})`;
+          throw new Error(msg);
+        }
+
+        const items = Array.isArray(json?.data?.items)
+          ? json.data.items
+          : Array.isArray(json?.data?.invoices)
+            ? json.data.invoices
+            : Array.isArray(json?.data)
+              ? json.data
+              : [];
+
+        setPurchaseInvoices(items);
+      } catch (err) {
+        if (err?.name !== 'AbortError') {
+          console.error('Fetch purchase invoices error:', err);
+          setPurchaseInvoices([]);
+          setPurchaseInvoicesError(err?.message || 'Failed to load invoices');
+        }
+      } finally {
+        if (!controller.signal.aborted) setPurchaseInvoicesLoading(false);
+      }
+    })();
+
+    return () => controller.abort();
+  }, [activeTab, authHeaders]);
+
   const stats = [
     {
       label: 'Total Cards',
@@ -202,6 +257,89 @@ function CardsPage() {
   const handleSearch = (e) => {
     const query = e.target.value;
     setSearchQuery(query);
+  };
+
+  const handleInvoiceSearch = (e) => {
+    setInvoiceSearchQuery(e.target.value);
+  };
+
+  const deriveCardsCountFromInvoice = (inv) => {
+    const maybeCount = Number(
+      inv?.CardsCount ??
+      inv?.TotalCards ??
+      inv?.Cards ??
+      inv?.cardsCount ??
+      inv?.CardCount
+    );
+    if (Number.isFinite(maybeCount)) return maybeCount;
+
+    // If the list endpoint returned hydrated details, prefer them.
+    if (Array.isArray(inv?.details) && inv.details.length > 0) {
+      return inv.details.reduce((sum, d) => sum + (Number(d?.Quantity) || 0), 0);
+    }
+
+    return null;
+  };
+
+  const formatMoney = (value) => {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return '-';
+    return `$ ${num.toFixed(2)}`;
+  };
+
+  const calcInvoiceCardsCount = (inv) => {
+    const fromListField = deriveCardsCountFromInvoice(inv);
+    if (Number.isFinite(fromListField)) return fromListField;
+
+    if (Array.isArray(inv?.details) && inv.details.length > 0) {
+      return inv.details.reduce((sum, d) => sum + (Number(d?.Quantity) || 0), 0);
+    }
+
+    return null;
+  };
+
+  const getInvoiceDisplayStatus = (status) => {
+    const s = String(status || '').toUpperCase();
+    if (!s) return { text: '-', isCompleted: false };
+    if (s === 'COMPLETED') return { text: 'Completed', isCompleted: true };
+    return { text: s.charAt(0) + s.slice(1).toLowerCase(), isCompleted: false };
+  };
+
+  const handleViewInvoice = (invoiceId) => {
+    if (!invoiceId) return;
+
+    (async () => {
+      try {
+        setInvoiceDetailError('');
+        setInvoiceDetailLoading(true);
+        setInvoiceDetailOpen(true);
+        setInvoiceDetail(null);
+
+        const res = await fetch(`${API_BASE_URL}/api/card-purchase-invoices/${encodeURIComponent(invoiceId)}`, {
+          headers: { ...authHeaders }
+        });
+
+        const json = await res.json().catch(() => null);
+        if (!res.ok) {
+          const msg = json?.error?.message || `Failed to load invoice (${res.status})`;
+          throw new Error(msg);
+        }
+
+        setInvoiceDetail(json?.data || null);
+      } catch (err) {
+        console.error('Fetch invoice detail error:', err);
+        setInvoiceDetailError(err?.message || 'Failed to load invoice');
+      } finally {
+        setInvoiceDetailLoading(false);
+      }
+    })();
+  };
+
+  const handleCloseInvoiceDetail = () => {
+    setInvoiceDetailOpen(false);
+    setInvoiceDetail(null);
+    setInvoiceDetailError('');
+    setInvoiceDetailLoading(false);
   };
 
   const filteredCardsMemo = useMemo(() => {
@@ -797,8 +935,284 @@ function CardsPage() {
         </div>
       )}
 
+      {activeTab === 'invoices' && (
+        <div className="invoices-content">
+          {/* Search */}
+          <div className="invoices-filters">
+            <div className="search-input-wrapper">
+              <span className="search-icon" aria-hidden="true">
+                <CardsActionSearchIcon />
+              </span>
+              <input
+                type="text"
+                placeholder="Search invoices..."
+                value={invoiceSearchQuery}
+                onChange={handleInvoiceSearch}
+                className="search-input"
+              />
+            </div>
+          </div>
+
+          {purchaseInvoicesError && (
+            <div className="error-message" role="alert">
+              {purchaseInvoicesError}
+            </div>
+          )}
+
+          <div className="data-table-shell">
+            <div className="data-table-container">
+              <table className="data-table invoices-table">
+                <thead>
+                  <tr>
+                    <th>INVOICE ID</th>
+                    <th>CUSTOMER</th>
+                    <th>DATE</th>
+                    <th>TOTAL</th>
+                    <th>STATUS</th>
+                    <th>CARDS</th>
+                    <th className="text-right">ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {purchaseInvoicesLoading ? (
+                    <tr>
+                      <td colSpan={7} className="loading-cell">Loading invoices...</td>
+                    </tr>
+                  ) : (() => {
+                    const query = invoiceSearchQuery.trim().toLowerCase();
+                    const list = Array.isArray(purchaseInvoices) ? purchaseInvoices : [];
+                    const filtered = !query
+                      ? list
+                      : list.filter((inv) => {
+                        const id = String(inv?.ID || inv?.id || inv?._id || '').toLowerCase();
+                        const customerName = String(
+                          inv?.CustomerID?.PersonID?.FullName ||
+                          inv?.CustomerID?.PersonID?.ID ||
+                          inv?.CustomerID?.ID ||
+                          inv?.CustomerID ||
+                          ''
+                        ).toLowerCase();
+                        return id.includes(query) || customerName.includes(query);
+                      });
+
+                    if (filtered.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={7} className="empty-cell">No invoices found</td>
+                        </tr>
+                      );
+                    }
+
+                    return filtered.map((inv) => {
+                      const id = inv?.ID || inv?.id || inv?._id;
+                      const customerName =
+                        inv?.CustomerID?.PersonID?.FullName ||
+                        inv?.CustomerID?.PersonID?.ID ||
+                        inv?.CustomerID?.ID ||
+                        inv?.CustomerID ||
+                        '-';
+                      const status = String(inv?.Status || '').toUpperCase() || '-';
+                      const total = Number(inv?.TotalAmount ?? inv?.Total ?? inv?.totalAmount);
+                      const totalText = Number.isFinite(total) ? `$${total.toFixed(2)}` : '-';
+                      const derivedCardsCount = deriveCardsCountFromInvoice(inv);
+                      const cardsText = Number.isFinite(derivedCardsCount) ? String(derivedCardsCount) : '-';
+
+                      const statusText = status === '-' ? '-' : (status.charAt(0) + status.slice(1).toLowerCase());
+                      const isCompleted = status === 'COMPLETED';
+
+                      return (
+                        <tr key={id}>
+                          <td>{id}</td>
+                          <td>{customerName}</td>
+                          <td>{formatDate(inv?.InvoiceDate)}</td>
+                          <td>{totalText}</td>
+                          <td>
+                            {isCompleted ? (
+                              <span className="invoice-statusBadge invoice-statusBadge--completed">Completed</span>
+                            ) : (
+                              <span className={getStatusBadgeClass(statusText)}>{statusText}</span>
+                            )}
+                          </td>
+                          <td>{cardsText}</td>
+                          <td className="text-right">
+                            <div className="invoice-actions">
+                              <button
+                                className="invoice-actionBtn"
+                                title="View"
+                                type="button"
+                                onClick={() => handleViewInvoice(id)}
+                              >
+                                <CardsActionViewIcon aria-hidden="true" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="table-footer invoices-footer">
+              <p className="results-text">
+                Showing <span className="results-count">{purchaseInvoices.length}</span> results
+              </p>
+              <div className="pagination-buttons">
+                <button className="pagination-btn">Previous</button>
+                <button className="pagination-btn">Next</button>
+              </div>
+            </div>
+          </div>
+
+          {/* Invoice Detail Modal (lightweight) */}
+          {invoiceDetailOpen && (
+            <div className="modal-overlay" role="dialog" aria-modal="true">
+              <div className="invoice-detailModal">
+                <div className="invoice-detailModal__header">
+                  <h3 className="invoice-detailModal__title">Invoice Details</h3>
+                  <button
+                    className="invoice-detailModal__close"
+                    onClick={handleCloseInvoiceDetail}
+                    aria-label="Close"
+                    type="button"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                {invoiceDetailLoading ? (
+                  <div className="invoice-detailModal__body">Loading...</div>
+                ) : invoiceDetailError ? (
+                  <div className="invoice-detailModal__body">
+                    <div className="error-message" role="alert">{invoiceDetailError}</div>
+                  </div>
+                ) : (
+                  (() => {
+                    const invId = invoiceDetail?.ID || invoiceDetail?.id || invoiceDetail?._id;
+                    const customerName =
+                      invoiceDetail?.CustomerID?.PersonID?.FullName ||
+                      invoiceDetail?.CustomerID?.PersonID?.ID ||
+                      invoiceDetail?.CustomerID?.ID ||
+                      invoiceDetail?.CustomerID ||
+                      '-';
+                    const customerId =
+                      invoiceDetail?.CustomerID?.ID ||
+                      invoiceDetail?.CustomerID?.PersonID?.ID ||
+                      (typeof invoiceDetail?.CustomerID === 'string' ? invoiceDetail.CustomerID : null) ||
+                      '-';
+
+                    const { text: statusText, isCompleted } = getInvoiceDisplayStatus(invoiceDetail?.Status);
+                    const cardsCount = calcInvoiceCardsCount(invoiceDetail);
+                    const totalAmount =
+                      invoiceDetail?.TotalAmount ??
+                      invoiceDetail?.Total ??
+                      invoiceDetail?.totalAmount;
+
+                    const details = Array.isArray(invoiceDetail?.details) ? invoiceDetail.details : [];
+                    const rows = details.map((d, idx) => {
+                      const qty = Number(d?.Quantity) || 0;
+                      const unit = Number(d?.UnitPrice);
+                      const unitPrice = Number.isFinite(unit) ? unit : null;
+                      const subtotal = unitPrice !== null ? unitPrice * qty : null;
+                      const catName = d?.CardCategoryID?.Name || d?.CardCategoryID?.ID || d?.CardCategoryID || '-';
+                      return {
+                        key: idx,
+                        category: catName,
+                        quantity: qty || null,
+                        unitPrice,
+                        subtotal
+                      };
+                    });
+
+                    const computedTotal = rows.reduce((sum, r) => sum + (Number.isFinite(r?.subtotal) ? r.subtotal : 0), 0);
+
+                    return (
+                      <div className="invoice-detailModal__body">
+                        <div className="invoice-detailModal__summary">
+                          <div className="invoice-detailSummary__left">
+                            <div className="invoice-detailSummary__id">{invId || '-'}</div>
+                            <div className="invoice-detailSummary__customer">{customerName}</div>
+                            <div className="invoice-detailSummary__date">
+                              Purchase Date: {formatDate(invoiceDetail?.InvoiceDate)}
+                            </div>
+                          </div>
+                          <div className={isCompleted ? 'invoice-detailStatus invoice-detailStatus--completed' : 'invoice-detailStatus'}>
+                            {statusText}
+                          </div>
+                        </div>
+
+                        <div className="invoice-detailStats">
+                          <div className="invoice-detailStatCard">
+                            <div className="invoice-detailStatCard__label">TOTAL AMOUNT</div>
+                            <div className="invoice-detailStatCard__value">{formatMoney(totalAmount)}</div>
+                          </div>
+                          <div className="invoice-detailStatCard">
+                            <div className="invoice-detailStatCard__label">CARDS COUNT</div>
+                            <div className="invoice-detailStatCard__value">{Number.isFinite(cardsCount) ? cardsCount : '-'}</div>
+                          </div>
+                          <div className="invoice-detailStatCard">
+                            <div className="invoice-detailStatCard__label">CUSTOMER ID</div>
+                            <div className="invoice-detailStatCard__value invoice-detailStatCard__value--mono">{customerId}</div>
+                          </div>
+                        </div>
+
+                        <div className="invoice-detailSectionTitle">Purchase Details</div>
+
+                        <div className="invoice-detailTableShell">
+                          <table className="invoice-detailTable">
+                            <thead>
+                              <tr>
+                                <th>Category</th>
+                                <th className="text-right">Quantity</th>
+                                <th className="text-right">Price</th>
+                                <th className="text-right">Subtotal</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rows.length > 0 ? (
+                                rows.map((r) => (
+                                  <tr key={r.key}>
+                                    <td>{r.category}</td>
+                                    <td className="text-right">{Number.isFinite(r.quantity) ? r.quantity : '-'}</td>
+                                    <td className="text-right">{Number.isFinite(r.unitPrice) ? formatMoney(r.unitPrice) : '-'}</td>
+                                    <td className="text-right">{Number.isFinite(r.subtotal) ? formatMoney(r.subtotal) : '-'}</td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                  <td colSpan={4} className="invoice-detailEmpty">No purchase details found.</td>
+                                </tr>
+                              )}
+                            </tbody>
+                            <tfoot>
+                              <tr>
+                                <td colSpan={3} className="invoice-detailFooterLabel">Total</td>
+                                <td className="text-right invoice-detailFooterValue">
+                                  {formatMoney(Number.isFinite(computedTotal) ? computedTotal : totalAmount)}
+                                </td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
+                      </div>
+                    );
+                  })()
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'returns' && (
+        <div className="tab-placeholder">
+          <p>Content for Returns tab coming soon...</p>
+        </div>
+      )}
+
       {/* Other Tab Contents (Placeholders) */}
-      {activeTab !== 'inventory' && activeTab !== 'assign' && activeTab !== 'categories' && (
+      {activeTab !== 'inventory' && activeTab !== 'assign' && activeTab !== 'categories' && activeTab !== 'invoices' && activeTab !== 'returns' && (
         <div className="tab-placeholder">
           <p>Content for {tabs.find(t => t.id === activeTab)?.label} tab coming soon...</p>
         </div>

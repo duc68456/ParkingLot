@@ -1,5 +1,5 @@
 import '../styles/components/ViewCardsModal.css';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AddEmployeeCardModal from './AddEmployeeCardModal';
 
 const closeIcon = "http://localhost:3845/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
@@ -8,11 +8,16 @@ const vehicleIcon = "http://localhost:3845/assets/8c8ebc739042e975e5552a2edeb4a4
 const plusIcon = "http://localhost:3845/assets/10fef702e521cd978007cbf6b09f2fa3cf287e8a.svg";
 const listCardIcon = "http://localhost:3845/assets/037bbde1a147a4d17c55cfd547055d79a35649cb.svg";
 
-export default function ViewCardsModal({ customer, cards, onClose }) {
+export default function ViewCardsModal({ customer, cards, onClose, loading = false, error = '' }) {
   if (!customer || !Array.isArray(cards)) return null;
 
   const [showAddCardModal, setShowAddCardModal] = useState(false);
   const [localCards, setLocalCards] = useState(cards);
+
+  // Keep internal list synced with latest prop (e.g. after async fetch).
+  useEffect(() => {
+    setLocalCards(Array.isArray(cards) ? cards : []);
+  }, [cards]);
 
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget) {
@@ -66,6 +71,18 @@ export default function ViewCardsModal({ customer, cards, onClose }) {
     // again after creating (per the requested UX).
   };
 
+  const formatExpiryDate = (value) => {
+    if (!value || value === '-') return '-';
+    const d = new Date(value);
+    if (!Number.isNaN(d.getTime())) return d.toLocaleDateString('en-GB');
+    return String(value);
+  };
+
+  const getCardDisplayId = (card) => card?.cardId || card?.CardID || card?.ID || card?.id || '-';
+  const getUid = (card) => card?.uid || card?.UID || card?.Uid || '-';
+  const getPlate = (card) => card?.plateNumber || card?.vehiclePlate || card?.plate || card?.PlateNumber || '';
+  const getVehicleType = (card) => card?.vehicleType || card?.type || card?.VehicleType || '';
+
   return (
     <>
       {!showAddCardModal && (
@@ -108,7 +125,15 @@ export default function ViewCardsModal({ customer, cards, onClose }) {
                   </div>
                 )}
 
-                {localCards.length === 0 ? (
+                {loading ? (
+                  <div className="view-cards-empty">
+                    <p className="view-cards-empty-title">Loading cards...</p>
+                  </div>
+                ) : error ? (
+                  <div className="view-cards-empty">
+                    <p className="view-cards-empty-title">{error}</p>
+                  </div>
+                ) : localCards.length === 0 ? (
                   <div className="view-cards-empty">
                     <div className="view-cards-empty-icon" aria-hidden="true">
                       <img src={cardIcon} alt="" />
@@ -123,27 +148,27 @@ export default function ViewCardsModal({ customer, cards, onClose }) {
                 ) : (
                   <div className="view-cards-list">
                     {localCards.map((card, index) => {
-                      const cardId = card.cardId || card.id || '-';
-                      const uid = card.uid || '-';
-                      const expiryDate = card.expiryDate || card.expiry || '-';
-                      const plate = card.plateNumber || card.vehiclePlate || card.plate || '';
-                      const vehicleType = card.vehicleType || card.type || '';
+                      const cardId = getCardDisplayId(card);
+                      const uid = getUid(card);
+                      const expiryDate = formatExpiryDate(card.expiryDate || card.expiry || card.ExpiryDate);
+                      const plate = getPlate(card);
+                      const vehicleType = getVehicleType(card);
 
                       return (
-                        <div key={cardId || index} className="view-cards-item">
-                          <div className="view-cards-item-left">
-                            <div className="view-cards-icon" aria-hidden="true">
+                        <div key={`${cardId}-${index}`} className={`view-cards-card ${plate ? 'view-cards-card--with-plate' : ''}`}>
+                          <div className="view-cards-card-left">
+                            <div className="view-cards-card-icon" aria-hidden="true">
                               <img src={listCardIcon} alt="" />
                             </div>
 
-                            <div className="view-cards-info">
-                              <div className="view-cards-row">
-                                <span className="view-cards-label">Card ID:</span>
-                                <span className="view-cards-value">{cardId}</span>
+                            <div className="view-cards-card-main">
+                              <div className="view-cards-card-line">
+                                <span className="view-cards-card-label">Card ID:</span>
+                                <span className="view-cards-card-mono">{cardId}</span>
                               </div>
-                              <div className="view-cards-row">
-                                <span className="view-cards-uid-label">UID:</span>
-                                <span className="view-cards-uid-value">{uid}</span>
+                              <div className="view-cards-card-subline">
+                                <span className="view-cards-card-subLabel">UID:</span>
+                                <span className="view-cards-card-subMono">{uid}</span>
                               </div>
 
                               {plate && (
@@ -158,17 +183,16 @@ export default function ViewCardsModal({ customer, cards, onClose }) {
                             </div>
                           </div>
 
-                          <div className="view-cards-item-right">
-                            <div className="view-cards-status-container">
-                              <div className="view-cards-status-label">Status</div>
+                          <div className="view-cards-card-right">
+                            <div className="view-cards-card-meta">
+                              <div className="view-cards-card-metaLabel">Status</div>
                               <span className={`view-cards-status-badge ${getStatusClass(card.status)}`}>
                                 {card.status || '-'}
                               </span>
                             </div>
-
-                            <div className="view-cards-expiry-container">
-                              <div className="view-cards-expiry-label">Expiry</div>
-                              <div className="view-cards-expiry-date">{expiryDate}</div>
+                            <div className="view-cards-card-meta">
+                              <div className="view-cards-card-metaLabel">Expiry</div>
+                              <div className="view-cards-card-expiry">{expiryDate}</div>
                             </div>
                           </div>
                         </div>

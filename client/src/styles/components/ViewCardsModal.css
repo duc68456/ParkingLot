@@ -90,6 +90,11 @@
   flex: 1;
 }
 
+/* Keep the modal height tight like Figma (2 items visible) */
+.view-cards-body {
+  scrollbar-width: thin;
+}
+
 /* Employee state warning (Figma: Active Card Exists) */
 .employee-card-warning {
   background: #fffbeb;
@@ -186,155 +191,33 @@
   gap: 12px;
 }
 
-/* Make the customer cards list match the Figma item spacing */
-.view-cards-item + .view-cards-item {
-  margin-top: 12px;
-}
-
-/* Figma-style employee cards list */
-.employee-cards-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.employee-cards-item {
+/* Exact Figma spacing: rows sit inside a 24px padded body */
+.view-cards-card {
   background: #f8fafc;
   border: 0.8px solid #e2e8f0;
   border-radius: 10px;
   padding: 16.8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+}
+
+.view-cards-card-right {
   gap: 16px;
 }
 
-.employee-cards-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  min-width: 0;
+.view-cards-card-meta {
+  gap: 0.8px;
 }
 
-.employee-cards-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #ad46ff 0%, #9810fa 100%);
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
+.view-cards-card-metaLabel {
+  font-size: 12px;
+  line-height: 16px;
+  color: #62748e;
 }
 
-.employee-cards-icon img {
-  width: 24px;
-  height: 24px;
-}
-
-.employee-cards-details {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.employee-cards-line {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 8px;
-  min-width: 0;
-}
-
-.employee-cards-label {
-  font-family: 'Arimo', sans-serif;
+/* Make expiry/date look like Figma (not bold, right aligned) */
+.view-cards-card-expiry {
   font-size: 14px;
   line-height: 20px;
-  color: #0f172b;
-}
-
-.employee-cards-mono {
-  font-family: 'Cousine', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  font-size: 14px;
-  line-height: 20px;
-  color: #0f172b;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.employee-cards-subline {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.employee-cards-subLabel {
-  font-family: 'Arimo', sans-serif;
-  font-size: 12px;
-  line-height: 16px;
-  color: #62748e;
-}
-
-.employee-cards-subMono {
-  font-family: 'Cousine', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
-  font-size: 12px;
-  line-height: 16px;
-  color: #62748e;
-}
-
-.employee-cards-right {
-  display: flex;
-  flex-direction: column;
-  gap: 4.8px;
-  align-items: flex-end;
-  flex: 0 0 auto;
-}
-
-.employee-cards-statusLabel {
-  font-family: 'Arimo', sans-serif;
-  font-size: 12px;
-  line-height: 16px;
-  color: #62748e;
-}
-
-.employee-cards-status {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3px 10px;
-  border-radius: 999px;
-  border: 0.8px solid;
-  font-family: 'Arimo', sans-serif;
-  font-size: 12px;
-  line-height: 16px;
-  white-space: nowrap;
-}
-
-/* Map existing status variants to the new list */
-.employee-cards-status.view-cards-status-active {
-  background: #f0fdf4;
-  border-color: #b9f8cf;
-  color: #008236;
-}
-
-.employee-cards-status.view-cards-status-inactive {
-  background: #f8fafc;
-  border-color: #e2e8f0;
-  color: #62748e;
-}
-
-.employee-cards-status.view-cards-status-damaged {
-  background: #fff7ed;
-  border-color: #ffd6a7;
-  color: #ca3500;
-}
-
-.employee-cards-status.view-cards-status-default {
-  background: #f1f5f9;
-  border-color: #cad5e2;
-  color: #45556c;
+  font-weight: 400;
 }
 
 /* Empty state */
@@ -380,8 +263,8 @@
   color: #90a1b9;
 }
 
-/* Card Item */
-.view-cards-item {
+/* Card row (Figma: white card inside modal) */
+.view-cards-card {
   background: #f8fafc;
   border: 0.8px solid #e2e8f0;
   border-radius: 10px;
@@ -392,14 +275,15 @@
   gap: 16px;
 }
 
-.view-cards-item-left {
+.view-cards-card-left {
   display: flex;
   gap: 16px;
   align-items: flex-start;
   flex: 1;
+  min-width: 0;
 }
 
-.view-cards-icon {
+.view-cards-card-icon {
   width: 48px;
   height: 48px;
   background: linear-gradient(135deg, rgb(0, 188, 125) 0%, rgb(0, 153, 102) 100%);
@@ -410,25 +294,27 @@
   flex-shrink: 0;
 }
 
-.view-cards-icon img {
+.view-cards-card-icon img {
   width: 24px;
   height: 24px;
 }
 
-.view-cards-info {
+.view-cards-card-main {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  flex: 1;
+  min-width: 0;
 }
 
-.view-cards-row {
-  display: flex;
+.view-cards-card-line,
+.view-cards-card-subline {
+  display: inline-flex;
   align-items: baseline;
   gap: 8px;
+  min-width: 0;
 }
 
-.view-cards-label {
+.view-cards-card-label {
   font-family: 'Arimo', sans-serif;
   font-size: 14px;
   font-weight: 400;
@@ -436,15 +322,19 @@
   color: #0f172b;
 }
 
-.view-cards-value {
-  font-family: 'Cousine', monospace;
+.view-cards-card-mono {
+  font-family: 'Cousine', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
   font-size: 14px;
   font-weight: 400;
   line-height: 20px;
   color: #0f172b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.view-cards-uid-label {
+.view-cards-card-subLabel {
   font-family: 'Arimo', sans-serif;
   font-size: 12px;
   font-weight: 400;
@@ -452,15 +342,51 @@
   line-height: 16px;
 }
 
-.view-cards-uid-value {
-  font-family: 'Cousine', monospace;
+.view-cards-card-subMono {
+  font-family: 'Cousine', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
   font-size: 12px;
   font-weight: 400;
   color: #62748e;
   line-height: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Vehicle Badge */
+.view-cards-card-right {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+
+.view-cards-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8px;
+  align-items: flex-end;
+}
+
+.view-cards-card-metaLabel {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: #62748e;
+  text-align: right;
+}
+
+.view-cards-card-expiry {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #0f172b;
+  line-height: 20px;
+  text-align: right;
+}
+
+/* Vehicle Badge (shown in the first card in Figma) */
 .view-cards-vehicle-badge {
   display: inline-flex;
   align-items: center;
@@ -479,7 +405,8 @@
 }
 
 .view-cards-vehicle-plate {
-  font-family: 'Cousine', monospace;
+  font-family: 'Cousine', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
   font-size: 12px;
   font-weight: 400;
   line-height: 16px;
@@ -492,32 +419,6 @@
   font-weight: 400;
   line-height: 16px;
   color: #4f39f6;
-}
-
-/* Right Side - Status & Expiry */
-.view-cards-item-right {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  flex-shrink: 0;
-}
-
-.view-cards-status-container,
-.view-cards-expiry-container {
-  display: flex;
-  flex-direction: column;
-  gap: 0.8px;
-  align-items: flex-end;
-}
-
-.view-cards-status-label,
-.view-cards-expiry-label {
-  font-family: 'Arimo', sans-serif;
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 16px;
-  color: #62748e;
-  text-align: right;
 }
 
 /* Status Badge */
@@ -559,6 +460,7 @@
   color: #45556c;
 }
 
+/* legacy selector kept for compatibility (no longer used by current markup) */
 .view-cards-expiry-date {
   font-family: 'Arimo', sans-serif;
   font-size: 14px;
@@ -602,23 +504,21 @@
     align-items: stretch;
   }
 
-  .view-cards-item {
+  .view-cards-card {
     flex-direction: column;
   }
 
-  .view-cards-item-right {
+  .view-cards-card-right {
     width: 100%;
     justify-content: space-between;
   }
 
-  .view-cards-status-container,
-  .view-cards-expiry-container {
+  .view-cards-card-meta {
     align-items: flex-start;
   }
 
-  .view-cards-status-label,
-  .view-cards-expiry-label,
-  .view-cards-expiry-date {
+  .view-cards-card-metaLabel,
+  .view-cards-card-expiry {
     text-align: left;
   }
 }

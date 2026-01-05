@@ -75,6 +75,17 @@ cardPurchaseInvoicesRouter.get('/', async (req, res) => {
       .skip(skip)
       .sort({ InvoiceDate: -1 })
 
+    // Compute CardsCount per invoice (sum of CardPurchaseDetail.Quantity).
+    // This avoids per-row detail fetch in the UI.
+    const invoiceBusinessIds = invoices.map((i) => i.ID).filter(Boolean)
+    const cardsCountAgg = invoiceBusinessIds.length
+      ? await CardPurchaseDetail.aggregate([
+        { $match: { InvoiceID: { $in: invoiceBusinessIds } } },
+        { $group: { _id: '$InvoiceID', cardsCount: { $sum: '$Quantity' } } }
+      ])
+      : []
+    const cardsCountByInvoiceId = new Map(cardsCountAgg.map((r) => [r._id, r.cardsCount]))
+
     // Manual "populate" because CustomerID/SaledBy are business IDs (e.g. CUS0001/EMP0001),
     // not Mongo ObjectIds.
     const customerIds = Array.from(new Set(invoices.map(i => i.CustomerID).filter(Boolean)))
@@ -103,6 +114,7 @@ cardPurchaseInvoicesRouter.get('/', async (req, res) => {
 
     const hydrated = invoices.map(inv => ({
       ...inv.toJSON(),
+      CardsCount: cardsCountByInvoiceId.get(inv.ID) || 0,
       CustomerID: customerByBusinessId.get(inv.CustomerID) || inv.CustomerID,
       SaledBy: employeeByBusinessId.get(inv.SaledBy) || inv.SaledBy
     }))
@@ -133,8 +145,14 @@ cardPurchaseInvoicesRouter.get('/', async (req, res) => {
 // GET single invoice by ID with details
 cardPurchaseInvoicesRouter.get('/:id', async (req, res) => {
   try {
-    const invoice = await CardPurchaseInvoice
-      .findById(req.params.id)
+    const invoiceIdOrObjectId = req.params.id
+    const isObjectId = mongoose.Types.ObjectId.isValid(invoiceIdOrObjectId)
+
+    // UI can pass either Mongo _id or the business invoice ID (e.g. INV0007).
+    // Use a safe branch to avoid ObjectId cast errors.
+    const invoice = isObjectId
+      ? await CardPurchaseInvoice.findById(invoiceIdOrObjectId)
+      : await CardPurchaseInvoice.findOne({ ID: invoiceIdOrObjectId })
 
     if (!invoice) {
       return res.status(404).json({

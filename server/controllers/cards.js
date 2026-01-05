@@ -36,7 +36,26 @@ cardsRouter.get('/', async (req, res) => {
     }
 
     if (ownerId) {
-      filter.OwnerID = ownerId
+      // Card.OwnerID stores the PERSON business ID (Person.ID) when a card is assigned.
+      // The UI may pass either:
+      // - person ID (e.g. PER0001)
+      // - customer ID (e.g. CUS0002)
+      // Support both by resolving customer -> person.
+      const ownerIdStr = String(ownerId)
+      let resolvedOwnerPersonBusinessId = ownerIdStr
+
+      // If a customer ID is provided, map it to the linked Person.ID.
+      if (/^CUS\d{4}$/i.test(ownerIdStr)) {
+        const customer = await Customer.findOne({ ID: ownerIdStr.toUpperCase() }).select('PersonID')
+        if (customer?.PersonID) {
+          const person = await Person.findById(customer.PersonID).select('ID')
+          if (person?.ID) {
+            resolvedOwnerPersonBusinessId = String(person.ID)
+          }
+        }
+      }
+
+      filter.OwnerID = resolvedOwnerPersonBusinessId
     }
 
     // Filter by expiration status
