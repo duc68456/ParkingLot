@@ -11,7 +11,7 @@ const eyeIcon = "http://localhost:3845/assets/fff43459d23d75a693e463832b4f1a77ee
 const editIcon = "http://localhost:3845/assets/22ed6fed4c4d56385d3b4d40f1a0236ded42a86e.svg";
 const deleteIcon = "http://localhost:3845/assets/1fdb1f29273b223332a28061a714a4354ee0c9ae.svg";
 
-export default function EmployeesTable({ employees, onEdit }) {
+export default function EmployeesTable({ employees, onEdit, onDelete }) {
   const headers = ['ID', 'Employee', 'Role', 'Status', 'Hired Date', 'Actions'];
 
   const [showViewCardsModal, setShowViewCardsModal] = useState(false);
@@ -73,13 +73,15 @@ export default function EmployeesTable({ employees, onEdit }) {
   };
 
   const handleEdit = (employee) => {
+    // If parent owns the edit flow, delegate.
     if (onEdit) {
-      onEdit(employee);
-      return;
+      onEdit(employee)
+      return
     }
 
-    setSelectedEmployee(employee);
-    setShowEditEmployeeModal(true);
+    // Otherwise, fall back to local modal.
+    setSelectedEmployee(employee)
+    setShowEditEmployeeModal(true)
   };
 
   const handleCloseEditEmployeeModal = () => {
@@ -94,6 +96,11 @@ export default function EmployeesTable({ employees, onEdit }) {
   };
 
   const handleDelete = (employee) => {
+    if (onDelete) {
+      onDelete(employee)
+      return
+    }
+
     console.log('Delete employee:', employee);
   };
 

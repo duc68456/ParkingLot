@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import PageHeader from '../components/PageHeader';
 import TabNavigation from '../components/TabNavigation';
 import SearchInput from '../components/SearchInput';
@@ -19,6 +19,8 @@ import '../styles/pages/PeoplePage.css';
 // For those, we keep using the existing local SVG strings already in the repo.
 import searchInputIconUrl from '../assets/icons/cards/actions/search.svg';
 import phoneIconUrl from '../assets/icons/common/objects/phone.svg';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 // Mock data
 const mockCustomers = [
@@ -128,7 +130,7 @@ export default function PeoplePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [employees, setEmployees] = useState(mockEmployees);
+  const [employees, setEmployees] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [showCardsModal, setShowCardsModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
@@ -149,9 +151,81 @@ export default function PeoplePage() {
       id: 'employees', 
       label: 'Employees', 
       icon: <PeopleTabEmployeeIcon aria-hidden="true" />,
-      count: mockEmployees.length 
+      count: employees.length 
     }
   ];
+
+  const normalizeEmployee = (e) => {
+    const person = e?.PersonID ?? e?.person
+    const fullName = person?.FullName ?? e?.FullName ?? e?.name ?? ''
+    const phone = person?.Phone ?? e?.Phone ?? e?.phone ?? ''
+    const gender = person?.Gender ?? e?.Gender ?? e?.gender
+    const employeeType = e?.EmployeeType ?? e?.employeeType ?? e?.role ?? 'STAFF'
+    const statusRaw = e?.Status ?? e?.status ?? 'ACTIVE'
+    const hiredDateRaw = e?.HiredDate ?? e?.hiredDate
+
+    const initials = fullName
+      ? fullName
+          .trim()
+          .split(/\s+/)
+          .slice(0, 2)
+          .map((n) => n[0]?.toUpperCase())
+          .join('')
+      : ''
+
+    const hiredDate = hiredDateRaw
+      ? new Date(hiredDateRaw).toLocaleDateString('en-GB')
+      : ''
+
+    return {
+      // Employee document IDs
+      id: e?.ID ?? e?.id ?? e?._id,
+      _id: e?._id ?? e?.id,
+      EmployeeID: e?.ID ?? e?.id,
+
+      // Person linkage
+      personId: person?.id ?? person?._id ?? e?.PersonID,
+
+      // UI fields expected by existing components
+      name: fullName,
+      phone,
+      gender,
+      role: employeeType,
+      initials,
+      status: statusRaw.toString().toUpperCase() === 'ACTIVE' ? 'Active' : 'Inactive',
+      hiredDate
+    }
+  }
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    ;(async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/employees?limit=100`, {
+          signal: controller.signal
+        })
+
+        if (!res.ok) {
+          throw new Error(`Failed to fetch employees (${res.status})`)
+        }
+
+        const json = await res.json()
+        const list = Array.isArray(json?.data?.employees)
+          ? json.data.employees
+          : []
+
+        setEmployees(list.map(normalizeEmployee))
+      } catch (err) {
+        if (err?.name !== 'AbortError') {
+          console.error('Fetch employees error:', err)
+          setEmployees([])
+        }
+      }
+    })()
+
+    return () => controller.abort()
+  }, [])
 
   const handleAddEmployee = () => {
     setIsModalOpen(true);
@@ -162,15 +236,59 @@ export default function PeoplePage() {
   };
 
   const handleSubmitEmployee = (formData) => {
-    const newEmployee = {
-      id: `EMP${String(employees.length + 1).padStart(3, '0')}`,
-      name: formData.fullName,
-      role: formData.employeeType,
-      initials: formData.fullName.split(' ').map(n => n[0]).join(''),
-      status: 'Active',
-      hiredDate: new Date().toLocaleDateString('en-GB').replace(/\//g, '/')
-    };
-    setEmployees([...employees, newEmployee]);
+    ;(async () => {
+      try {
+        // 1) Create person first (employee inherits from person)
+        const personRes = await fetch(`${API_BASE_URL}/api/persons`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            FullName: formData.fullName,
+            Phone: formData.phone,
+            Gender: formData.gender
+          })
+        })
+
+        const personJson = await personRes.json()
+
+        if (!personRes.ok) {
+          const msg = personJson?.error?.message || `Create person failed (${personRes.status})`
+          throw new Error(msg)
+        }
+
+        const person = personJson?.data
+        const personId = person?.id ?? person?._id
+        if (!personId) throw new Error('Create person succeeded but no id returned')
+
+        // 2) Create employee referencing that person
+        const employeeRes = await fetch(`${API_BASE_URL}/api/employees`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            PersonID: personId,
+            EmployeeType: formData.employeeType,
+            Status: 'ACTIVE'
+          })
+        })
+
+        const employeeJson = await employeeRes.json()
+
+        if (!employeeRes.ok) {
+          const msg = employeeJson?.error?.message || `Create employee failed (${employeeRes.status})`
+          throw new Error(msg)
+        }
+
+        const created = employeeJson?.data
+        if (created) {
+          setEmployees((prev) => [normalizeEmployee(created), ...prev])
+        }
+
+        setIsModalOpen(false)
+      } catch (error) {
+        console.error('Create employee error:', error)
+        window.alert(error?.message || 'Failed to create employee')
+      }
+    })()
   };
 
   const handleViewCards = (customer) => {
@@ -240,10 +358,90 @@ export default function PeoplePage() {
   };
 
   const handleSaveEmployee = (updatedEmployee) => {
-    setEmployees(employees.map(e =>
-      e.id === updatedEmployee.id ? updatedEmployee : e
-    ));
+    ;(async () => {
+      try {
+        const id = updatedEmployee?._id ?? updatedEmployee?.id
+        if (!id) return
+
+        // Update Person fields first (name/phone/gender live on the Person document)
+        const personId = updatedEmployee?.personId
+        if (personId) {
+          const personRes = await fetch(`${API_BASE_URL}/api/persons/${personId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              FullName: updatedEmployee?.name,
+              Phone: updatedEmployee?.phone,
+              Gender: updatedEmployee?.gender,
+              // Keep Person active/inactive aligned with UI status
+              IsActive: (updatedEmployee?.status || '').toLowerCase() === 'active'
+            })
+          })
+
+          const personJson = await personRes.json()
+          if (!personRes.ok) {
+            const msg = personJson?.error?.message || `Update person failed (${personRes.status})`
+            throw new Error(msg)
+          }
+        }
+
+        const res = await fetch(`${API_BASE_URL}/api/employees/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            EmployeeType: updatedEmployee?.role,
+            Status: (updatedEmployee?.status || '').toLowerCase() === 'active' ? 'ACTIVE' : 'INACTIVE'
+          })
+        })
+
+        const json = await res.json()
+
+        if (!res.ok) {
+          const msg = json?.error?.message || `Update failed (${res.status})`
+          throw new Error(msg)
+        }
+
+        const saved = json?.data
+        const normalized = saved ? normalizeEmployee(saved) : updatedEmployee
+        setEmployees((prev) => prev.map((e) => (e._id === normalized._id ? normalized : e)))
+
+        // Close modal on success
+        setShowEditEmployeeModal(false)
+        setSelectedEmployee(null)
+      } catch (error) {
+        console.error('Update employee error:', error)
+        window.alert(error?.message || 'Failed to update employee')
+      }
+    })()
   };
+
+  const handleDeleteEmployee = (employee) => {
+    ;(async () => {
+      try {
+        const id = employee?._id ?? employee?.id
+        if (!id) return
+
+        const res = await fetch(`${API_BASE_URL}/api/employees/${id}`, {
+          method: 'DELETE'
+        })
+
+        const json = await res.json()
+
+        if (!res.ok) {
+          const msg = json?.error?.message || `Delete failed (${res.status})`
+          throw new Error(msg)
+        }
+
+        // Backend sets Status=TERMINATED; reflect as Inactive in UI
+        setEmployees((prev) => prev.map((e) => (
+          e._id === employee._id ? { ...e, status: 'Inactive' } : e
+        )))
+      } catch (error) {
+        console.error('Delete employee error:', error)
+        window.alert(error?.message || 'Failed to delete employee')
+      }
+    })()
+  }
 
   const filteredCustomers = customers.filter(customer => 
     customer.status === 'Active' || statusFilter === 'All Status'
@@ -310,7 +508,11 @@ export default function PeoplePage() {
             onDelete={handleDeleteCustomer}
           />
         ) : (
-          <EmployeesTable employees={filteredEmployees} onEdit={handleEditEmployee} />
+          <EmployeesTable
+            employees={filteredEmployees}
+            onEdit={handleEditEmployee}
+            onDelete={handleDeleteEmployee}
+          />
         )}
       </div>
 
