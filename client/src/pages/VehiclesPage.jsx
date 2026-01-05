@@ -19,42 +19,7 @@ import searchIcon from '../assets/icons/common/actions/search.svg';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
-// Mock data
-const mockVehicles = [
-  {
-    id: 'VEH001',
-    licensePlate: 'ABC-1234',
-    type: 'Car',
-    color: 'Black',
-    status: 'Active',
-    ownerName: 'John Doe',
-    ownerType: 'Customer',
-    ownerId: 'CUST001',
-    registrationDate: '15/01/2023'
-  },
-  {
-    id: 'VEH002',
-    licensePlate: 'XYZ-5678',
-    type: 'Motorcycle',
-    color: 'Red',
-    status: 'Active',
-    ownerName: 'Jane Smith',
-    ownerType: 'Customer',
-    ownerId: 'CUST002',
-    registrationDate: '20/02/2023'
-  },
-  {
-    id: 'VEH003',
-    licensePlate: 'DEF-9012',
-    type: 'Truck',
-    color: 'White',
-    status: 'Active',
-    ownerName: 'Bob Johnson',
-    ownerType: 'Customer',
-    ownerId: 'CUST003',
-    registrationDate: '10/03/2023'
-  }
-];
+// Vehicles are fetched from the backend.
 
 // Start empty; we'll fetch from the backend.
 const initialVehicleTypes = [];
@@ -69,13 +34,56 @@ export default function VehiclesPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [vehicles, setVehicles] = useState(mockVehicles);
+  const [vehicles, setVehicles] = useState([]);
   // This is the variable you want: vehicleTypes
   const [vehicleTypes, setVehicleTypes] = useState(initialVehicleTypes);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedVehicleType, setSelectedVehicleType] = useState(null);
   const [isEditTypeModalOpen, setIsEditTypeModalOpen] = useState(false);
   const [isAddTypeModalOpen, setIsAddTypeModalOpen] = useState(false);
+
+  const normalizeVehicleTypeName = (t) => (t?.name ?? t?.Name ?? '').toString().trim();
+
+  const normalizeVehicle = (v) => {
+    const vehicleTypeName =
+      v?.vehicleType?.Name ??
+      v?.vehicleType?.name ??
+      v?.VehicleType?.Name ??
+      v?.VehicleType?.name;
+
+    return {
+      // For React keys / UI selection
+      id: v?.id ?? v?._id ?? v?.VehicleID ?? v?.VehicleId,
+      // Keep DB id too (some modals may pass this back)
+      _id: v?._id ?? v?.id,
+      VehicleID: v?.VehicleID ?? v?.VehicleId,
+      licensePlate: v?.PlateNumber ?? v?.plateNumber ?? '',
+      type:
+        (vehicleTypeName ?? v?.VehicleTypeID ?? v?.vehicleTypeId ?? '').toString(),
+      VehicleTypeID:
+        v?.VehicleTypeID ?? v?.vehicleTypeId ?? v?.VehicleTypeId ?? v?.vehicleTypeID,
+      color: v?.Color ?? v?.color ?? '',
+      status:
+        (v?.Status ?? v?.status ?? ((v?.IsActive ?? true) ? 'ACTIVE' : 'BLOCKED'))
+          .toString()
+          .toUpperCase() === 'ACTIVE'
+          ? 'Active'
+          : 'Inactive',
+      IsActive: v?.IsActive
+    };
+  };
+
+  const resolveVehicleTypeIdFromLabel = (label) => {
+    if (!label) return null;
+    const trimmed = label.toString().trim();
+    if (!trimmed) return null;
+
+    // If it's already a VehicleTypeID like VTP0001, keep it.
+    if (/^VTP\d+/i.test(trimmed)) return trimmed;
+
+    const match = vehicleTypes.find((t) => normalizeVehicleTypeName(t) === trimmed);
+    return match?.VehicleTypeID || null;
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -124,11 +132,45 @@ export default function VehiclesPage() {
     return () => controller.abort();
   }, []);
 
+  useEffect(() => {
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/vehicles?limit=100`, {
+          signal: controller.signal
+        });
+
+        if (!res.ok) {
+          throw new Error(`Failed to fetch vehicles (${res.status})`);
+        }
+
+        const json = await res.json();
+        // Backend shape (from server/controllers/vehicles.js):
+        // { success: true, data: { items: [...] } }
+        const list = Array.isArray(json?.data?.items)
+          ? json.data.items
+          : Array.isArray(json?.data)
+            ? json.data
+            : [];
+
+        setVehicles(list.map(normalizeVehicle));
+      } catch (err) {
+        if (err?.name !== 'AbortError') {
+          console.error('Fetch vehicles error:', err);
+          setVehicles([]);
+        }
+      }
+    })();
+
+    return () => controller.abort();
+  }, []);
+
   const tabs = [
     { 
       id: 'vehicles', 
       label: 'Vehicles',
-      count: mockVehicles.length 
+      count: vehicles.length 
     },
     { 
       id: 'vehicleTypes', 
@@ -171,10 +213,48 @@ export default function VehiclesPage() {
   };
 
   const handleSaveNewVehicle = (newVehicle) => {
-    // generate a simple id for the mock list
-    const id = `VEH${String(Math.floor(Math.random() * 9000) + 1000)}`;
-    setVehicles(prev => [{ id, ...newVehicle }, ...prev]);
-    setIsAddModalOpen(false);
+    (async () => {
+      try {
+        const VehicleTypeID = resolveVehicleTypeIdFromLabel(newVehicle?.type);
+        if (!VehicleTypeID) {
+          throw new Error('Please select a valid vehicle type');
+        }
+
+        const res = await fetch(`${API_BASE_URL}/api/vehicles`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            PlateNumber: newVehicle?.licensePlate,
+            VehicleTypeID,
+            Color: newVehicle?.color,
+            // Server defaults to ACTIVE; allow explicit if UI provided it
+            Status:
+              newVehicle?.status === 'Inactive' || newVehicle?.status === 'BLOCKED'
+                ? 'BLOCKED'
+                : 'ACTIVE'
+          })
+        });
+
+        const json = await res.json();
+
+        if (!res.ok) {
+          const msg = json?.error?.message || `Create failed (${res.status})`;
+          throw new Error(msg);
+        }
+
+        const created = json?.data;
+        if (created) {
+          setVehicles((prev) => [normalizeVehicle(created), ...prev]);
+        }
+
+        setIsAddModalOpen(false);
+      } catch (error) {
+        console.error('Create vehicle error:', error);
+        window.alert(error?.message || 'Failed to create vehicle');
+      }
+    })();
   };
 
   const handleCloseEditModal = () => {
@@ -188,19 +268,88 @@ export default function VehiclesPage() {
   };
 
   const handleSaveVehicle = (updatedVehicle) => {
-    setVehicles(prevVehicles =>
-      prevVehicles.map(v =>
-        v.id === updatedVehicle.id ? updatedVehicle : v
-      )
-    );
+    (async () => {
+      if (!updatedVehicle?.id && !updatedVehicle?._id) return;
+      const id = updatedVehicle?._id ?? updatedVehicle?.id;
+
+      try {
+        const VehicleTypeID = resolveVehicleTypeIdFromLabel(updatedVehicle?.type);
+
+        const res = await fetch(`${API_BASE_URL}/api/vehicles/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            PlateNumber: updatedVehicle?.licensePlate,
+            Color: updatedVehicle?.color,
+            // If we can resolve vehicle type, send it; otherwise leave it unchanged.
+            ...(VehicleTypeID ? { VehicleTypeID } : {}),
+            // Keep status consistent; Edit modal currently doesn't change it.
+            ...(updatedVehicle?.status
+              ? {
+                  Status:
+                    updatedVehicle.status === 'Inactive' || updatedVehicle.status === 'BLOCKED'
+                      ? 'BLOCKED'
+                      : 'ACTIVE'
+                }
+              : {})
+          })
+        });
+
+        const json = await res.json();
+
+        if (!res.ok) {
+          const msg = json?.error?.message || `Update failed (${res.status})`;
+          throw new Error(msg);
+        }
+
+        const saved = json?.data;
+        const normalized = saved ? normalizeVehicle(saved) : updatedVehicle;
+
+        setVehicles((prev) => prev.map((v) => (v.id === normalized.id ? normalized : v)));
+        setIsEditModalOpen(false);
+        setSelectedVehicle(null);
+      } catch (error) {
+        console.error('Update vehicle error:', error);
+        window.alert(error?.message || 'Failed to update vehicle');
+      }
+    })();
   };
 
   const handleConfirmDeleteVehicle = (vehicleToDelete) => {
-    if (!vehicleToDelete) return;
+    (async () => {
+      if (!vehicleToDelete) return;
+      const id = vehicleToDelete?._id ?? vehicleToDelete?.id;
+      if (!id) return;
 
-    // Figma says "cannot be undone"; for our mock UI we remove it from the list.
-    setVehicles(prev => prev.filter(v => v.id !== vehicleToDelete.id));
-    handleCloseDeleteModal();
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/vehicles/${id}`, {
+          method: 'DELETE'
+        });
+
+        const json = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          const msg = json?.error?.message || `Delete failed (${res.status})`;
+          throw new Error(msg);
+        }
+
+        // Backend does soft-delete (IsActive=false). Reflect that in UI.
+        setVehicles((prev) =>
+          prev.map((v) =>
+            v.id === vehicleToDelete.id
+              ? { ...v, status: 'Inactive', IsActive: false }
+              : v
+          )
+        );
+
+        handleCloseDeleteModal();
+      } catch (error) {
+        console.error('Delete vehicle error:', error);
+        window.alert(error?.message || 'Failed to delete vehicle');
+      }
+    })();
   };
 
   const handleEditType = (type) => {
@@ -369,7 +518,9 @@ export default function VehiclesPage() {
   };
 
   const filteredVehicles = vehicles.filter(vehicle => {
-    const matchesType = typeFilter === 'All Types' || vehicle.type === typeFilter;
+    const matchesType =
+      typeFilter === 'All Types' ||
+      (vehicle.type || '').toString().toLowerCase() === typeFilter.toLowerCase();
     const matchesStatus = statusFilter === 'All Status' || vehicle.status === statusFilter;
     const matchesSearch = vehicle.licensePlate.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          vehicle.id.toLowerCase().includes(searchQuery.toLowerCase());

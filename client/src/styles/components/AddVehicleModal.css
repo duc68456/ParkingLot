@@ -16,17 +16,20 @@
 }
 
 .add-vehicle-modal {
-  width: 520px;
+  width: 448px;
   background: #ffffff;
-  border-radius: 14px;
+  border-radius: 16px;
   box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
-  padding: 20px 24px;
+  overflow: hidden;
 }
 
 .add-vehicle-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 0 24px;
+  height: 68.8px;
+  border-bottom: 0.8px solid #e2e8f0;
 }
 
 .add-vehicle-title {
@@ -38,9 +41,9 @@
 }
 
 .add-vehicle-close-btn {
-  width: 28px;
-  height: 28px;
-  padding: 4px;
+  width: 36px;
+  height: 36px;
+  padding: 8px;
   border: none;
   background: transparent;
   border-radius: 10px;
@@ -49,28 +52,108 @@
 
 .add-vehicle-close-btn img { width: 20px; height: 20px; }
 
-.add-vehicle-body { margin-top: 12px; }
+.add-vehicle-body {
+  padding: 24px;
+}
 
-.add-vehicle-form-group { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.add-vehicle-form-group { display: flex; flex-direction: column; gap: 8px; }
 
-.add-vehicle-label { font-family: Arimo, sans-serif; color: #45556c; font-size: 14px; }
+.add-vehicle-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@media (max-width: 560px) {
+  .add-vehicle-modal {
+    width: calc(100vw - 32px);
+  }
+}
+
+.add-vehicle-label { font-family: Arimo, sans-serif; color: #314158; font-size: 14px; }
 .add-vehicle-required { color: #e7000b; }
 
 .add-vehicle-input, .add-vehicle-select {
-  height: 40px;
-  padding: 8px 12px;
-  border: 0.8px solid #E2E8F0;
+  height: 41.6px;
+  padding: 10px 16px;
+  border: 0.8px solid #cad5e2;
   border-radius: 10px;
   font-family: Arimo, sans-serif;
   font-size: 14px;
+  background: #ffffff;
 }
 
-.add-vehicle-footer { margin-top: 20px; display: flex; gap: 12px; justify-content: flex-end; }
+.add-vehicle-input:focus, .add-vehicle-select:focus {
+  outline: none;
+  border-color: #155dfc;
+  box-shadow: 0 0 0 3px rgba(21, 93, 252, 0.15);
+}
+
+.add-vehicle-input-error {
+  border-color: #e7000b;
+}
+
+.add-vehicle-error {
+  font-family: Arimo, sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  color: #e7000b;
+}
+
+.add-vehicle-note {
+  background: #eff6ff;
+  border: 0.8px solid #bedbff;
+  border-radius: 10px;
+  padding: 12.8px;
+  color: #1c398e;
+  font-family: Arimo, sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  margin-bottom: 20px;
+}
+
+.add-vehicle-note-label {
+  font-weight: 700;
+}
+
+.add-vehicle-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  align-items: center;
+  height: 78.4px;
+  padding: 0 24px;
+  border-top: 0.8px solid #e2e8f0;
+  background: #f8fafc;
+  margin: 24px -24px -24px;
+}
 
 .add-vehicle-btn-cancel {
-  height: 44px; padding: 0 16px; background: #f1f5f9; border: none; border-radius: 10px; color: #314158; cursor: pointer;
+  height: 45.6px;
+  padding: 0 16px;
+  background: #ffffff;
+  border: 0.8px solid #cad5e2;
+  border-radius: 10px;
+  color: #314158;
+  cursor: pointer;
+  font-family: Arimo, sans-serif;
+  font-size: 16px;
 }
 
 .add-vehicle-btn-submit {
-  height: 44px; padding: 0 16px; background: #155dfc; border: none; border-radius: 10px; color: white; cursor: pointer;
+  height: 44px;
+  padding: 0 16px;
+  background: #155dfc;
+  border: none;
+  border-radius: 10px;
+  color: white;
+  cursor: pointer;
+  font-family: Arimo, sans-serif;
+  font-size: 16px;
+  box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.add-vehicle-btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

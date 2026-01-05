@@ -3,7 +3,6 @@ const mongoose = require('mongoose')
 const vehicleSchema = new mongoose.Schema({
   VehicleID: {
     type: String,
-    required: true,
     unique: true,
     index: true,
     match: /^VEH\d{4}$/
@@ -19,7 +18,8 @@ const vehicleSchema = new mongoose.Schema({
   VehicleTypeID: {
     type: String,
     required: true,
-    ref: 'VehicleType'
+    trim: true,
+    uppercase: true
   },
   Color: {
     type: String,
@@ -43,7 +43,7 @@ const vehicleSchema = new mongoose.Schema({
 
 // Auto-generate VehicleID before saving
 vehicleSchema.pre('save', async function (next) {
-  if (!this.VehicleID) {
+  if (this.isNew && !this.VehicleID) {
     const lastVehicle = await this.constructor.findOne({}, {}, { sort: { 'VehicleID': -1 } })
 
     if (lastVehicle && lastVehicle.VehicleID) {

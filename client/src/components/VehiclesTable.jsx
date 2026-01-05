@@ -10,6 +10,19 @@ const deleteIcon = "http://localhost:3845/assets/1fdb1f29273b223332a28061a714a43
 export default function VehiclesTable({ vehicles, onViewVehicle, onEditVehicle, onDeleteVehicle }) {
   const [currentPage, setCurrentPage] = useState(1);
 
+  const getStatusBadgeClass = (status) => {
+    switch ((status || '').toLowerCase()) {
+      case 'active':
+        return 'status-pill status-pill--active'
+      case 'inactive':
+        return 'status-pill status-pill--inactive'
+      default:
+        return 'status-pill'
+    }
+  }
+
+  const getStatusLabel = (vehicle) => ((vehicle?.IsActive ?? true) ? 'Active' : 'Inactive')
+
   const getVehicleIcon = (type) => {
     switch(type) {
       case 'Car':
@@ -54,7 +67,12 @@ export default function VehiclesTable({ vehicles, onViewVehicle, onEditVehicle, 
                 <td className="table-cell">{vehicle.type}</td>
                 <td className="table-cell">{vehicle.color || '—'}</td>
                 <td className="table-cell">
-                  <span className="status-badge status-active">Active</span>
+                  {(() => {
+                    const label = getStatusLabel(vehicle)
+                    return (
+                      <span className={getStatusBadgeClass(label)}>{label}</span>
+                    )
+                  })()}
                 </td>
                 <td className="table-cell align-right">
                   <div className="action-buttons">

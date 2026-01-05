@@ -98,19 +98,32 @@
   color: #62748E;
 }
 
-.status-badge {
-  display: inline-block;
-  padding: 3px 10px;
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 12px;
   border-radius: 999px;
   font-family: 'Arimo', sans-serif;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  border: 1px solid #E2E8F0;
+  background: #F1F5F9;
+  color: #475569;
 }
 
-.status-active {
-  background: #F0FDF4;
-  border: 0.8px solid #B9F8CF;
-  color: #008236;
+.status-pill--active {
+  background: #DCFCE7;
+  border-color: #86EFAC;
+  color: #166534;
+}
+
+.status-pill--inactive {
+  background: #FFF7ED;
+  border-color: #FED7AA;
+  color: #9A3412;
 }
 
 .action-buttons {

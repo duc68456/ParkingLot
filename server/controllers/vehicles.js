@@ -2,6 +2,53 @@ const vehiclesRouter = require('express').Router()
 const Vehicle = require('../models/vehicle')
 const VehicleType = require('../models/vehicleType')
 
+const attachVehicleType = async (vehicleDoc) => {
+  if (!vehicleDoc) return vehicleDoc
+  const v = vehicleDoc.toJSON ? vehicleDoc.toJSON() : vehicleDoc
+  const vehicleType = await VehicleType
+    .findOne({ VehicleTypeID: v.VehicleTypeID })
+    .select('VehicleTypeID Name')
+    .lean()
+
+  return {
+    ...v,
+    VehicleType: vehicleType || null
+  }
+}
+
+const attachVehicleTypes = async (vehicleDocs) => {
+  const ids = Array.from(
+    new Set(
+      (vehicleDocs || [])
+        .map(d => (d?.VehicleTypeID || d?.toJSON?.()?.VehicleTypeID))
+        .filter(Boolean)
+        .map(id => String(id).toUpperCase())
+    )
+  )
+
+  if (ids.length === 0) {
+    return (vehicleDocs || []).map(d => ({
+      ...(d.toJSON ? d.toJSON() : d),
+      VehicleType: null
+    }))
+  }
+
+  const types = await VehicleType
+    .find({ VehicleTypeID: { $in: ids } })
+    .select('VehicleTypeID Name')
+    .lean()
+
+  const byId = new Map(types.map(t => [t.VehicleTypeID, t]))
+
+  return (vehicleDocs || []).map(d => {
+    const v = d.toJSON ? d.toJSON() : d
+    return {
+      ...v,
+      VehicleType: byId.get(String(v.VehicleTypeID).toUpperCase()) || null
+    }
+  })
+}
+
 // GET all vehicles with filtering and pagination
 vehiclesRouter.get('/', async (req, res) => {
   try {
@@ -33,15 +80,16 @@ vehiclesRouter.get('/', async (req, res) => {
 
     const vehicles = await Vehicle
       .find(filter)
-      .populate('VehicleTypeID', 'VehicleTypeID Name')
       .limit(parseInt(limit))
       .skip(skip)
       .sort({ createdAt: -1 })
 
+    const vehiclesWithTypes = await attachVehicleTypes(vehicles)
+
     res.json({
       success: true,
       data: {
-        items: vehicles,
+        items: vehiclesWithTypes,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -66,7 +114,6 @@ vehiclesRouter.get('/:id', async (req, res) => {
   try {
     const vehicle = await Vehicle
       .findById(req.params.id)
-      .populate('VehicleTypeID', 'VehicleTypeID Name')
 
     if (!vehicle) {
       return res.status(404).json({
@@ -78,9 +125,11 @@ vehiclesRouter.get('/:id', async (req, res) => {
       })
     }
 
+    const vehicleWithType = await attachVehicleType(vehicle)
+
     res.json({
       success: true,
-      data: vehicle
+      data: vehicleWithType
     })
   } catch (error) {
     res.status(500).json({
@@ -143,9 +192,8 @@ vehiclesRouter.post('/', async (req, res) => {
     })
 
     const savedVehicle = await vehicle.save()
-    const populatedVehicle = await Vehicle
-      .findById(savedVehicle._id)
-      .populate('VehicleTypeID', 'VehicleTypeID Name')
+    const vehicleDoc = await Vehicle.findById(savedVehicle._id)
+    const populatedVehicle = await attachVehicleType(vehicleDoc)
 
     res.status(201).json({
       success: true,
@@ -217,9 +265,8 @@ vehiclesRouter.put('/:id', async (req, res) => {
     if (IsActive !== undefined) vehicle.IsActive = IsActive
 
     const updatedVehicle = await vehicle.save()
-    const populatedVehicle = await Vehicle
-      .findById(updatedVehicle._id)
-      .populate('VehicleTypeID', 'VehicleTypeID Name')
+    const vehicleDoc = await Vehicle.findById(updatedVehicle._id)
+    const populatedVehicle = await attachVehicleType(vehicleDoc)
 
     res.json({
       success: true,

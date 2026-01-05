@@ -2,6 +2,22 @@ import React from 'react';
 import '../styles/components/VehicleTypesTable.css';
 
 export default function VehicleTypesTable({ vehicleTypes, onEditType, onDeleteType }) {
+  const getStatusBadgeClass = (status) => {
+    switch ((status || '').toLowerCase()) {
+      case 'active':
+        return 'status-pill status-pill--active'
+      case 'inactive':
+        return 'status-pill status-pill--inactive'
+      default:
+        return 'status-pill'
+    }
+  }
+
+  const getStatusLabel = (type) => {
+    const isActive = type?.IsActive ?? (type?.status || '').toString().toLowerCase() === 'active'
+    return isActive ? 'Active' : 'Inactive'
+  }
+
   return (
     <div className="vehicle-types-table-container">
       <table className="vehicle-types-table">
@@ -9,6 +25,7 @@ export default function VehicleTypesTable({ vehicleTypes, onEditType, onDeleteTy
           <tr>
             <th>ID</th>
             <th>Type Name</th>
+            <th>Status</th>
             <th className="actions-header">Actions</th>
           </tr>
         </thead>
@@ -17,6 +34,14 @@ export default function VehicleTypesTable({ vehicleTypes, onEditType, onDeleteTy
             <tr key={type.id}>
               <td>{type.VehicleTypeID}</td>
               <td>{type.name}</td>
+              <td>
+                {(() => {
+                  const label = getStatusLabel(type)
+                  return (
+                    <span className={getStatusBadgeClass(label)}>{label}</span>
+                  )
+                })()}
+              </td>
               <td className="actions-cell">
                 <div className="action-buttons">
                   <button
