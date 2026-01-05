@@ -59,8 +59,8 @@ const formatDate = (value) => {
 const normalizeCard = (c) => {
   const categoryName = c?.CardCategoryID?.Name || c?.CardCategoryID?.ID || c?.CardCategoryID;
   const ownerName = c?.OwnerID?.FullName || c?.OwnerID?.ID || c?.OwnerID;
-  const vehiclePlate = c?.VehicleId?.PlateNumber || c?.VehicleId?.VehicleID || '';
-  const vehicleType = c?.VehicleId?.VehicleTypeID?.Name || '';
+  const vehiclePlate = '';
+  const vehicleType = '';
   const status = (c?.Status || '').toUpperCase() || 'ACTIVE';
 
   return {
@@ -100,9 +100,9 @@ function CardsPage() {
   const [showViewCardModal, setShowViewCardModal] = useState(false);
   const [cardToView, setCardToView] = useState(null);
 
-  // Load cards when visiting inventory tab
+  // Load cards when visiting inventory/assign tab
   useEffect(() => {
-    if (activeTab !== 'inventory') return;
+    if (activeTab !== 'inventory' && activeTab !== 'assign') return;
     const controller = new AbortController();
 
     (async () => {
@@ -237,6 +237,13 @@ function CardsPage() {
     return next;
   }, [cards, expiryFilter, searchQuery, statusFilter, typeFilter]);
 
+  // Derived list for Assign Card tab (unassigned inventory)
+  const unassignedCards = useMemo(() => {
+    // Business rule: cards are initially created as UNASSIGNED and later assigned to a person.
+    const list = Array.isArray(cards) ? cards : [];
+    return list.filter((c) => String(c?.rawStatus || '').toUpperCase() === 'UNASSIGNED');
+  }, [cards]);
+
   useEffect(() => {
     setFilteredCards(filteredCardsMemo);
   }, [filteredCardsMemo]);
@@ -298,10 +305,36 @@ function CardsPage() {
   };
 
   const handleAssignCard = (assignData) => {
-    console.log('Assigning card:', assignData);
-    // Here you would make an API call to assign the card
-    alert(`Card ${assignData.cardId} assigned successfully!`);
-    handleCloseAssignModal();
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/cards/${encodeURIComponent(assignData.cardId)}/assign`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
+          body: JSON.stringify({
+            type: 'customer',
+            personId: assignData.personId
+          })
+        });
+
+        const json = await res.json().catch(() => null);
+        if (!res.ok) {
+          const msg = json?.error?.message || `Assign failed (${res.status})`;
+          throw new Error(msg);
+        }
+
+        const updated = json?.data;
+        if (updated) {
+          const normalized = normalizeCard(updated);
+          setCards((prev) => prev.map((c) => (c.id === normalized.id ? normalized : c)));
+        }
+
+        handleCloseAssignModal();
+        window.alert(`Card ${assignData.cardId} assigned successfully!`);
+      } catch (err) {
+        console.error('Assign card error:', err);
+        window.alert(err?.message || 'Failed to assign card');
+      }
+    })();
   };
 
   const handleAddCategory = () => {
@@ -550,7 +583,7 @@ function CardsPage() {
                           </div>
                         </div>
                         <div className="inventory-cardText">
-                          <p className="inventory-cardUid">{card.uid}</p>
+                          <p className="inventory-cardUid" title={card.uid || ''}>{card.id}</p>
                           <p className="inventory-cardType">{card.type}</p>
                         </div>
                       </div>
@@ -611,9 +644,9 @@ function CardsPage() {
       {activeTab === 'assign' && (
         <div className="assign-content">
           {/* Info Banner */}
-          <div className="info-banner">
+          <div className="info-banner" role="status" aria-live="polite">
             <p>
-              <span className="info-count">{mockUnassignedCards.length}</span> unassigned cards available
+              <span className="info-count">{unassignedCards.length}</span> unassigned cards available
             </p>
           </div>
 
@@ -625,13 +658,14 @@ function CardsPage() {
                   <th>ID</th>
                   <th>CARD</th>
                   <th>OWNER</th>
+                  <th>VEHICLE</th>
                   <th>STATUS</th>
                   <th>EXPIRY</th>
                   <th className="text-right">ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
-                {mockUnassignedCards.map((card) => (
+                {unassignedCards.map((card) => (
                   <tr key={card.id}>
                     <td className="card-id-cell">{card.id}</td>
                     <td>
@@ -645,7 +679,7 @@ function CardsPage() {
                           </div>
                         </div>
                         <div className="inventory-cardText">
-                          <p className="inventory-cardUid">{card.uid}</p>
+                          <p className="inventory-cardUid" title={card.uid || ''}>{card.id}</p>
                           <p className="inventory-cardType">{card.category}</p>
                         </div>
                       </div>
@@ -656,16 +690,17 @@ function CardsPage() {
                         <p className="owner-type">Unassigned</p>
                       </div>
                     </td>
+                    <td className="vehicle-cell">
+                      <span className="vehicle-placeholder">-</span>
+                    </td>
                     <td>
-                      <span className="status-badge status-inactive">
-                        {card.status}
-                      </span>
+                      <span className={`status-pill status-pill--inactive`}>{card.status}</span>
                     </td>
                     <td className="expiry-cell">{card.expiry}</td>
                     <td>
                       <div className="action-buttons action-buttons-right">
                         <button
-                          className="btn-assign-action"
+                          className="btn-assign-action btn-assign-action--primary"
                           onClick={() => handleAssignClick(card)}
                         >
                           Assign
@@ -680,7 +715,7 @@ function CardsPage() {
             {/* Pagination */}
             <div className="table-footer">
               <p className="results-text">
-                Showing <span className="results-count">{mockUnassignedCards.length}</span> results
+                Showing <span className="results-count">{unassignedCards.length}</span> results
               </p>
               <div className="pagination-buttons">
                 <button className="pagination-btn">Previous</button>

@@ -2,8 +2,8 @@ const cardsRouter = require('express').Router()
 const Card = require('../models/card')
 const CardCategory = require('../models/cardCategory')
 const Person = require('../models/person')
-const Vehicle = require('../models/vehicle')
 const Employee = require('../models/employee')
+const Customer = require('../models/customer')
 
 // GET all cards with filtering and pagination
 cardsRouter.get('/', async (req, res) => {
@@ -13,7 +13,6 @@ cardsRouter.get('/', async (req, res) => {
       isActive,
       cardCategoryId,
       ownerId,
-      vehicleId,
       expired,
       search,
       page = 1,
@@ -38,10 +37,6 @@ cardsRouter.get('/', async (req, res) => {
 
     if (ownerId) {
       filter.OwnerID = ownerId
-    }
-
-    if (vehicleId) {
-      filter.VehicleId = vehicleId
     }
 
     // Filter by expiration status
@@ -69,27 +64,34 @@ cardsRouter.get('/', async (req, res) => {
 
     const cards = await Card
       .find(filter)
-      .populate('CardCategoryID', 'ID Name')
-      .populate({
-        path: 'OwnerID',
-        select: 'ID FullName Phone'
-      })
-      .populate({
-        path: 'VehicleId',
-        select: 'VehicleID PlateNumber',
-        populate: {
-          path: 'VehicleTypeID',
-          select: 'VehicleTypeID Name'
-        }
-      })
       .limit(parseInt(limit))
       .skip(skip)
       .sort({ createdAt: -1 })
 
+    // Manual hydration because CardCategoryID/OwnerID are business IDs (strings), not ObjectIds.
+    const categoryIds = Array.from(new Set(cards.map(c => c.CardCategoryID).filter(Boolean)))
+    const ownerIds = Array.from(new Set(cards.map(c => c.OwnerID).filter(Boolean)))
+
+    const categories = await CardCategory
+      .find({ ID: { $in: categoryIds } })
+      .select('ID Name')
+    const owners = await Person
+      .find({ ID: { $in: ownerIds } })
+      .select('ID FullName Phone Gender')
+
+    const categoryById = new Map(categories.map(cat => [cat.ID, cat]))
+    const ownerById = new Map(owners.map(p => [p.ID, p]))
+
+    const hydratedCards = cards.map(card => ({
+      ...card.toJSON(),
+      CardCategoryID: categoryById.get(card.CardCategoryID) || card.CardCategoryID,
+      OwnerID: ownerById.get(card.OwnerID) || card.OwnerID
+    }))
+
     res.json({
       success: true,
       data: {
-        items: cards,
+        items: hydratedCards,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -112,21 +114,7 @@ cardsRouter.get('/', async (req, res) => {
 // GET single card by ID
 cardsRouter.get('/:id', async (req, res) => {
   try {
-    const card = await Card
-      .findById(req.params.id)
-      .populate('CardCategoryID', 'ID Name')
-      .populate({
-        path: 'OwnerID',
-        select: 'ID FullName Phone Gender'
-      })
-      .populate({
-        path: 'VehicleId',
-        select: 'VehicleID PlateNumber Color Status',
-        populate: {
-          path: 'VehicleTypeID',
-          select: 'VehicleTypeID Name'
-        }
-      })
+    const card = await Card.findById(req.params.id)
 
     if (!card) {
       return res.status(404).json({
@@ -138,9 +126,18 @@ cardsRouter.get('/:id', async (req, res) => {
       })
     }
 
+    const category = await CardCategory.findOne({ ID: card.CardCategoryID }).select('ID Name')
+    const owner = card.OwnerID
+      ? await Person.findOne({ ID: card.OwnerID }).select('ID FullName Phone Gender')
+      : null
+
     res.json({
       success: true,
-      data: card
+      data: {
+        ...card.toJSON(),
+        CardCategoryID: category || card.CardCategoryID,
+        OwnerID: owner || card.OwnerID
+      }
     })
   } catch (error) {
     res.status(500).json({
@@ -156,21 +153,7 @@ cardsRouter.get('/:id', async (req, res) => {
 // GET card by UID (for RFID scanning)
 cardsRouter.get('/uid/:uid', async (req, res) => {
   try {
-    const card = await Card
-      .findOne({ UID: req.params.uid })
-      .populate('CardCategoryID', 'ID Name')
-      .populate({
-        path: 'OwnerID',
-        select: 'ID FullName Phone'
-      })
-      .populate({
-        path: 'VehicleId',
-        select: 'VehicleID PlateNumber',
-        populate: {
-          path: 'VehicleTypeID',
-          select: 'VehicleTypeID Name'
-        }
-      })
+    const card = await Card.findOne({ UID: req.params.uid })
 
     if (!card) {
       return res.status(404).json({
@@ -205,9 +188,18 @@ cardsRouter.get('/uid/:uid', async (req, res) => {
       })
     }
 
+    const category = await CardCategory.findOne({ ID: card.CardCategoryID }).select('ID Name')
+    const owner = card.OwnerID
+      ? await Person.findOne({ ID: card.OwnerID }).select('ID FullName Phone Gender')
+      : null
+
     res.json({
       success: true,
-      data: card
+      data: {
+        ...card.toJSON(),
+        CardCategoryID: category || card.CardCategoryID,
+        OwnerID: owner || card.OwnerID
+      }
     })
   } catch (error) {
     res.status(500).json({
@@ -226,7 +218,6 @@ cardsRouter.post('/', async (req, res) => {
     const {
       CardCategoryID,
       OwnerID,
-      VehicleId,
       ActiveDay,
       ExpireDay,
       UID,
@@ -284,20 +275,6 @@ cardsRouter.post('/', async (req, res) => {
       }
     }
 
-    // Validate VehicleId if provided
-    if (VehicleId) {
-      const vehicle = await Vehicle.findOne({ VehicleID: VehicleId })
-      if (!vehicle) {
-        return res.status(404).json({
-          success: false,
-          error: {
-            message: 'Vehicle not found',
-            code: 'VEHICLE_NOT_FOUND'
-          }
-        })
-      }
-    }
-
     // Validate UIDScannedBy if provided
     if (UIDScannedBy) {
       const employee = await Employee.findOne({ ID: UIDScannedBy })
@@ -315,7 +292,6 @@ cardsRouter.post('/', async (req, res) => {
     const card = new Card({
       CardCategoryID,
       OwnerID: OwnerID || null,
-      VehicleId: VehicleId || null,
       ActiveDay: ActiveDay || new Date(),
       ExpireDay: ExpireDay || null,
       UID,
@@ -325,18 +301,18 @@ cardsRouter.post('/', async (req, res) => {
     })
 
     const savedCard = await card.save()
-    const populatedCard = await Card
-      .findById(savedCard._id)
-      .populate('CardCategoryID', 'ID Name')
-      .populate('OwnerID', 'ID FullName Phone')
-      .populate({
-        path: 'VehicleId',
-        select: 'VehicleID PlateNumber',
-        populate: {
-          path: 'VehicleTypeID',
-          select: 'VehicleTypeID Name'
-        }
-      })
+
+    // Manual hydration because CardCategoryID/OwnerID are business IDs (strings), not ObjectIds.
+    const category = await CardCategory.findOne({ ID: savedCard.CardCategoryID }).select('ID Name')
+    const owner = savedCard.OwnerID
+      ? await Person.findOne({ ID: savedCard.OwnerID }).select('ID FullName Phone Gender')
+      : null
+
+    const populatedCard = {
+      ...savedCard.toJSON(),
+      CardCategoryID: category || savedCard.CardCategoryID,
+      OwnerID: owner || savedCard.OwnerID
+    }
 
     res.status(201).json({
       success: true,
@@ -354,13 +330,122 @@ cardsRouter.post('/', async (req, res) => {
   }
 })
 
+// POST - Assign card to a customer
+// Accepts either Mongo _id or business CardID in :id
+// Body: { personId: 'PER0001' } (type can be provided but will be ignored unless it's 'customer')
+cardsRouter.post('/:id/assign', async (req, res) => {
+  try {
+    const { type, personId } = req.body || {}
+    const assignType = String(type || '').toLowerCase()
+
+    if (!personId) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'personId is required',
+          code: 'MISSING_REQUIRED_FIELDS'
+        }
+      })
+    }
+
+    if (assignType && assignType !== 'customer') {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: "Only customer assignment is supported",
+          code: 'CUSTOMER_ONLY'
+        }
+      })
+    }
+
+    // Locate card by Mongo _id first, then by business CardID.
+    let card = await Card.findById(req.params.id).catch(() => null)
+    if (!card) {
+      card = await Card.findOne({ CardID: req.params.id })
+    }
+
+    if (!card) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          message: 'Card not found',
+          code: 'CARD_NOT_FOUND'
+        }
+      })
+    }
+
+    // Assign only if currently unassigned (prevent accidental reassignment)
+    if (String(card.Status || '').toUpperCase() !== 'UNASSIGNED') {
+      return res.status(409).json({
+        success: false,
+        error: {
+          message: 'Card is not unassigned',
+          code: 'CARD_NOT_UNASSIGNED'
+        }
+      })
+    }
+
+    // Validate person exists
+    const person = await Person.findOne({ ID: String(personId) })
+    if (!person) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          message: 'Person not found',
+          code: 'PERSON_NOT_FOUND'
+        }
+      })
+    }
+
+    const customer = await Customer.findOne({ PersonID: person._id })
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          message: 'Customer not found for this person',
+          code: 'CUSTOMER_NOT_FOUND'
+        }
+      })
+    }
+
+    // Apply assignment
+    card.OwnerID = String(personId)
+    // If RFID not yet scanned/written, keep it pending; else activate.
+    card.Status = card.UID ? 'ACTIVE' : 'PENDING_RFID'
+    if (!card.ActiveDay) card.ActiveDay = new Date()
+
+    const updated = await card.save()
+
+    // Manual hydration
+    const category = await CardCategory.findOne({ ID: updated.CardCategoryID }).select('ID Name')
+    const owner = await Person.findOne({ ID: updated.OwnerID }).select('ID FullName Phone Gender')
+
+    res.json({
+      success: true,
+      data: {
+        ...updated.toJSON(),
+        CardCategoryID: category || updated.CardCategoryID,
+        OwnerID: owner || updated.OwnerID
+      },
+      message: 'Card assigned successfully'
+    })
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: {
+        message: error.message,
+        code: 'ASSIGN_CARD_ERROR'
+      }
+    })
+  }
+})
+
 // PUT - Update card
 cardsRouter.put('/:id', async (req, res) => {
   try {
     const {
       CardCategoryID,
       OwnerID,
-      VehicleId,
       ActiveDay,
       ExpireDay,
       UID,
@@ -433,25 +518,6 @@ cardsRouter.put('/:id', async (req, res) => {
       }
     }
 
-    // Validate and update VehicleId
-    if (VehicleId !== undefined) {
-      if (VehicleId === null || VehicleId === '') {
-        card.VehicleId = null
-      } else {
-        const vehicle = await Vehicle.findOne({ VehicleID: VehicleId })
-        if (!vehicle) {
-          return res.status(404).json({
-            success: false,
-            error: {
-              message: 'Vehicle not found',
-              code: 'VEHICLE_NOT_FOUND'
-            }
-          })
-        }
-        card.VehicleId = VehicleId
-      }
-    }
-
     if (ActiveDay !== undefined) card.ActiveDay = ActiveDay
     if (ExpireDay !== undefined) card.ExpireDay = ExpireDay
 
@@ -483,18 +549,18 @@ cardsRouter.put('/:id', async (req, res) => {
     }
 
     const updatedCard = await card.save()
-    const populatedCard = await Card
-      .findById(updatedCard._id)
-      .populate('CardCategoryID', 'ID Name')
-      .populate('OwnerID', 'ID FullName Phone')
-      .populate({
-        path: 'VehicleId',
-        select: 'VehicleID PlateNumber',
-        populate: {
-          path: 'VehicleTypeID',
-          select: 'VehicleTypeID Name'
-        }
-      })
+
+    // Manual hydration because CardCategoryID/OwnerID are business IDs (strings), not ObjectIds.
+    const category = await CardCategory.findOne({ ID: updatedCard.CardCategoryID }).select('ID Name')
+    const owner = updatedCard.OwnerID
+      ? await Person.findOne({ ID: updatedCard.OwnerID }).select('ID FullName Phone Gender')
+      : null
+
+    const populatedCard = {
+      ...updatedCard.toJSON(),
+      CardCategoryID: category || updatedCard.CardCategoryID,
+      OwnerID: owner || updatedCard.OwnerID
+    }
 
     res.json({
       success: true,
@@ -526,7 +592,7 @@ cardsRouter.delete('/:id', async (req, res) => {
       })
     }
 
-  card.Status = 'INACTIVE'
+    card.Status = 'INACTIVE'
     await card.save()
 
     res.json({

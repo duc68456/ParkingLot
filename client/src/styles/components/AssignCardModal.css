@@ -147,6 +147,17 @@
   box-shadow: 0 0 0 3px rgba(21, 93, 252, 0.1);
 }
 
+.assign-card-error {
+  border: 0.8px solid #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+}
+
 /* Footer */
 .assign-card-footer {
   height: 78.4px;

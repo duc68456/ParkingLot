@@ -82,6 +82,13 @@ export default function PurchaseCardPage() {
   const [invoiceNumber] = useState(() => `INV-${Date.now()}`);
   const [invoiceDate] = useState(() => new Date().toLocaleDateString('en-GB'));
 
+  // Backend invoice created during "Confirm Payment".
+  const [purchaseInvoiceId, setPurchaseInvoiceId] = useState(null);
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
+  const [confirmPaymentError, setConfirmPaymentError] = useState('');
+  const [finalizingInvoice, setFinalizingInvoice] = useState(false);
+  const [finalizeInvoiceError, setFinalizeInvoiceError] = useState('');
+
   const steps = [
     {
       number: 1,
@@ -289,16 +296,94 @@ export default function PurchaseCardPage() {
   const getInvoiceNumber = () => invoiceNumber;
   const getInvoiceDate = () => invoiceDate;
 
-  const handleConfirmPayment = () => {
-    console.log('Payment confirmed!');
-    console.log('Customer:', selectedCustomer);
-    console.log('Cards:', cards);
-    console.log('Total:', calculateTotal());
+  const handleConfirmPayment = async () => {
+    if (!selectedCustomer || cards.length === 0) return;
 
-    setShowInvoiceModal(true);
+    try {
+      setConfirmPaymentError('');
+      setConfirmingPayment(true);
+
+      // UX: this button's main job is to show the invoice modal.
+      // We still try to create an invoice in the background so "Done" can finalize inventory.
+      setShowInvoiceModal(true);
+
+      // Group cards by category so we create one invoice detail per category.
+      // Backend will generate UNASSIGNED cards on "Done" based on Quantity.
+      const grouped = getGroupedCards();
+      const categoriesByName = new Map(
+        (cardCategories || []).map((c) => [c?.Name, c])
+      );
+
+      const details = Object.entries(grouped).map(([categoryName, categoryCards]) => {
+        const cat = categoriesByName.get(categoryName);
+        if (!cat?.ID) {
+          throw new Error(`Unknown card category: ${categoryName}`);
+        }
+        return {
+          CardCategoryID: cat.ID,
+          Quantity: categoryCards.length,
+          UnitPrice: getCategoryPrice(categoryName),
+          Notes: null
+        };
+      });
+
+      const res = await fetch(`${API_BASE_URL}/api/card-purchase-invoices`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders
+        },
+        body: JSON.stringify({
+          CustomerID: selectedCustomer?.customerId || selectedCustomer?.id,
+          // TODO: Replace with the logged-in employee ID when available in AuthContext.
+          SaledBy: 'EMP0001',
+          InvoiceDate: new Date().toISOString(),
+          details
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error?.message || `Failed to create invoice (${res.status})`);
+      }
+
+      const json = await res.json();
+  setPurchaseInvoiceId(json?.data?.ID || json?.data?.id || json?.data?._id || null);
+    } catch (e) {
+      // Don't block the modal.
+      setConfirmPaymentError(e?.message || 'Failed to create invoice');
+    } finally {
+      setConfirmingPayment(false);
+    }
   };
 
-  const handleCloseInvoiceModal = () => {
+  const handleCloseInvoiceModal = async () => {
+    // When user clicks "Done", we finalize by calling confirm-payment so the server
+    // adds UNASSIGNED cards to inventory.
+    if (purchaseInvoiceId) {
+      try {
+        setFinalizeInvoiceError('');
+        setFinalizingInvoice(true);
+
+        const res = await fetch(`${API_BASE_URL}/api/card-purchase-invoices/${purchaseInvoiceId}/confirm-payment`, {
+          method: 'POST',
+          headers: {
+            ...authHeaders
+          }
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => null);
+          throw new Error(err?.error?.message || `Failed to finalize invoice (${res.status})`);
+        }
+      } catch (e) {
+        setFinalizeInvoiceError(e?.message || 'Failed to add cards to database');
+        return;
+      } finally {
+        setFinalizingInvoice(false);
+      }
+    }
+
     setShowInvoiceModal(false);
   };
 

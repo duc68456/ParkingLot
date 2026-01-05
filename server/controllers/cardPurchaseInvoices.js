@@ -4,6 +4,29 @@ const CardPurchaseDetail = require('../models/cardPurchaseDetail')
 const Customer = require('../models/customer')
 const Employee = require('../models/employee')
 const Card = require('../models/card')
+const mongoose = require('mongoose')
+const CardCategory = require('../models/cardCategory')
+const Person = require('../models/person')
+
+const generateNextInvoiceId = async () => {
+  const lastInvoice = await CardPurchaseInvoice.findOne({}, {}, { sort: { ID: -1 } })
+  if (lastInvoice?.ID) {
+    const lastNumber = parseInt(lastInvoice.ID.substring(3))
+    const nextNumber = Number.isFinite(lastNumber) ? lastNumber + 1 : 1
+    return `INV${nextNumber.toString().padStart(4, '0')}`
+  }
+  return 'INV0001'
+}
+
+const generateNextCardId = async (session) => {
+  const lastCard = await Card.findOne({}, {}, { sort: { CardID: -1 } }).session(session)
+  if (lastCard?.CardID) {
+    const lastNumber = parseInt(lastCard.CardID.substring(3))
+    const nextNumber = Number.isFinite(lastNumber) ? lastNumber + 1 : 1
+    return `CRD${nextNumber.toString().padStart(4, '0')}`
+  }
+  return 'CRD0001'
+}
 
 // GET all invoices with filtering and pagination
 cardPurchaseInvoicesRouter.get('/', async (req, res) => {
@@ -48,29 +71,46 @@ cardPurchaseInvoicesRouter.get('/', async (req, res) => {
 
     const invoices = await CardPurchaseInvoice
       .find(filter)
-      .populate({
-        path: 'CustomerID',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName Phone'
-        }
-      })
-      .populate({
-        path: 'SaledBy',
-        select: 'ID EmployeeType',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName'
-        }
-      })
       .limit(parseInt(limit))
       .skip(skip)
       .sort({ InvoiceDate: -1 })
 
+    // Manual "populate" because CustomerID/SaledBy are business IDs (e.g. CUS0001/EMP0001),
+    // not Mongo ObjectIds.
+    const customerIds = Array.from(new Set(invoices.map(i => i.CustomerID).filter(Boolean)))
+    const employeeIds = Array.from(new Set(invoices.map(i => i.SaledBy).filter(Boolean)))
+
+    const customers = await Customer.find({ ID: { $in: customerIds } }).select('ID PersonID Status RegisteredDay')
+    const employees = await Employee.find({ ID: { $in: employeeIds } }).select('ID PersonID EmployeeType Status')
+
+    const personIds = Array.from(new Set([
+      ...customers.map(c => c.PersonID).filter(Boolean),
+      ...employees.map(e => e.PersonID).filter(Boolean)
+    ].map(id => id.toString())))
+
+    const persons = await Person.find({ _id: { $in: personIds } }).select('ID FullName Phone Gender')
+    const personById = new Map(persons.map(p => [p._id.toString(), p]))
+
+    const customerByBusinessId = new Map(customers.map(c => [c.ID, ({
+      ...c.toJSON(),
+      PersonID: personById.get(c.PersonID?.toString()) || c.PersonID
+    })]))
+
+    const employeeByBusinessId = new Map(employees.map(e => [e.ID, ({
+      ...e.toJSON(),
+      PersonID: personById.get(e.PersonID?.toString()) || e.PersonID
+    })]))
+
+    const hydrated = invoices.map(inv => ({
+      ...inv.toJSON(),
+      CustomerID: customerByBusinessId.get(inv.CustomerID) || inv.CustomerID,
+      SaledBy: employeeByBusinessId.get(inv.SaledBy) || inv.SaledBy
+    }))
+
     res.json({
       success: true,
       data: {
-        items: invoices,
+        items: hydrated,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -95,21 +135,6 @@ cardPurchaseInvoicesRouter.get('/:id', async (req, res) => {
   try {
     const invoice = await CardPurchaseInvoice
       .findById(req.params.id)
-      .populate({
-        path: 'CustomerID',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName Phone Gender'
-        }
-      })
-      .populate({
-        path: 'SaledBy',
-        select: 'ID EmployeeType',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName Phone'
-        }
-      })
 
     if (!invoice) {
       return res.status(404).json({
@@ -122,22 +147,45 @@ cardPurchaseInvoicesRouter.get('/:id', async (req, res) => {
     }
 
     // Get invoice details
-    const details = await CardPurchaseDetail
-      .find({ InvoiceID: invoice.ID })
-      .populate({
-        path: 'CardID',
-        select: 'CardID UID CardCategoryID',
-        populate: {
-          path: 'CardCategoryID',
-          select: 'ID Name'
-        }
-      })
+    const details = await CardPurchaseDetail.find({ InvoiceID: invoice.ID })
+
+    const detailCategoryIds = Array.from(
+      new Set(details.map(d => d.CardCategoryID).filter(Boolean))
+    )
+    const categories = await CardCategory
+      .find({ ID: { $in: detailCategoryIds } })
+      .select('ID Name')
+    const categoryById = new Map(categories.map(c => [c.ID, c]))
+
+    const hydratedDetails = details.map(d => ({
+      ...d.toJSON(),
+      CardCategoryID: categoryById.get(d.CardCategoryID) || d.CardCategoryID
+    }))
+
+    const customer = await Customer.findOne({ ID: invoice.CustomerID }).select('ID PersonID Status RegisteredDay')
+    const employee = await Employee.findOne({ ID: invoice.SaledBy }).select('ID PersonID EmployeeType Status')
+
+    const personIds = [customer?.PersonID, employee?.PersonID].filter(Boolean).map(id => id.toString())
+    const persons = personIds.length
+      ? await Person.find({ _id: { $in: Array.from(new Set(personIds)) } }).select('ID FullName Phone Gender')
+      : []
+    const personById = new Map(persons.map(p => [p._id.toString(), p]))
+
+    const hydratedInvoice = {
+      ...invoice.toJSON(),
+      CustomerID: customer
+        ? { ...customer.toJSON(), PersonID: personById.get(customer.PersonID?.toString()) || customer.PersonID }
+        : invoice.CustomerID,
+      SaledBy: employee
+        ? { ...employee.toJSON(), PersonID: personById.get(employee.PersonID?.toString()) || employee.PersonID }
+        : invoice.SaledBy
+    }
 
     res.json({
       success: true,
       data: {
-        ...invoice.toJSON(),
-        details
+        ...hydratedInvoice,
+        details: hydratedDetails
       }
     })
   } catch (error) {
@@ -158,7 +206,7 @@ cardPurchaseInvoicesRouter.post('/', async (req, res) => {
       CustomerID,
       SaledBy,
       InvoiceDate,
-      details // Array of { CardID, Price, Notes }
+      details // Array of { CardCategoryID, Quantity, UnitPrice, Notes }
     } = req.body
 
     // Validate required fields
@@ -196,47 +244,61 @@ cardPurchaseInvoicesRouter.post('/', async (req, res) => {
       })
     }
 
-    // Validate all cards exist and calculate total
+    // Validate all categories exist and calculate total
     let totalAmount = 0
-    const cardIds = []
+    const seenCategoryIds = new Set()
     for (const detail of details) {
-      if (!detail.CardID || detail.Price === undefined) {
+      if (!detail.CardCategoryID || detail.Quantity === undefined || detail.UnitPrice === undefined) {
         return res.status(400).json({
           success: false,
           error: {
-            message: 'Each detail must have CardID and Price',
+            message: 'Each detail must have CardCategoryID, Quantity, and UnitPrice',
             code: 'INVALID_DETAIL_FORMAT'
           }
         })
       }
 
-      const card = await Card.findOne({ CardID: detail.CardID })
-      if (!card) {
-        return res.status(404).json({
-          success: false,
-          error: {
-            message: `Card ${detail.CardID} not found`,
-            code: 'CARD_NOT_FOUND'
-          }
-        })
-      }
-
-      if (cardIds.includes(detail.CardID)) {
+      const qty = Number(detail.Quantity)
+      if (!Number.isFinite(qty) || qty < 1) {
         return res.status(400).json({
           success: false,
           error: {
-            message: `Duplicate CardID ${detail.CardID} in details`,
-            code: 'DUPLICATE_CARD_IN_INVOICE'
+            message: 'Quantity must be at least 1',
+            code: 'INVALID_QUANTITY'
           }
         })
       }
 
-      cardIds.push(detail.CardID)
-      totalAmount += detail.Price
+      const category = await CardCategory.findOne({ ID: detail.CardCategoryID })
+      if (!category) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            message: `CardCategory ${detail.CardCategoryID} not found`,
+            code: 'CARD_CATEGORY_NOT_FOUND'
+          }
+        })
+      }
+
+      // Prevent duplicates per invoice
+      if (seenCategoryIds.has(detail.CardCategoryID)) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            message: `Duplicate CardCategoryID ${detail.CardCategoryID} in details`,
+            code: 'DUPLICATE_CATEGORY_IN_INVOICE'
+          }
+        })
+      }
+
+      seenCategoryIds.add(detail.CardCategoryID)
+
+      totalAmount += qty * Number(detail.UnitPrice)
     }
 
     // Create invoice
     const invoice = new CardPurchaseInvoice({
+      ID: await generateNextInvoiceId(),
       CustomerID,
       SaledBy,
       InvoiceDate: InvoiceDate || new Date(),
@@ -249,48 +311,56 @@ cardPurchaseInvoicesRouter.post('/', async (req, res) => {
     // Create invoice details
     const detailDocs = details.map(detail => ({
       InvoiceID: savedInvoice.ID,
-      CardID: detail.CardID,
-      Price: detail.Price,
+      CardCategoryID: detail.CardCategoryID,
+      Quantity: Number(detail.Quantity),
+      UnitPrice: Number(detail.UnitPrice),
       Notes: detail.Notes || null
     }))
 
     await CardPurchaseDetail.insertMany(detailDocs)
 
     // Get populated invoice with details
-    const populatedInvoice = await CardPurchaseInvoice
-      .findById(savedInvoice._id)
-      .populate({
-        path: 'CustomerID',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName Phone'
-        }
-      })
-      .populate({
-        path: 'SaledBy',
-        select: 'ID EmployeeType',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName'
-        }
-      })
+    const populatedInvoice = await CardPurchaseInvoice.findById(savedInvoice._id)
 
-    const invoiceDetails = await CardPurchaseDetail
-      .find({ InvoiceID: savedInvoice.ID })
-      .populate({
-        path: 'CardID',
-        select: 'CardID UID CardCategoryID',
-        populate: {
-          path: 'CardCategoryID',
-          select: 'ID Name'
-        }
-      })
+    const invoiceDetails = await CardPurchaseDetail.find({ InvoiceID: savedInvoice.ID })
+
+    const invoiceDetailCategoryIds = Array.from(
+      new Set(invoiceDetails.map(d => d.CardCategoryID).filter(Boolean))
+    )
+    const invoiceCategories = await CardCategory
+      .find({ ID: { $in: invoiceDetailCategoryIds } })
+      .select('ID Name')
+    const invoiceCategoryById = new Map(invoiceCategories.map(c => [c.ID, c]))
+
+    const hydratedInvoiceDetails = invoiceDetails.map(d => ({
+      ...d.toJSON(),
+      CardCategoryID: invoiceCategoryById.get(d.CardCategoryID) || d.CardCategoryID
+    }))
+
+    const createdCustomer = await Customer.findOne({ ID: populatedInvoice.CustomerID }).select('ID PersonID Status RegisteredDay')
+    const createdEmployee = await Employee.findOne({ ID: populatedInvoice.SaledBy }).select('ID PersonID EmployeeType Status')
+
+    const createdPersonIds = [createdCustomer?.PersonID, createdEmployee?.PersonID].filter(Boolean).map(id => id.toString())
+    const createdPersons = createdPersonIds.length
+      ? await Person.find({ _id: { $in: Array.from(new Set(createdPersonIds)) } }).select('ID FullName Phone Gender')
+      : []
+    const createdPersonById = new Map(createdPersons.map(p => [p._id.toString(), p]))
+
+    const hydratedCreatedInvoice = {
+      ...populatedInvoice.toJSON(),
+      CustomerID: createdCustomer
+        ? { ...createdCustomer.toJSON(), PersonID: createdPersonById.get(createdCustomer.PersonID?.toString()) || createdCustomer.PersonID }
+        : populatedInvoice.CustomerID,
+      SaledBy: createdEmployee
+        ? { ...createdEmployee.toJSON(), PersonID: createdPersonById.get(createdEmployee.PersonID?.toString()) || createdEmployee.PersonID }
+        : populatedInvoice.SaledBy
+    }
 
     res.status(201).json({
       success: true,
       data: {
-        ...populatedInvoice.toJSON(),
-        details: invoiceDetails
+        ...hydratedCreatedInvoice,
+        details: hydratedInvoiceDetails
       },
       message: 'Invoice created successfully'
     })
@@ -367,6 +437,96 @@ cardPurchaseInvoicesRouter.put('/:id', async (req, res) => {
         code: 'UPDATE_INVOICE_ERROR'
       }
     })
+  }
+})
+
+// POST - Confirm payment (mark invoice completed and add cards to inventory)
+// Creates a new bunch of cards with Status=UNASSIGNED and OwnerID=null.
+// NOTE: The invoice details currently store CardIDs; we "clone" those template cards
+// into fresh inventory cards, one per detail line.
+cardPurchaseInvoicesRouter.post('/:id/confirm-payment', async (req, res) => {
+  const session = await mongoose.startSession()
+  try {
+    const invoiceIdOrObjectId = req.params.id
+    await session.withTransaction(async () => {
+      const invoice = mongoose.isValidObjectId(invoiceIdOrObjectId)
+        ? await CardPurchaseInvoice.findById(invoiceIdOrObjectId).session(session)
+        : await CardPurchaseInvoice.findOne({ ID: invoiceIdOrObjectId }).session(session)
+      if (!invoice) {
+        return res.status(404).json({
+          success: false,
+          error: { message: 'Invoice not found', code: 'INVOICE_NOT_FOUND' }
+        })
+      }
+
+      if (!['PENDING'].includes(invoice.Status)) {
+        return res.status(409).json({
+          success: false,
+          error: {
+            message: 'Only PENDING invoices can be confirmed',
+            code: 'INVOICE_NOT_CONFIRMABLE',
+            details: `Invoice status is ${invoice.Status}`
+          }
+        })
+      }
+
+      const details = await CardPurchaseDetail
+        .find({ InvoiceID: invoice.ID })
+        .session(session)
+
+      if (!details || details.length === 0) {
+        return res.status(409).json({
+          success: false,
+          error: { message: 'Invoice has no details', code: 'INVOICE_NO_DETAILS' }
+        })
+      }
+
+      // Create fresh inventory cards (UNASSIGNED, no owner, no UID yet)
+      // based on quantities per purchased card category.
+      let nextCardId = await generateNextCardId(session)
+      let nextCardSeq = parseInt(nextCardId.substring(3))
+      if (!Number.isFinite(nextCardSeq)) nextCardSeq = 1
+
+      const newCards = []
+      for (const d of details) {
+        const qty = Number(d.Quantity)
+        for (let i = 0; i < qty; i += 1) {
+          newCards.push({
+            CardID: `CRD${String(nextCardSeq++).padStart(4, '0')}`,
+            CardCategoryID: d.CardCategoryID,
+            OwnerID: null,
+            ActiveDay: new Date(),
+            ExpireDay: null,
+            UID: `UNASSIGNED-${invoice.ID}-${d.CardCategoryID}-${i}-${Date.now()}-${Math.random().toString(16).slice(2)}`.slice(0, 64),
+            Status: 'UNASSIGNED',
+            UIDScannedAt: null,
+            UIDScannedBy: null
+          })
+        }
+      }
+
+      await Card.insertMany(newCards, { session })
+
+      invoice.Status = 'COMPLETED'
+      await invoice.save({ session })
+    })
+
+    // Return refreshed invoice
+    const updated = mongoose.isValidObjectId(invoiceIdOrObjectId)
+      ? await CardPurchaseInvoice.findById(invoiceIdOrObjectId)
+      : await CardPurchaseInvoice.findOne({ ID: invoiceIdOrObjectId })
+    res.json({
+      success: true,
+      data: updated,
+      message: 'Payment confirmed and cards added to inventory'
+    })
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: { message: error.message, code: 'CONFIRM_PAYMENT_ERROR' }
+    })
+  } finally {
+    session.endSession()
   }
 })
 

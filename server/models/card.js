@@ -30,11 +30,6 @@ const cardSchema = new mongoose.Schema({
     ref: 'Person',
     default: null
   },
-  VehicleId: {
-    type: String,
-    ref: 'Vehicle',
-    default: null
-  },
   ActiveDay: {
     type: Date,
     required: true,

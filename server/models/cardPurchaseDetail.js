@@ -6,12 +6,17 @@ const cardPurchaseDetailSchema = new mongoose.Schema({
     required: true,
     ref: 'CardPurchaseInvoice'
   },
-  CardID: {
+  CardCategoryID: {
     type: String,
     required: true,
-    ref: 'Card'
+    ref: 'CardCategory'
   },
-  Price: {
+  Quantity: {
+    type: Number,
+    required: true,
+    min: 1
+  },
+  UnitPrice: {
     type: Number,
     required: true,
     min: 0
@@ -25,9 +30,9 @@ const cardPurchaseDetailSchema = new mongoose.Schema({
   timestamps: true
 })
 
-// Composite unique index (InvoiceID, CardID)
+// Composite unique index (InvoiceID, CardCategoryID)
 cardPurchaseDetailSchema.index(
-  { InvoiceID: 1, CardID: 1 },
+  { InvoiceID: 1, CardCategoryID: 1 },
   { unique: true }
 )
 

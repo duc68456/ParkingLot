@@ -1,9 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import '../styles/components/AssignCardModal.css';
+import { useAuth } from '../contexts/AuthContext';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 const cardIcon = "http://localhost:3845/assets/016247162025cce483fc4b098b7f2094b688d944.svg";
 
 function AssignCardModal({ card, onClose, onAssign, defaultAssignType = '', defaultPersonId = '' }) {
+  const { authHeaders } = useAuth();
   // Figma 241:1604 uses a single dropdown listing both customers and employees.
   // We keep internal compatibility with the old onAssign({type, personId}) shape.
   const initialAssignKey = useMemo(() => {
@@ -13,34 +17,67 @@ function AssignCardModal({ card, onClose, onAssign, defaultAssignType = '', defa
 
   const [selectedAssignKey, setSelectedAssignKey] = useState(initialAssignKey);
 
-  // Mock data for people
-  const customers = [
-    { id: 1, name: 'John Doe', type: 'Customer' },
-    { id: 2, name: 'Jane Smith', type: 'Customer' },
-    { id: 3, name: 'Bob Johnson', type: 'Customer' },
-  ];
+  const [peopleLoading, setPeopleLoading] = useState(false);
+  const [peopleError, setPeopleError] = useState('');
+  const [customers, setCustomers] = useState([]);
 
-  const employees = [
-    { id: 4, name: 'Alice Manager', type: 'Employee' },
-    { id: 5, name: 'Tom Staff', type: 'Employee' },
-    { id: 6, name: 'Sarah Manager', type: 'Employee' },
-  ];
+  useEffect(() => {
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        setPeopleLoading(true);
+        setPeopleError('');
+
+        const custRes = await fetch(`${API_BASE_URL}/api/customers?limit=200`, {
+          signal: controller.signal,
+          headers: { ...authHeaders }
+        });
+
+        const custJson = await custRes.json().catch(() => null);
+
+        if (!custRes.ok) {
+          const msg = custJson?.error?.message || `Failed to fetch customers (${custRes.status})`;
+          throw new Error(msg);
+        }
+        const custList = Array.isArray(custJson?.data?.customers) ? custJson.data.customers : [];
+
+        // Normalize into { id: PERSON_ID, name: FULL_NAME, type }
+        setCustomers(
+          custList
+            .map((c) => {
+              const p = c?.PersonID;
+              return {
+                id: p?.ID ?? p?._id ?? c?.PersonID,
+                name: p?.FullName ?? 'Unknown',
+                type: 'Customer'
+              };
+            })
+            .filter((x) => !!x.id)
+        );
+      } catch (err) {
+        if (err?.name !== 'AbortError') {
+          console.error('Fetch people error:', err);
+          setPeopleError(err?.message || 'Failed to load people');
+          setCustomers([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) setPeopleLoading(false);
+      }
+    })();
+
+    return () => controller.abort();
+  }, [authHeaders]);
 
   const peopleOptions = useMemo(() => {
     const customerOptions = customers.map((c) => ({
       key: `customer:${c.id}`,
-      label: `${c.name} (Customer)`,
+      label: c.name,
       type: 'customer',
       id: String(c.id),
     }));
-    const employeeOptions = employees.map((e) => ({
-      key: `employee:${e.id}`,
-      label: `${e.name} (Employee)`,
-      type: 'employee',
-      id: String(e.id),
-    }));
-    return [...customerOptions, ...employeeOptions];
-  }, [customers, employees]);
+    return customerOptions;
+  }, [customers]);
 
   const selectedPersonMeta = useMemo(() => {
     if (!selectedAssignKey) return null;
@@ -83,11 +120,17 @@ function AssignCardModal({ card, onClose, onAssign, defaultAssignType = '', defa
                 <img src={cardIcon} alt="" />
               </div>
               <div className="assign-card-cardinfo-text">
-                <div className="assign-card-carduid">{card.uid}</div>
+                <div className="assign-card-carduid" title={card.uid || ''}>{card.id}</div>
                 <div className="assign-card-cardcat">{card.category}</div>
               </div>
             </div>
           )}
+
+          {peopleError ? (
+            <div className="assign-card-error" role="alert">
+              {peopleError}
+            </div>
+          ) : null}
 
           <div className="assign-card-fieldblock">
             <label className="assign-card-label">Assign To</label>
@@ -95,8 +138,9 @@ function AssignCardModal({ card, onClose, onAssign, defaultAssignType = '', defa
               className="assign-card-select"
               value={selectedAssignKey}
               onChange={(e) => setSelectedAssignKey(e.target.value)}
+              disabled={peopleLoading}
             >
-              <option value="">Select...</option>
+              <option value="">{peopleLoading ? 'Loading...' : 'Select...'}</option>
               {peopleOptions.map((opt) => (
                 <option key={opt.key} value={opt.key}>
                   {opt.label}
