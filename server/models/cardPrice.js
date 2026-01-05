@@ -3,7 +3,7 @@ const mongoose = require('mongoose')
 const cardPriceSchema = new mongoose.Schema({
   ID: {
     type: String,
-    required: true,
+    required: false,
     unique: true,
     index: true,
     match: /^CPR\d{4}$/
@@ -42,20 +42,24 @@ const cardPriceSchema = new mongoose.Schema({
   timestamps: true
 })
 
-// Auto-generate ID before saving
-cardPriceSchema.pre('save', async function (next) {
-  if (!this.ID) {
-    const lastCardPrice = await this.constructor.findOne({}, {}, { sort: { 'ID': -1 } })
+// Auto-generate ID before validation so required validators don't fail.
+cardPriceSchema.pre('validate', async function (next) {
+  try {
+    if (!this.ID) {
+      const lastCardPrice = await this.constructor.findOne({}, {}, { sort: { ID: -1 } })
 
-    if (lastCardPrice && lastCardPrice.ID) {
-      const lastNumber = parseInt(lastCardPrice.ID.substring(3))
-      const nextNumber = lastNumber + 1
-      this.ID = `CPR${nextNumber.toString().padStart(4, '0')}`
-    } else {
-      this.ID = 'CPR0001'
+      if (lastCardPrice?.ID) {
+        const lastNumber = parseInt(lastCardPrice.ID.substring(3))
+        const nextNumber = lastNumber + 1
+        this.ID = `CPR${nextNumber.toString().padStart(4, '0')}`
+      } else {
+        this.ID = 'CPR0001'
+      }
     }
+    next()
+  } catch (err) {
+    next(err)
   }
-  next()
 })
 
 // Configure toJSON

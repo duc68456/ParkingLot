@@ -3,6 +3,110 @@ const CardPrice = require('../models/cardPrice')
 const CardCategory = require('../models/cardCategory')
 const Employee = require('../models/employee')
 
+const populateChangedByEmployee = {
+  path: 'ChangedBy',
+  select: 'ID EmployeeType',
+  localField: 'ChangedBy',
+  foreignField: 'ID',
+  justOne: true,
+  populate: {
+    path: 'PersonID',
+    select: 'ID FullName Phone'
+  }
+}
+
+// CardPricePrev stores the *custom* CardPrice.ID (e.g. CPR0003), not Mongo _id.
+// Default populate() assumes ObjectId and will throw CastError.
+const populateCardPricePrev = {
+  path: 'CardPricePrev',
+  select: 'ID Price StartDateApply Reason',
+  localField: 'CardPricePrev',
+  foreignField: 'ID',
+  justOne: true
+}
+
+// POST - Backfill missing initial prices for categories
+// Creates a CardPrice for each CardCategory that currently has no CardPrice.
+// Body: { defaultPrice?: number }
+cardPricesRouter.post('/backfill-missing', async (req, res) => {
+  try {
+    const { defaultPrice = 0 } = req.body || {}
+    const numericPrice = Number(defaultPrice)
+
+    if (Number.isNaN(numericPrice) || numericPrice < 0) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Invalid defaultPrice',
+          code: 'INVALID_DEFAULT_PRICE',
+          details: 'defaultPrice must be a non-negative number'
+        }
+      })
+    }
+
+    const changedBy = req.user?.employeeId
+    if (!changedBy) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Missing employeeId in token',
+          code: 'MISSING_EMPLOYEE_ID'
+        }
+      })
+    }
+
+    const categories = await CardCategory.find({}, { ID: 1, Name: 1 })
+    const categoryIds = categories.map(c => c.ID)
+
+    const existingPrices = await CardPrice.find(
+      { CardCategoryID: { $in: categoryIds } },
+      { CardCategoryID: 1 }
+    )
+
+    const existingSet = new Set(existingPrices.map(p => p.CardCategoryID))
+    const missing = categories.filter(c => !existingSet.has(c.ID))
+
+    if (missing.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No missing prices to backfill',
+        data: { createdCount: 0, created: [] }
+      })
+    }
+
+    const created = []
+    for (const cat of missing) {
+      // Create one initial price per missing category
+      // (Using create() so our CardPrice ID auto-generation runs)
+      // eslint-disable-next-line no-await-in-loop
+      const cp = await CardPrice.create({
+        CardCategoryID: cat.ID,
+        Price: numericPrice,
+        ChangedBy: changedBy,
+        Reason: 'Backfilled initial price'
+      })
+      created.push(cp)
+    }
+
+    res.json({
+      success: true,
+      message: 'Backfilled missing card prices successfully',
+      data: {
+        createdCount: created.length,
+        created
+      }
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: {
+        message: error.message,
+        code: 'BACKFILL_CARD_PRICES_ERROR'
+      }
+    })
+  }
+})
+
 // GET all card prices with filtering and pagination
 cardPricesRouter.get('/', async (req, res) => {
   try {
@@ -41,16 +145,9 @@ cardPricesRouter.get('/', async (req, res) => {
 
     const cardPrices = await CardPrice
       .find(filter)
-      .populate('CardCategoryID', 'ID Name')
-      .populate({
-        path: 'ChangedBy',
-        select: 'ID EmployeeType',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName'
-        }
-      })
-      .populate('CardPricePrev', 'ID Price StartDateApply')
+        // .populate('CardCategoryID', 'ID Name')
+      .populate(populateChangedByEmployee)
+      .populate(populateCardPricePrev)
       .limit(parseInt(limit))
       .skip(skip)
       .sort({ StartDateApply: -1 })
@@ -83,16 +180,9 @@ cardPricesRouter.get('/:id', async (req, res) => {
   try {
     const cardPrice = await CardPrice
       .findById(req.params.id)
-      .populate('CardCategoryID', 'ID Name')
-      .populate({
-        path: 'ChangedBy',
-        select: 'ID EmployeeType',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName Phone'
-        }
-      })
-      .populate('CardPricePrev', 'ID Price StartDateApply Reason')
+        // .populate('CardCategoryID', 'ID Name')
+      .populate(populateChangedByEmployee)
+      .populate(populateCardPricePrev)
 
     if (!cardPrice) {
       return res.status(404).json({
@@ -129,15 +219,8 @@ cardPricesRouter.get('/current/:cardCategoryId', async (req, res) => {
         CardCategoryID: req.params.cardCategoryId,
         StartDateApply: { $lte: now }
       })
-      .populate('CardCategoryID', 'ID Name')
-      .populate({
-        path: 'ChangedBy',
-        select: 'ID EmployeeType',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName'
-        }
-      })
+        // .populate('CardCategoryID', 'ID Name')
+      .populate(populateChangedByEmployee)
       .sort({ StartDateApply: -1 })
       .limit(1)
 
@@ -177,16 +260,9 @@ cardPricesRouter.get('/history/:cardCategoryId', async (req, res) => {
 
     const priceHistory = await CardPrice
       .find(filter)
-      .populate('CardCategoryID', 'ID Name')
-      .populate({
-        path: 'ChangedBy',
-        select: 'ID EmployeeType',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName'
-        }
-      })
-      .populate('CardPricePrev', 'ID Price StartDateApply')
+        // .populate('CardCategoryID', 'ID Name')
+      .populate(populateChangedByEmployee)
+      .populate(populateCardPricePrev)
       .limit(parseInt(limit))
       .skip(skip)
       .sort({ StartDateApply: -1 })
@@ -215,6 +291,104 @@ cardPricesRouter.get('/history/:cardCategoryId', async (req, res) => {
 })
 
 // POST - Create new card price (immutable - never update, only insert)
+// New: Authenticated shortcut endpoint to create a new price for a category.
+// Uses JWT payload for ChangedBy (request.user.employeeId).
+cardPricesRouter.post('/change', async (req, res) => {
+  try {
+    const { CardCategoryID, Price, StartDateApply, Reason } = req.body
+
+    // Token stores employeeId as Mongo _id string (see adminAccounts login)
+    const employeeObjectId = req.user?.employeeId
+
+    if (!CardCategoryID || Price === undefined) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'CardCategoryID and Price are required',
+          code: 'MISSING_REQUIRED_FIELDS'
+        }
+      })
+    }
+
+    if (!employeeObjectId) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          message: 'token missing or invalid',
+          code: 'TOKEN_INVALID'
+        }
+      })
+    }
+
+    if (Price < 0) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Price must be non-negative',
+          code: 'INVALID_PRICE'
+        }
+      })
+    }
+
+    const cardCategory = await CardCategory.findOne({ ID: CardCategoryID })
+    if (!cardCategory) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          message: 'CardCategory not found',
+          code: 'CARD_CATEGORY_NOT_FOUND'
+        }
+      })
+    }
+
+    const employee = await Employee.findById(employeeObjectId)
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          message: 'Employee not found',
+          code: 'EMPLOYEE_NOT_FOUND'
+        }
+      })
+    }
+
+    const startDate = StartDateApply ? new Date(StartDateApply) : new Date()
+    const previousPrice = await CardPrice
+      .findOne({
+        CardCategoryID,
+        StartDateApply: { $lt: startDate }
+      })
+      .sort({ StartDateApply: -1 })
+      .limit(1)
+
+    const cardPrice = new CardPrice({
+      CardCategoryID,
+      Price,
+      StartDateApply: startDate,
+      // CardPrice.ChangedBy is a string ref to Employee (by its custom ID), not ObjectId.
+      ChangedBy: employee.ID,
+      Reason: Reason || null,
+      CardPricePrev: previousPrice ? previousPrice.ID : null
+    })
+
+    const savedCardPrice = await cardPrice.save()
+
+    res.status(201).json({
+      success: true,
+      data: savedCardPrice,
+      message: 'CardPrice created successfully'
+    })
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: {
+        message: error.message,
+        code: 'CREATE_CARD_PRICE_ERROR'
+      }
+    })
+  }
+})
+
 cardPricesRouter.post('/', async (req, res) => {
   try {
     const {
@@ -291,18 +465,7 @@ cardPricesRouter.post('/', async (req, res) => {
     })
 
     const savedCardPrice = await cardPrice.save()
-    const populatedCardPrice = await CardPrice
-      .findById(savedCardPrice._id)
-      .populate('CardCategoryID', 'ID Name')
-      .populate({
-        path: 'ChangedBy',
-        select: 'ID EmployeeType',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName'
-        }
-      })
-      .populate('CardPricePrev', 'ID Price StartDateApply')
+      const populatedCardPrice = savedCardPrice
 
     res.status(201).json({
       success: true,
@@ -326,7 +489,15 @@ cardPricesRouter.post('/', async (req, res) => {
 // DELETE - Hard delete (only for corrections, not normal operations)
 cardPricesRouter.delete('/:id', async (req, res) => {
   try {
-    const cardPrice = await CardPrice.findById(req.params.id)
+    const idOrCustomId = req.params.id
+
+    // Support both Mongo _id and custom CardPrice.ID (CPR####)
+    const cardPrice = await CardPrice.findOne({
+      $or: [
+        { _id: idOrCustomId },
+        { ID: idOrCustomId }
+      ]
+    })
     if (!cardPrice) {
       return res.status(404).json({
         success: false,
@@ -353,7 +524,7 @@ cardPricesRouter.delete('/:id', async (req, res) => {
       })
     }
 
-    await CardPrice.findByIdAndDelete(req.params.id)
+  await CardPrice.deleteOne({ _id: cardPrice._id })
 
     res.json({
       success: true,

@@ -1,5 +1,7 @@
 const cardCategoriesRouter = require('express').Router();
 const CardCategory = require('../models/cardCategory');
+const CardPrice = require('../models/cardPrice');
+const mongoose = require('mongoose');
 
 /**
  * GET /api/card-categories
@@ -106,11 +108,17 @@ cardCategoriesRouter.get('/:id', async (request, response) => {
  * Create new card category
  */
 cardCategoriesRouter.post('/', async (request, response) => {
+  const session = await mongoose.startSession();
   try {
+    session.startTransaction();
     const {
       Name,
-      IsActive
+      IsActive,
+      Price,
+      price
     } = request.body;
+
+    const initialPrice = Price ?? price;
 
     // Validation
     if (!Name) {
@@ -145,14 +153,53 @@ cardCategoriesRouter.post('/', async (request, response) => {
       IsActive: IsActive !== undefined ? IsActive : true
     });
 
-    const savedCardCategory = await cardCategory.save();
+    const savedCardCategory = await cardCategory.save({ session });
+
+    // Create initial card price (optional if no price provided)
+    // NOTE: CardPrice.ChangedBy is required; we use the authenticated user id from the token.
+    let createdCardPrice = null
+    if (initialPrice !== undefined && initialPrice !== null) {
+      const numericPrice = Number(initialPrice);
+      if (Number.isNaN(numericPrice) || numericPrice < 0) {
+        return response.status(400).json({
+          success: false,
+          error: {
+            message: 'Invalid price',
+            code: 'INVALID_PRICE',
+            details: 'Price must be a non-negative number'
+          }
+        });
+      }
+
+      const created = await CardPrice.create([
+        {
+          CardCategoryID: savedCardCategory.ID,
+          Price: numericPrice,
+          ChangedBy: request.user?.employeeId
+        }
+      ], { session });
+
+      createdCardPrice = Array.isArray(created) ? created[0] : created
+    }
+
+    await session.commitTransaction();
+    session.endSession();
 
     response.status(201).json({
       success: true,
-      data: savedCardCategory,
+      data: {
+        cardCategory: savedCardCategory,
+        cardPrice: createdCardPrice
+      },
       message: 'Card category created successfully'
     });
   } catch (error) {
+    try {
+      await session.abortTransaction();
+      session.endSession();
+    } catch (_) {
+      // ignore session cleanup errors
+    }
     console.error('Create card category error:', error);
 
     // Handle duplicate card category code

@@ -3,11 +3,13 @@ const Card = require('../models/card')
 const CardCategory = require('../models/cardCategory')
 const Person = require('../models/person')
 const Vehicle = require('../models/vehicle')
+const Employee = require('../models/employee')
 
 // GET all cards with filtering and pagination
 cardsRouter.get('/', async (req, res) => {
   try {
     const {
+      status,
       isActive,
       cardCategoryId,
       ownerId,
@@ -20,8 +22,14 @@ cardsRouter.get('/', async (req, res) => {
 
     const filter = {}
 
-    if (isActive !== undefined) {
-      filter.IsActive = isActive === 'true'
+    // New filter: Status (preferred)
+    if (status) {
+      filter.Status = String(status).toUpperCase()
+    }
+
+    // Backwards compat: isActive maps to Status
+    if (isActive !== undefined && !status) {
+      filter.Status = isActive === 'true' ? 'ACTIVE' : { $ne: 'ACTIVE' }
     }
 
     if (cardCategoryId) {
@@ -175,7 +183,7 @@ cardsRouter.get('/uid/:uid', async (req, res) => {
     }
 
     // Check if card is active
-    if (!card.IsActive) {
+    if (card.Status !== 'ACTIVE') {
       return res.status(403).json({
         success: false,
         error: {
@@ -221,7 +229,10 @@ cardsRouter.post('/', async (req, res) => {
       VehicleId,
       ActiveDay,
       ExpireDay,
-      UID
+      UID,
+      Status,
+      UIDScannedAt,
+      UIDScannedBy
     } = req.body
 
     // Validate required fields
@@ -287,13 +298,30 @@ cardsRouter.post('/', async (req, res) => {
       }
     }
 
+    // Validate UIDScannedBy if provided
+    if (UIDScannedBy) {
+      const employee = await Employee.findOne({ ID: UIDScannedBy })
+      if (!employee) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            message: 'Employee not found',
+            code: 'EMPLOYEE_NOT_FOUND'
+          }
+        })
+      }
+    }
+
     const card = new Card({
       CardCategoryID,
       OwnerID: OwnerID || null,
       VehicleId: VehicleId || null,
       ActiveDay: ActiveDay || new Date(),
       ExpireDay: ExpireDay || null,
-      UID
+      UID,
+      Status: Status ? String(Status).toUpperCase() : undefined,
+      UIDScannedAt: UIDScannedAt || null,
+      UIDScannedBy: UIDScannedBy || null
     })
 
     const savedCard = await card.save()
@@ -336,6 +364,9 @@ cardsRouter.put('/:id', async (req, res) => {
       ActiveDay,
       ExpireDay,
       UID,
+      Status,
+      UIDScannedAt,
+      UIDScannedBy,
       IsActive
     } = req.body
 
@@ -423,7 +454,33 @@ cardsRouter.put('/:id', async (req, res) => {
 
     if (ActiveDay !== undefined) card.ActiveDay = ActiveDay
     if (ExpireDay !== undefined) card.ExpireDay = ExpireDay
-    if (IsActive !== undefined) card.IsActive = IsActive
+
+    // New: update status
+    if (Status !== undefined) card.Status = String(Status).toUpperCase()
+
+    // Backwards compat: IsActive maps to status if Status not explicitly provided
+    if (IsActive !== undefined && Status === undefined) {
+      card.Status = IsActive ? 'ACTIVE' : 'INACTIVE'
+    }
+
+    if (UIDScannedAt !== undefined) card.UIDScannedAt = UIDScannedAt
+    if (UIDScannedBy !== undefined) {
+      if (UIDScannedBy === null || UIDScannedBy === '') {
+        card.UIDScannedBy = null
+      } else {
+        const employee = await Employee.findOne({ ID: UIDScannedBy })
+        if (!employee) {
+          return res.status(404).json({
+            success: false,
+            error: {
+              message: 'Employee not found',
+              code: 'EMPLOYEE_NOT_FOUND'
+            }
+          })
+        }
+        card.UIDScannedBy = UIDScannedBy
+      }
+    }
 
     const updatedCard = await card.save()
     const populatedCard = await Card
@@ -469,7 +526,7 @@ cardsRouter.delete('/:id', async (req, res) => {
       })
     }
 
-    card.IsActive = false
+  card.Status = 'INACTIVE'
     await card.save()
 
     res.json({

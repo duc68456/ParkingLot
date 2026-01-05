@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import PageHeader from '../components/PageHeader';
 import StepIndicator from '../components/StepIndicator';
 import SearchInput from '../components/SearchInput';
 import CustomerCard from '../components/CustomerCard';
 import '../styles/pages/PurchaseCardPage.css';
+import { useAuth } from '../contexts/AuthContext';
 
 import {
   PurchaseCardPlusIcon,
@@ -15,37 +16,49 @@ import {
   PurchaseCardDownloadIcon,
 } from '../assets/icons/purchase-card';
 
-// Mock customer data
-const mockCustomers = [
-  {
-    id: 'CUST001',
-    name: 'John Doe',
-    initials: 'JD',
-    email: 'john.doe@email.com',
-    phone: '+1234567890'
-  },
-  {
-    id: 'CUST002',
-    name: 'Jane Smith',
-    initials: 'JS',
-    email: 'jane.smith@email.com',
-    phone: '+1234567891'
-  },
-  {
-    id: 'CUST003',
-    name: 'Bob Johnson',
-    initials: 'BJ',
-    email: 'bob.j@email.com',
-    phone: '+1234567892'
-  }
-];
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+
+const buildInitials = (fullName = '') => {
+  const trimmed = String(fullName).trim();
+  if (!trimmed) return '';
+
+  return trimmed
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0] || '')
+    .join('')
+    .toUpperCase();
+};
+
+const normalizeCustomer = (c) => {
+  const person = c?.PersonID;
+  const fullName = person?.FullName || c?.FullName || '';
+  const phone = person?.Phone || c?.Phone || '';
+
+  return {
+    // CustomerCard in this page expects `id`
+    id: c?.ID || c?._id || person?.ID || '',
+    _id: c?._id,
+    customerId: c?.ID,
+    personId: person?._id,
+    name: fullName,
+    initials: buildInitials(fullName),
+    email: c?.Email || person?.Email || '',
+    phone,
+    gender: person?.Gender || c?.Gender || ''
+  };
+};
 
 export default function PurchaseCardPage() {
+  const { authHeaders } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [customers, setCustomers] = useState([]);
+  const [customersLoading, setCustomersLoading] = useState(false);
+  const [customersError, setCustomersError] = useState('');
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -59,6 +72,11 @@ export default function PurchaseCardPage() {
     expiryDate: '',
   });
   const [cardErrors, setCardErrors] = useState({});
+
+  const [cardCategories, setCardCategories] = useState([]);
+  const [categoryPrices, setCategoryPrices] = useState({});
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [categoriesError, setCategoriesError] = useState('');
 
   // Keep invoice meta stable for the session so Step 3 matches the design.
   const [invoiceNumber] = useState(() => `INV-${Date.now()}`);
@@ -147,16 +165,13 @@ export default function PurchaseCardPage() {
     }
 
     console.log('New customer data:', formData);
-    // TODO: Add customer to backend/state
-    // Generate customer ID
+
+    // NOTE: This flow still creates a local-only customer for now.
+    // (PeoplePage has the real create customer wiring; we can reuse it here later.)
     const newCustomer = {
-      id: `CUST${String(mockCustomers.length + 1).padStart(3, '0')}`,
+      id: `TEMP-${Date.now()}`,
       name: formData.fullName,
-      initials: formData.fullName
-        .split(' ')
-        .map(n => n[0])
-        .join('')
-        .toUpperCase(),
+      initials: buildInitials(formData.fullName),
       phone: formData.phone,
       gender: formData.gender
     };
@@ -241,13 +256,9 @@ export default function PurchaseCardPage() {
   };
 
   const getCategoryPrice = (category) => {
-    const prices = {
-      'Standard': 10,
-      'Premium': 25,
-      'VIP': 50,
-      'Staff': 15
-    };
-    return prices[category] || 0;
+    if (!category) return 0;
+    const price = categoryPrices?.[category];
+    return Number.isFinite(Number(price)) ? Number(price) : 0;
   };
 
   const getGroupedCards = () => {
@@ -301,14 +312,153 @@ export default function PurchaseCardPage() {
     window.print();
   };
 
-  const filteredCustomers = mockCustomers.filter(customer => {
+  useEffect(() => {
+    const controller = new AbortController();
+
+    ;(async () => {
+      try {
+        setCategoriesLoading(true);
+        setCategoriesError('');
+
+        // 1) Load categories
+        const categoriesRes = await fetch(`${API_BASE_URL}/api/card-categories`, {
+          signal: controller.signal,
+          headers: { ...authHeaders }
+        });
+
+        if (!categoriesRes.ok) {
+          throw new Error(`Failed to fetch card categories (${categoriesRes.status})`);
+        }
+
+        const categoriesJson = await categoriesRes.json();
+        const categories = Array.isArray(categoriesJson?.data?.cardCategories)
+          ? categoriesJson.data.cardCategories
+          : Array.isArray(categoriesJson?.data?.items)
+            ? categoriesJson.data.items
+            : Array.isArray(categoriesJson?.data?.categories)
+              ? categoriesJson.data.categories
+              : Array.isArray(categoriesJson?.data)
+                ? categoriesJson.data
+                : [];
+
+        if (!Array.isArray(categories) || categories.length === 0) {
+          // Helpful breadcrumb during integration
+          console.warn('Unexpected /api/card-categories payload shape:', categoriesJson);
+        }
+
+        setCardCategories(categories);
+
+        // 2) Load current price per category
+        const priceEntries = await Promise.all(
+          categories.map(async (cat) => {
+            const id = cat?.ID;
+            const name = cat?.Name;
+            if (!id || !name) return null;
+
+            try {
+              const res = await fetch(`${API_BASE_URL}/api/card-prices/current/${encodeURIComponent(id)}`, {
+                signal: controller.signal,
+                headers: { ...authHeaders }
+              });
+
+              if (!res.ok) {
+                // If missing, treat as 0 for now
+                return { name, price: 0 };
+              }
+
+              const json = await res.json();
+              const price = json?.data?.Price ?? 0;
+              return { name, price };
+            } catch {
+              return { name, price: 0 };
+            }
+          })
+        );
+
+        const nextPrices = {};
+        for (const entry of priceEntries) {
+          if (entry?.name) nextPrices[entry.name] = Number(entry.price) || 0;
+        }
+        setCategoryPrices(nextPrices);
+      } catch (err) {
+        if (err?.name !== 'AbortError') {
+          console.error('Fetch card categories/prices error:', err);
+          setCardCategories([]);
+          setCategoryPrices({});
+          setCategoriesError(err?.message || 'Failed to load categories');
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setCategoriesLoading(false);
+        }
+      }
+    })();
+
+    return () => controller.abort();
+  }, [authHeaders]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    ;(async () => {
+      try {
+        setCustomersLoading(true);
+        setCustomersError('');
+
+        // Server supports ?search= (matches person FullName/Phone)
+        const qs = new URLSearchParams({
+          limit: '100',
+          ...(searchQuery ? { search: searchQuery } : {})
+        });
+
+        const res = await fetch(`${API_BASE_URL}/api/customers?${qs.toString()}`,
+          {
+            signal: controller.signal,
+            headers: { ...authHeaders }
+          }
+        );
+
+        if (!res.ok) {
+          throw new Error(`Failed to fetch customers (${res.status})`);
+        }
+
+        const json = await res.json();
+        const list = Array.isArray(json?.data?.customers)
+          ? json.data.customers
+          : Array.isArray(json?.data?.items)
+            ? json.data.items
+            : [];
+
+        setCustomers(list.map(normalizeCustomer));
+      } catch (err) {
+        if (err?.name !== 'AbortError') {
+          console.error('Fetch customers error:', err);
+          setCustomers([]);
+          setCustomersError(err?.message || 'Failed to load customers');
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setCustomersLoading(false);
+        }
+      }
+    })();
+
+    return () => controller.abort();
+  }, [authHeaders, searchQuery]);
+
+  const filteredCustomers = useMemo(() => {
+    // If server-side search is used, customers is already filtered.
+    // We still do a tiny client filter to catch email/name mismatches.
     const query = searchQuery.toLowerCase();
-    return (
-      customer.name.toLowerCase().includes(query) ||
-      customer.email.toLowerCase().includes(query) ||
-      customer.phone.includes(query)
-    );
-  });
+    if (!query) return customers;
+
+    return customers.filter((customer) => {
+      const name = String(customer?.name || '').toLowerCase();
+      const email = String(customer?.email || '').toLowerCase();
+      const phone = String(customer?.phone || '');
+      return name.includes(query) || email.includes(query) || phone.includes(searchQuery);
+    });
+  }, [customers, searchQuery]);
 
   return (
     <div className="purchase-card-page">
@@ -343,7 +493,19 @@ export default function PurchaseCardPage() {
           <div className="existing-customers">
             <h3 className="customers-heading">Existing Customers ({filteredCustomers.length})</h3>
             <div className="customers-grid">
-              {filteredCustomers.map((customer) => (
+              {customersLoading && (
+                <div style={{ gridColumn: '1 / -1' }}>Loading customers…</div>
+              )}
+
+              {!customersLoading && customersError && (
+                <div style={{ gridColumn: '1 / -1', color: '#B42318' }}>{customersError}</div>
+              )}
+
+              {!customersLoading && !customersError && filteredCustomers.length === 0 && (
+                <div style={{ gridColumn: '1 / -1' }}>No customers found.</div>
+              )}
+
+              {!customersLoading && !customersError && filteredCustomers.map((customer) => (
                 <CustomerCard
                   key={customer.id}
                   customer={customer}
@@ -488,10 +650,22 @@ export default function PurchaseCardPage() {
                     className={`form-select ${cardErrors.category ? 'error' : ''}`}
                   >
                     <option value="">Select Category</option>
-                    <option value="Standard">Standard ($10)</option>
-                    <option value="Premium">Premium ($25)</option>
-                    <option value="VIP">VIP ($50)</option>
-                    <option value="Staff">Staff ($15)</option>
+                    {categoriesLoading && (
+                      <option value="" disabled>Loading categories…</option>
+                    )}
+                    {!categoriesLoading && categoriesError && (
+                      <option value="" disabled>{categoriesError}</option>
+                    )}
+                    {!categoriesLoading && !categoriesError && cardCategories.map((cat) => {
+                      const name = cat?.Name;
+                      if (!name) return null;
+                      const price = getCategoryPrice(name);
+                      return (
+                        <option key={cat?.ID || name} value={name}>
+                          {name} (${price})
+                        </option>
+                      );
+                    })}
                   </select>
                   {cardErrors.category && <span className="error-message">{cardErrors.category}</span>}
                 </div>

@@ -1,34 +1,57 @@
 import { useState } from 'react';
 import '../styles/components/AddCategoryModal.css';
 
-function AddCategoryModal({ onClose, onAdd }) {
+function AddCategoryModal({ isOpen, onClose, onSave }) {
   const [categoryName, setCategoryName] = useState('');
   const [price, setPrice] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = () => {
-    if (!categoryName.trim() || !price) {
-      alert('Please fill in all fields');
+  const handleSubmit = async () => {
+    const trimmedName = categoryName.trim();
+    if (!trimmedName) {
+      alert('Please enter a category name');
       return;
     }
 
-    onAdd({
-      name: categoryName,
-      price: parseFloat(price)
-    });
+    if (price === '' || Number.isNaN(Number(price))) {
+      alert('Please enter a valid price');
+      return;
+    }
+
+    const payload = {
+      name: trimmedName,
+      // Backend currently ignores price; included for future compatibility.
+      price: Number(price)
+    };
+
+    try {
+      setIsSubmitting(true);
+      await onSave(payload);
+      setCategoryName('');
+      setPrice('');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleOverlayClick = (e) => {
-    if (e.target.className === 'add-category-overlay') {
+    if (e.target?.classList?.contains('add-category-overlay')) {
       onClose();
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') onClose();
+  };
+
+  if (!isOpen) return null;
+
   return (
-    <div className="add-category-overlay" onClick={handleOverlayClick}>
-      <div className="add-category-modal">
+    <div className="add-category-overlay" onClick={handleOverlayClick} onKeyDown={handleKeyDown} role="presentation" tabIndex={-1}>
+      <div className="add-category-modal" role="dialog" aria-modal="true" aria-label="Add Category">
         <div className="modal-header">
           <h3>Add Category</h3>
-          <button className="close-button" onClick={onClose}>
+          <button className="close-button" onClick={onClose} aria-label="Close">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M5 5L15 15M15 5L5 15" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
@@ -65,12 +88,13 @@ function AddCategoryModal({ onClose, onAdd }) {
         </div>
 
         <div className="modal-footer">
-          <button className="btn-cancel" onClick={onClose}>
+          <button className="btn-cancel" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </button>
           <button 
             className="btn-create" 
             onClick={handleSubmit}
+            disabled={isSubmitting}
           >
             Create Category
           </button>

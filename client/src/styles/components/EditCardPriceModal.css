@@ -1,0 +1,213 @@
+.ecpm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 1000;
+  padding: 99.2px 24px 24px;
+}
+
+.ecpm-modal {
+  width: 448px;
+  max-width: 100%;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 0;
+  overflow: hidden;
+}
+
+.ecpm-header {
+  height: 68.8px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 0.8px solid #e2e8f0;
+}
+
+.ecpm-title {
+  margin: 0;
+  font-family: 'Arimo', sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 28px;
+  color: #0f172b;
+}
+
+.ecpm-close {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #62748e;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.ecpm-close:hover {
+  background: rgba(226, 232, 240, 0.6);
+}
+
+.ecpm-close:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ecpm-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ecpm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ecpm-label {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #314158;
+}
+
+.ecpm-required {
+  color: #fb2c36;
+}
+
+.ecpm-input {
+  height: 41.6px;
+  border-radius: 10px;
+  border: 0.8px solid #cad5e2;
+  background: #ffffff;
+  padding: 10px 16px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #0a0a0a;
+  outline: none;
+}
+
+.ecpm-input::placeholder {
+  color: rgba(10, 10, 10, 0.5);
+}
+
+.ecpm-input-readonly {
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+}
+
+.ecpm-money-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.ecpm-money-prefix {
+  position: absolute;
+  left: 16px;
+  top: 8.8px;
+  height: 24px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  color: #62748e;
+}
+
+.ecpm-money-wrap .ecpm-input {
+  width: 100%;
+  padding-left: 32px;
+}
+
+.ecpm-textarea {
+  height: 81.6px;
+  border-radius: 10px;
+  border: 0.8px solid #cad5e2;
+  background: #ffffff;
+  padding: 10px 16px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #0a0a0a;
+  outline: none;
+  resize: none;
+}
+
+.ecpm-textarea::placeholder {
+  color: rgba(10, 10, 10, 0.5);
+}
+
+.ecpm-validation {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: #fb2c36;
+}
+
+.ecpm-footer {
+  height: 78.4px;
+  padding: 0 24px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  background: #f8fafc;
+  border-top: 0.8px solid #e2e8f0;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+.ecpm-btn {
+  border-radius: 10px;
+  height: 45.6px;
+  padding: 0 16px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  cursor: pointer;
+}
+
+.ecpm-btn-secondary {
+  border: 0.8px solid #cad5e2;
+  background: transparent;
+  color: #314158;
+  width: 80.338px;
+}
+
+.ecpm-btn-primary {
+  border: 0;
+  background: #155dfc;
+  color: #ffffff;
+  height: 44px;
+  width: 122.3px;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+.ecpm-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.ecpm-state {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.ecpm-error {
+  color: #e7000b;
+}

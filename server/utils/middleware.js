@@ -1,4 +1,5 @@
 const logger = require('./logger')
+const auth = require('./auth')
 
 const requestLogger = (request, response, next) => {
   logger.info('Method:', request.method)
@@ -33,8 +34,51 @@ const errorHandler = (error, request, response, next) => {
   next(error)
 }
 
+const tokenExtractor = (request, response, next) => {
+  const authorization = request.get('authorization')
+  if (authorization && authorization.toLowerCase().startsWith('bearer ')) {
+    request.token = authorization.substring(7)
+  } else {
+    request.token = null
+  }
+  next()
+}
+
+const authRequired = (request, response, next) => {
+  try {
+    if (!request.token) {
+      return response.status(401).json({
+        success: false,
+        error: { message: 'token missing or invalid', code: 'TOKEN_MISSING' }
+      })
+    }
+
+    const decoded = auth.verifyToken(request.token)
+    request.user = decoded
+    next()
+  } catch (err) {
+    return response.status(401).json({
+      success: false,
+      error: { message: 'token missing or invalid', code: 'TOKEN_INVALID' }
+    })
+  }
+}
+
+const adminOnly = (request, response, next) => {
+  if (request.user?.type !== 'admin') {
+    return response.status(403).json({
+      success: false,
+      error: { message: 'forbidden', code: 'FORBIDDEN' }
+    })
+  }
+  next()
+}
+
 module.exports = {
   requestLogger,
+  tokenExtractor,
+  authRequired,
+  adminOnly,
   unknownEndpoint,
   errorHandler
 }

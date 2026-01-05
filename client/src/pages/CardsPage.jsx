@@ -1,8 +1,9 @@
-  import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import AssignCardModal from '../components/AssignCardModal';
 import AddCategoryModal from '../components/AddCategoryModal';
 import EditCategoryModal from '../components/EditCategoryModal';
 import ViewCardModal from '../components/ViewCardModal';
+import { useAuth } from '../contexts/AuthContext';
 import {
   CardsActionEditIcon,
   CardsActionSearchIcon,
@@ -11,95 +12,161 @@ import {
 } from '../assets/icons/cards';
 import '../styles/pages/CardsPage.css';
 
-// Mock data for cards
-const mockCards = [
-  {
-    id: 'CARD001',
-    uid: 'UID-123456',
-    type: 'Premium',
-    owner: 'John Doe',
-    ownerType: 'Customer',
-    status: 'Active',
-    expiry: '31/12/2025',
-    gradient: 'linear-gradient(135deg, rgb(43, 127, 255) 0%, rgb(21, 93, 252) 100%)'
-  },
-  {
-    id: 'CARD002',
-    uid: 'UID-123457',
-    type: 'Standard',
-    owner: 'Jane Smith',
-    ownerType: 'Customer',
-    status: 'Active',
-    expiry: '30/06/2025',
-    gradient: 'linear-gradient(135deg, rgb(43, 127, 255) 0%, rgb(21, 93, 252) 100%)'
-  },
-  {
-    id: 'CARD004',
-    uid: 'UID-123459',
-    type: 'Standard',
-    owner: 'Tom Staff',
-    ownerType: 'Employee',
-    status: 'Active',
-    expiry: '-',
-    gradient: 'linear-gradient(135deg, rgb(173, 70, 255) 0%, rgb(152, 16, 250) 100%)'
-  }
-];
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
-// Mock unassigned cards
-const mockUnassignedCards = [
-  {
-    id: 'CARD003',
-    uid: 'UID-123458',
-    category: 'VIP',
-    status: 'Inactive',
-    expiry: '-',
-    gradient: 'linear-gradient(135deg, rgb(144, 161, 185) 0%, rgb(98, 116, 142) 100%)'
+const gradientForStatus = (status) => {
+  switch (String(status || '').toUpperCase()) {
+    case 'ACTIVE':
+      return 'linear-gradient(135deg, rgb(43, 127, 255) 0%, rgb(21, 93, 252) 100%)';
+    case 'PENDING_RFID':
+      return 'linear-gradient(135deg, rgb(240, 177, 0) 0%, rgb(208, 135, 0) 100%)';
+    case 'INACTIVE':
+    case 'RETURNED':
+      return 'linear-gradient(135deg, rgb(144, 161, 185) 0%, rgb(98, 116, 142) 100%)';
+    case 'LOST':
+      return 'linear-gradient(135deg, rgb(245, 74, 74) 0%, rgb(217, 45, 32) 100%)';
+    case 'DAMAGED':
+      return 'linear-gradient(135deg, rgb(173, 70, 255) 0%, rgb(152, 16, 250) 100%)';
+    case 'EXPIRED':
+      return 'linear-gradient(135deg, rgb(245, 158, 11) 0%, rgb(217, 119, 6) 100%)';
+    default:
+      return 'linear-gradient(135deg, rgb(173, 70, 255) 0%, rgb(152, 16, 250) 100%)';
   }
-];
+};
 
-// Mock categories
-const mockCategories = [
-  {
-    id: 'CAT001',
-    name: 'Standard',
-    price: '$10.00',
-    lastUpdated: '01/01/2024'
-  },
-  {
-    id: 'CAT002',
-    name: 'Premium',
-    price: '$25.00',
-    lastUpdated: '01/01/2024'
-  },
-  {
-    id: 'CAT003',
-    name: 'VIP',
-    price: '$50.00',
-    lastUpdated: '01/01/2024'
-  },
-  {
-    id: 'CAT004',
-    name: 'Staff',
-    price: '$15.00',
-    lastUpdated: '01/01/2024'
-  }
-];
+const normalizeCategory = (c) => {
+  // Server model: { id (mongo), ID: "CCG0001", Name, IsActive }
+  const isActive = c?.IsActive !== undefined ? c.IsActive : true;
+  return {
+    id: c?.id ?? c?._id ?? c?.ID,
+    CategoryID: c?.ID ?? c?.CategoryID ?? c?.categoryId,
+    name: c?.Name ?? c?.name,
+    status: isActive ? 'Active' : 'Inactive',
+    IsActive: isActive
+  };
+};
+
+const formatDate = (value) => {
+  if (!value) return '-';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '-';
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+};
+
+const normalizeCard = (c) => {
+  const categoryName = c?.CardCategoryID?.Name || c?.CardCategoryID?.ID || c?.CardCategoryID;
+  const ownerName = c?.OwnerID?.FullName || c?.OwnerID?.ID || c?.OwnerID;
+  const vehiclePlate = c?.VehicleId?.PlateNumber || c?.VehicleId?.VehicleID || '';
+  const vehicleType = c?.VehicleId?.VehicleTypeID?.Name || '';
+  const status = (c?.Status || '').toUpperCase() || 'ACTIVE';
+
+  return {
+    id: c?.CardID || c?.id || c?._id,
+    uid: c?.UID,
+    type: categoryName || '-',
+    category: categoryName || '-',
+    owner: ownerName || 'Unassigned',
+    ownerType: c?.OwnerID ? 'Customer' : '-', // can be refined later
+    status: status.charAt(0) + status.slice(1).toLowerCase().replace(/_(.)/g, (_, ch) => ` ${ch.toUpperCase()}`),
+    rawStatus: status,
+    expiry: formatDate(c?.ExpireDay),
+    vehiclePlate,
+    vehicleType,
+    gradient: gradientForStatus(status),
+    _raw: c
+  };
+};
 
 function CardsPage() {
+  const { authHeaders } = useAuth();
   const [activeTab, setActiveTab] = useState('inventory');
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [expiryFilter, setExpiryFilter] = useState('all');
-  const [filteredCards, setFilteredCards] = useState(mockCards);
+  const [cards, setCards] = useState([]);
+  const [cardsLoading, setCardsLoading] = useState(false);
+  const [cardsError, setCardsError] = useState('');
+  const [filteredCards, setFilteredCards] = useState([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
-  const [categories, setCategories] = useState(mockCategories);
+  const [categories, setCategories] = useState([]);
   const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
   const [categoryToEdit, setCategoryToEdit] = useState(null);
   const [showViewCardModal, setShowViewCardModal] = useState(false);
   const [cardToView, setCardToView] = useState(null);
+
+  // Load cards when visiting inventory tab
+  useEffect(() => {
+    if (activeTab !== 'inventory') return;
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        setCardsLoading(true);
+        setCardsError('');
+
+        const res = await fetch(`${API_BASE_URL}/api/cards?limit=200`, {
+          signal: controller.signal,
+          headers: { ...authHeaders }
+        });
+
+        const json = await res.json().catch(() => null);
+        if (!res.ok) {
+          const msg = json?.error?.message || `Failed to fetch cards (${res.status})`;
+          throw new Error(msg);
+        }
+
+        const list = Array.isArray(json?.data?.items) ? json.data.items : [];
+        setCards(list.map(normalizeCard));
+      } catch (err) {
+        if (err?.name !== 'AbortError') {
+          console.error('Fetch cards error:', err);
+          setCards([]);
+          setCardsError(err?.message || 'Failed to load cards');
+        }
+      } finally {
+        if (!controller.signal.aborted) setCardsLoading(false);
+      }
+    })();
+
+    return () => controller.abort();
+  }, [activeTab, authHeaders]);
+
+  // Load categories from backend when visiting Categories tab
+  useEffect(() => {
+    if (activeTab !== 'categories') return;
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/card-categories?limit=100`, {
+          signal: controller.signal,
+          headers: { ...authHeaders }
+        });
+
+        const json = await res.json().catch(() => null);
+        if (!res.ok) {
+          const msg = json?.error?.message || `Failed to fetch categories (${res.status})`;
+          throw new Error(msg);
+        }
+
+        const list = Array.isArray(json?.data?.cardCategories) ? json.data.cardCategories : [];
+        setCategories(list.map(normalizeCategory));
+      } catch (err) {
+        if (err?.name !== 'AbortError') {
+          console.error('Fetch card categories error:', err);
+          setCategories([]);
+        }
+      }
+    })();
+
+    return () => controller.abort();
+  }, [activeTab, authHeaders]);
 
   const stats = [
     {
@@ -135,14 +202,54 @@ function CardsPage() {
   const handleSearch = (e) => {
     const query = e.target.value;
     setSearchQuery(query);
-    // TODO: Filter cards based on search query
   };
+
+  const filteredCardsMemo = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    let next = [...cards];
+
+    // Search
+    if (query) {
+      next = next.filter((c) => {
+        const id = String(c?.id || '').toLowerCase();
+        const uid = String(c?.uid || '').toLowerCase();
+        const type = String(c?.type || '').toLowerCase();
+        const owner = String(c?.owner || '').toLowerCase();
+        return id.includes(query) || uid.includes(query) || type.includes(query) || owner.includes(query);
+      });
+    }
+
+    // Type filter
+    if (typeFilter !== 'all') {
+      next = next.filter((c) => String(c?.type || '').toLowerCase() === String(typeFilter).toLowerCase());
+    }
+
+    // Status filter
+    if (statusFilter !== 'all') {
+      next = next.filter((c) => String(c?.rawStatus || '').toLowerCase() === String(statusFilter).toLowerCase());
+    }
+
+    // Expiry filter (basic)
+    if (expiryFilter === 'no-expiry') {
+      next = next.filter((c) => c.expiry === '-');
+    }
+
+    return next;
+  }, [cards, expiryFilter, searchQuery, statusFilter, typeFilter]);
+
+  useEffect(() => {
+    setFilteredCards(filteredCardsMemo);
+  }, [filteredCardsMemo]);
 
   const getStatusBadgeClass = (status) => {
     switch ((status || '').toLowerCase()) {
       case 'active':
         return 'status-pill status-pill--active';
       case 'inactive':
+        return 'status-pill status-pill--inactive';
+      case 'pending rfid':
+        return 'status-pill status-pill--pending';
+      case 'returned':
         return 'status-pill status-pill--inactive';
       case 'lost':
         return 'status-pill status-pill--lost';
@@ -156,7 +263,7 @@ function CardsPage() {
   };
 
   const handleViewCard = (cardId) => {
-    const card = [...mockCards, ...mockUnassignedCards].find(c => c.id === cardId);
+    const card = filteredCards.find(c => c.id === cardId) || cards.find((c) => c.id === cardId);
     if (card) {
       // Ensure card has all required fields
       const cardWithDefaults = {
@@ -205,28 +312,59 @@ function CardsPage() {
     setShowAddCategoryModal(false);
   };
 
-  const handleCreateCategory = (categoryData) => {
-    // Generate new category ID
-    const newId = `CAT${String(categories.length + 1).padStart(3, '0')}`;
-    const today = new Date().toLocaleDateString('en-GB');
-    
-    const newCategory = {
-      id: newId,
-      name: categoryData.name,
-      price: `$${categoryData.price.toFixed(2)}`,
-      lastUpdated: today
-    };
+  const handleCreateCategory = async (categoryData) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/card-categories`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        // Backend schema: Name + IsActive, plus optional Price to create an initial card price.
+        body: JSON.stringify({
+          Name: categoryData?.name,
+          IsActive: true,
+          Price: categoryData?.price
+        })
+      });
 
-    setCategories([...categories, newCategory]);
-    setShowAddCategoryModal(false);
-    alert(`Category "${categoryData.name}" created successfully!`);
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = json?.error?.message || `Create failed (${res.status})`;
+        throw new Error(msg);
+      }
+
+      const created = json?.data;
+      if (created) {
+        setCategories((prev) => [normalizeCategory(created), ...prev]);
+      }
+      setShowAddCategoryModal(false);
+    } catch (err) {
+      console.error('Create category error:', err);
+      window.alert(err?.message || 'Failed to create category');
+      throw err;
+    }
   };
 
   const handleDeleteCategory = (categoryId) => {
-    if (confirm(`Are you sure you want to delete category ${categoryId}?`)) {
-      setCategories(categories.filter(cat => cat.id !== categoryId));
-      alert(`Category ${categoryId} deleted successfully!`);
-    }
+    const ok = window.confirm('Delete this category?');
+    if (!ok) return;
+
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/card-categories/${categoryId}`, {
+          method: 'DELETE',
+          headers: { ...authHeaders }
+        });
+        const json = await res.json().catch(() => null);
+        if (!res.ok) {
+          const msg = json?.error?.message || `Delete failed (${res.status})`;
+          throw new Error(msg);
+        }
+
+        setCategories((prev) => prev.filter((c) => c.id !== categoryId));
+      } catch (err) {
+        console.error('Delete category error:', err);
+        window.alert(err?.message || 'Failed to delete category');
+      }
+    })();
   };
 
   const handleEditCategory = (categoryId) => {
@@ -242,22 +380,35 @@ function CardsPage() {
   };
 
   const handleUpdateCategory = (updated) => {
-    const today = new Date().toLocaleDateString('en-GB');
-    setCategories((prev) =>
-      prev.map((c) => {
-        if (c.id !== updated.id) return c;
-        return {
-          ...c,
-          name: updated.name,
-          price: `$${Number(updated.price).toFixed(2)}`,
-          lastUpdated: today
-        };
-      })
-    );
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/card-categories/${updated?.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
+          body: JSON.stringify({
+            Name: updated?.name
+          })
+        });
 
-    handleCloseEditCategoryModal();
-    alert(`Category "${updated.name}" updated successfully!`);
+        const json = await res.json().catch(() => null);
+        if (!res.ok) {
+          const msg = json?.error?.message || `Update failed (${res.status})`;
+          throw new Error(msg);
+        }
+
+        const saved = json?.data;
+        const normalized = saved ? normalizeCategory(saved) : { ...updated, status: 'Active', IsActive: true };
+        setCategories((prev) => prev.map((c) => (c.id === updated.id ? { ...c, ...normalized } : c)));
+
+        handleCloseEditCategoryModal();
+      } catch (err) {
+        console.error('Update category error:', err);
+        window.alert(err?.message || 'Failed to update category');
+      }
+    })();
   };
+
+  const categoriesStatsValue = useMemo(() => String(categories.length), [categories.length]);
 
   return (
     <div className="cards-page">
@@ -281,7 +432,7 @@ function CardsPage() {
             </div>
             <div className="stat-content">
               <p className="stat-label">{stat.label}</p>
-              <p className="stat-value">{stat.value}</p>
+              <p className="stat-value">{stat.label === 'Categories' ? categoriesStatsValue : stat.value}</p>
             </div>
           </div>
         ))}
@@ -329,10 +480,11 @@ function CardsPage() {
                   className="filter-select"
                 >
                   <option value="all">All Types</option>
-                  <option value="standard">Standard</option>
-                  <option value="premium">Premium</option>
-                  <option value="vip">VIP</option>
-                  <option value="staff">Staff</option>
+                  {[...new Set(cards.map((c) => String(c?.type || '').toLowerCase()).filter(Boolean))]
+                    .sort()
+                    .map((t) => (
+                      <option key={t} value={t}>{t.replace(/^./, (ch) => ch.toUpperCase())}</option>
+                    ))}
                 </select>
               </div>
 
@@ -346,9 +498,12 @@ function CardsPage() {
                   <option value="all">All Status</option>
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
+                  <option value="pending_rfid">Pending RFID</option>
                   <option value="lost">Lost</option>
                   <option value="damaged">Damaged</option>
                   <option value="expired">Expired</option>
+                  <option value="suspended">Suspended</option>
+                  <option value="returned">Returned</option>
                 </select>
               </div>
 
@@ -556,18 +711,18 @@ function CardsPage() {
                 <tr>
                   <th>ID</th>
                   <th>NAME</th>
-                  <th>PRICE</th>
-                  <th>LAST UPDATED</th>
+                  <th>STATUS</th>
                   <th className="text-right">ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
                 {categories.map((category) => (
                   <tr key={category.id}>
-                    <td className="category-id-cell">{category.id}</td>
+                    <td className="category-id-cell">{category.CategoryID || category.id}</td>
                     <td className="category-name-cell">{category.name}</td>
-                    <td className="category-price-cell">{category.price}</td>
-                    <td className="category-date-cell">{category.lastUpdated}</td>
+                    <td className="category-status-cell">
+                      <span className={getStatusBadgeClass(category.status)}>{category.status}</span>
+                    </td>
                     <td>
                       <div className="action-buttons action-buttons-right">
                         <button
@@ -624,12 +779,11 @@ function CardsPage() {
       )}
 
       {/* Add Category Modal */}
-      {showAddCategoryModal && (
-        <AddCategoryModal
-          onClose={handleCloseAddCategoryModal}
-          onAdd={handleCreateCategory}
-        />
-      )}
+      <AddCategoryModal
+        isOpen={showAddCategoryModal}
+        onClose={handleCloseAddCategoryModal}
+        onSave={handleCreateCategory}
+      />
 
       {/* Edit Category Modal */}
       {showEditCategoryModal && categoryToEdit && (

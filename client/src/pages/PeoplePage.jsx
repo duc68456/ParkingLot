@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import PageHeader from '../components/PageHeader';
 import TabNavigation from '../components/TabNavigation';
 import SearchInput from '../components/SearchInput';
@@ -127,6 +128,7 @@ const mockEmployees = [
 ];
 
 export default function PeoplePage() {
+  const { authHeaders } = useAuth();
   const [activeTab, setActiveTab] = useState('customers');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
@@ -247,7 +249,8 @@ export default function PeoplePage() {
     ;(async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/api/employees?limit=100`, {
-          signal: controller.signal
+          signal: controller.signal,
+          headers: { ...authHeaders }
         })
 
         if (!res.ok) {
@@ -277,7 +280,8 @@ export default function PeoplePage() {
     ;(async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/api/customers?limit=100`, {
-          signal: controller.signal
+          signal: controller.signal,
+          headers: { ...authHeaders }
         })
 
         if (!res.ok) {
@@ -315,7 +319,7 @@ export default function PeoplePage() {
         // 1) Create person first (employee inherits from person)
         const personRes = await fetch(`${API_BASE_URL}/api/persons`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
           body: JSON.stringify({
             FullName: formData.fullName,
             Phone: formData.phone,
@@ -337,7 +341,7 @@ export default function PeoplePage() {
         // 2) Create employee referencing that person
         const employeeRes = await fetch(`${API_BASE_URL}/api/employees`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
           body: JSON.stringify({
             PersonID: personId,
             EmployeeType: formData.employeeType,
@@ -409,7 +413,7 @@ export default function PeoplePage() {
         // 1) create person
         const personRes = await fetch(`${API_BASE_URL}/api/persons`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
           body: JSON.stringify({
             FullName: formData.fullName,
             Phone: formData.phone,
@@ -430,7 +434,7 @@ export default function PeoplePage() {
         // 2) create customer referencing that person
         const customerRes = await fetch(`${API_BASE_URL}/api/customers`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
           body: JSON.stringify({
             PersonID: personId,
             Status: 'ACTIVE'
@@ -477,7 +481,7 @@ export default function PeoplePage() {
         if (personId) {
           const personRes = await fetch(`${API_BASE_URL}/api/persons/${personId}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...authHeaders },
             body: JSON.stringify({
               FullName: updatedCustomer?.name,
               Phone: updatedCustomer?.phone,
@@ -495,7 +499,7 @@ export default function PeoplePage() {
 
         const res = await fetch(`${API_BASE_URL}/api/customers/${id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
           body: JSON.stringify({
             Status: (updatedCustomer?.status || '').toLowerCase() === 'active' ? 'ACTIVE' : 'INACTIVE'
           })
@@ -527,7 +531,8 @@ export default function PeoplePage() {
         if (!id) return
 
         const res = await fetch(`${API_BASE_URL}/api/customers/${id}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: { ...authHeaders }
         })
 
         const json = await res.json()
@@ -570,7 +575,7 @@ export default function PeoplePage() {
         if (personId) {
           const personRes = await fetch(`${API_BASE_URL}/api/persons/${personId}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...authHeaders },
             body: JSON.stringify({
               FullName: updatedEmployee?.name,
               Phone: updatedEmployee?.phone,
@@ -589,7 +594,7 @@ export default function PeoplePage() {
 
         const res = await fetch(`${API_BASE_URL}/api/employees/${id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
           body: JSON.stringify({
             EmployeeType: updatedEmployee?.role,
             Status: (updatedEmployee?.status || '').toLowerCase() === 'active' ? 'ACTIVE' : 'INACTIVE'
@@ -624,7 +629,8 @@ export default function PeoplePage() {
         if (!id) return
 
         const res = await fetch(`${API_BASE_URL}/api/employees/${id}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: { ...authHeaders }
         })
 
         const json = await res.json()

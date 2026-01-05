@@ -1,12 +1,14 @@
 const adminAccountsRouter = require('express').Router();
 const AdminAccount = require('../models/adminAccount');
 const Employee = require('../models/employee');
+const { signToken } = require('../utils/auth');
+const middleware = require('../utils/middleware');
 
 /**
  * GET /api/admin-accounts
  * Get all admin accounts with filtering and pagination
  */
-adminAccountsRouter.get('/', async (request, response) => {
+adminAccountsRouter.get('/', middleware.authRequired, middleware.adminOnly, async (request, response) => {
   try {
     const {
       status,
@@ -69,7 +71,7 @@ adminAccountsRouter.get('/', async (request, response) => {
  * GET /api/admin-accounts/:id
  * Get single admin account by ID
  */
-adminAccountsRouter.get('/:id', async (request, response) => {
+adminAccountsRouter.get('/:id', middleware.authRequired, middleware.adminOnly, async (request, response) => {
   try {
     const adminAccount = await AdminAccount.findById(request.params.id)
       .populate({
@@ -111,7 +113,7 @@ adminAccountsRouter.get('/:id', async (request, response) => {
  * POST /api/admin-accounts
  * Create new admin account
  */
-adminAccountsRouter.post('/', async (request, response) => {
+adminAccountsRouter.post('/', middleware.authRequired, middleware.adminOnly, async (request, response) => {
   try {
     const {
       EmployeeID,
@@ -251,7 +253,7 @@ adminAccountsRouter.post('/', async (request, response) => {
  * PUT /api/admin-accounts/:id
  * Update admin account
  */
-adminAccountsRouter.put('/:id', async (request, response) => {
+adminAccountsRouter.put('/:id', middleware.authRequired, middleware.adminOnly, async (request, response) => {
   try {
     const {
       Username,
@@ -359,7 +361,7 @@ adminAccountsRouter.put('/:id', async (request, response) => {
  * DELETE /api/admin-accounts/:id
  * Delete admin account (set status to LOCKED)
  */
-adminAccountsRouter.delete('/:id', async (request, response) => {
+adminAccountsRouter.delete('/:id', middleware.authRequired, middleware.adminOnly, async (request, response) => {
   try {
     const adminAccount = await AdminAccount.findById(request.params.id);
 
@@ -466,10 +468,18 @@ adminAccountsRouter.post('/login', async (request, response) => {
     adminAccount.LastLoginAt = new Date();
     await adminAccount.save();
 
+    const token = signToken({
+      type: 'admin',
+      adminAccountId: adminAccount._id.toString(),
+      username: adminAccount.Username,
+      employeeId: adminAccount.EmployeeID?._id?.toString()
+    })
+
     response.json({
       success: true,
       message: 'Login successful',
       data: {
+        token,
         ID: adminAccount.ID,
         Username: adminAccount.Username,
         EmployeeID: adminAccount.EmployeeID,

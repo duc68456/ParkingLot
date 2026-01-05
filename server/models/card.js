@@ -1,5 +1,17 @@
 const mongoose = require('mongoose')
 
+const CARD_STATUSES = [
+  'ACTIVE',
+  'INACTIVE',
+  'PENDING_RFID',
+  'DAMAGED',
+  'LOST',
+  'EXPIRED',
+  'SUSPENDED',
+  'RETURNED',
+  'UNASSIGNED'
+]
+
 const cardSchema = new mongoose.Schema({
   CardID: {
     type: String,
@@ -39,16 +51,44 @@ const cardSchema = new mongoose.Schema({
     trim: true,
     maxLength: 64
   },
-  IsActive: {
-    type: Boolean,
-    default: true
+  // ✅ CHANGED: IsActive → Status (multi-state)
+  Status: {
+    type: String,
+    enum: {
+      values: CARD_STATUSES,
+      message: '{VALUE} is not a valid status'
+    },
+    required: true,
+    default: 'ACTIVE'
+  },
+
+  // NEW: Tracking RFID
+  UIDScannedAt: {
+    type: Date,
+    default: null
+  },
+  UIDScannedBy: {
+    // Employee custom string ID (e.g. EMP0001)
+    type: String,
+    ref: 'Employee',
+    default: null
   }
 }, {
   timestamps: true
 })
 
+// Indexes similar to dbdiagram
+cardSchema.index({ OwnerID: 1, Status: 1 })
+cardSchema.index({ UID: 1, Status: 1 })
+
 // Auto-generate CardID before saving
 cardSchema.pre('save', async function (next) {
+  // Backwards compatibility: if older docs still set IsActive, map to Status.
+  // (We keep this lightweight to avoid breaking existing create/update calls.)
+  if (this.IsActive !== undefined && this.Status === undefined) {
+    this.Status = this.IsActive ? 'ACTIVE' : 'INACTIVE'
+  }
+
   if (!this.CardID) {
     const lastCard = await this.constructor.findOne({}, {}, { sort: { 'CardID': -1 } })
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import PageHeader from '../components/PageHeader';
 import TabNavigation from '../components/TabNavigation';
 import SearchInput from '../components/SearchInput';
@@ -25,6 +26,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001
 const initialVehicleTypes = [];
 
 export default function VehiclesPage() {
+  const { authHeaders } = useAuth();
   const [activeTab, setActiveTab] = useState('vehicles');
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('All Types');
@@ -91,7 +93,8 @@ export default function VehiclesPage() {
     (async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/api/vehicle-types`, {
-          signal: controller.signal
+          signal: controller.signal,
+          headers: { ...authHeaders }
         });
 
         if (!res.ok) {
@@ -138,7 +141,8 @@ export default function VehiclesPage() {
     (async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/api/vehicles?limit=100`, {
-          signal: controller.signal
+          signal: controller.signal,
+          headers: { ...authHeaders }
         });
 
         if (!res.ok) {
@@ -223,7 +227,8 @@ export default function VehiclesPage() {
         const res = await fetch(`${API_BASE_URL}/api/vehicles`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...authHeaders
           },
           body: JSON.stringify({
             PlateNumber: newVehicle?.licensePlate,
@@ -278,7 +283,8 @@ export default function VehiclesPage() {
         const res = await fetch(`${API_BASE_URL}/api/vehicles/${id}`, {
           method: 'PUT',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...authHeaders
           },
           body: JSON.stringify({
             PlateNumber: updatedVehicle?.licensePlate,
@@ -325,7 +331,8 @@ export default function VehiclesPage() {
 
       try {
         const res = await fetch(`${API_BASE_URL}/api/vehicles/${id}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: { ...authHeaders }
         });
 
         const json = await res.json().catch(() => null);
@@ -369,7 +376,8 @@ export default function VehiclesPage() {
       const res = await fetch(`${API_BASE_URL}/api/vehicle-types/${updatedType.id}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...authHeaders
         },
         body: JSON.stringify({
           // Backend expects Name / IsActive
@@ -424,7 +432,8 @@ export default function VehiclesPage() {
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/vehicle-types/${type.id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { ...authHeaders }
       });
       const json = await res.json().catch(() => null);
 
@@ -474,7 +483,8 @@ export default function VehiclesPage() {
       const res = await fetch(`${API_BASE_URL}/api/vehicle-types`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...authHeaders
         },
         // API expects flat fields: { Name, IsActive }
         body: JSON.stringify({

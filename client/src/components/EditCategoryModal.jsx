@@ -1,35 +1,22 @@
 import { useMemo, useState } from 'react';
 import '../styles/components/EditCategoryModal.css';
 
-function normalizePriceToNumber(price) {
-  if (price === null || price === undefined) return '';
-  if (typeof price === 'number') return Number.isFinite(price) ? String(price) : '';
-  if (typeof price !== 'string') return '';
-
-  // Supports "$10.00", "10", "10.00"
-  const cleaned = price.replace(/[^0-9.]/g, '');
-  return cleaned;
-}
-
-function EditCategoryModal({ category, onClose, onUpdate }) {
+function EditCategoryModal({ isOpen, category, onClose, onSave }) {
   const initialName = useMemo(() => category?.name ?? '', [category?.name]);
-  const initialPrice = useMemo(() => normalizePriceToNumber(category?.price), [category?.price]);
 
   const [categoryName, setCategoryName] = useState(() => initialName);
-  const [price, setPrice] = useState(() => initialPrice);
 
   const handleSubmit = () => {
     const trimmedName = categoryName.trim();
 
-    if (!trimmedName || price === '' || Number.isNaN(Number(price))) {
-      alert('Please fill in all fields');
+    if (!trimmedName) {
+      alert('Please enter a category name');
       return;
     }
 
-    onUpdate({
+    onSave({
       id: category?.id,
-      name: trimmedName,
-      price: parseFloat(price)
+      name: trimmedName
     });
   };
 
@@ -38,6 +25,8 @@ function EditCategoryModal({ category, onClose, onUpdate }) {
       onClose();
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="edit-category-overlay" onClick={handleOverlayClick}>
@@ -61,22 +50,6 @@ function EditCategoryModal({ category, onClose, onUpdate }) {
               value={categoryName}
               onChange={(e) => setCategoryName(e.target.value)}
             />
-          </div>
-
-          <div className="form-group">
-            <label>Price</label>
-            <div className="price-input-wrapper">
-              <span className="currency-symbol">$</span>
-              <input
-                type="number"
-                className="form-input price-input"
-                placeholder="10"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                step="0.01"
-                min="0"
-              />
-            </div>
           </div>
         </div>
 

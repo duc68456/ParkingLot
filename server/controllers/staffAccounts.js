@@ -1,12 +1,14 @@
 const staffAccountsRouter = require('express').Router();
 const StaffAccount = require('../models/staffAccount');
 const Employee = require('../models/employee');
+const { signToken } = require('../utils/auth');
+const middleware = require('../utils/middleware');
 
 /**
  * GET /api/staff-accounts
  * Get all staff accounts with filtering and pagination
  */
-staffAccountsRouter.get('/', async (request, response) => {
+staffAccountsRouter.get('/', middleware.authRequired, middleware.adminOnly, async (request, response) => {
   try {
     const {
       status,
@@ -69,7 +71,7 @@ staffAccountsRouter.get('/', async (request, response) => {
  * GET /api/staff-accounts/:id
  * Get single staff account by ID
  */
-staffAccountsRouter.get('/:id', async (request, response) => {
+staffAccountsRouter.get('/:id', middleware.authRequired, middleware.adminOnly, async (request, response) => {
   try {
     const staffAccount = await StaffAccount.findById(request.params.id)
       .populate({
@@ -111,7 +113,7 @@ staffAccountsRouter.get('/:id', async (request, response) => {
  * POST /api/staff-accounts
  * Create new staff account
  */
-staffAccountsRouter.post('/', async (request, response) => {
+staffAccountsRouter.post('/', middleware.authRequired, middleware.adminOnly, async (request, response) => {
   try {
     const {
       EmployeeID,
@@ -232,7 +234,7 @@ staffAccountsRouter.post('/', async (request, response) => {
  * PUT /api/staff-accounts/:id
  * Update staff account
  */
-staffAccountsRouter.put('/:id', async (request, response) => {
+staffAccountsRouter.put('/:id', middleware.authRequired, middleware.adminOnly, async (request, response) => {
   try {
     const {
       PINCode,
@@ -314,7 +316,7 @@ staffAccountsRouter.put('/:id', async (request, response) => {
  * DELETE /api/staff-accounts/:id
  * Delete staff account (hard delete or set status to LOCKED)
  */
-staffAccountsRouter.delete('/:id', async (request, response) => {
+staffAccountsRouter.delete('/:id', middleware.authRequired, middleware.adminOnly, async (request, response) => {
   try {
     const staffAccount = await StaffAccount.findById(request.params.id);
 
@@ -420,10 +422,17 @@ staffAccountsRouter.post('/verify-pin', async (request, response) => {
     staffAccount.LastLoginAt = new Date();
     await staffAccount.save();
 
+    const token = signToken({
+      type: 'staff',
+      staffAccountId: staffAccount._id.toString(),
+      employeeId: staffAccount.EmployeeID?._id?.toString()
+    })
+
     response.json({
       success: true,
       message: 'PIN verified successfully',
       data: {
+        token,
         ID: staffAccount.ID,
         EmployeeID: staffAccount.EmployeeID,
         LastLoginAt: staffAccount.LastLoginAt
