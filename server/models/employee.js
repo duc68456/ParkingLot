@@ -10,12 +10,14 @@ const employeeSchema = new mongoose.Schema({
     // Auto-generated in pre-save hook
   },
 
-  // Reference to Person (inheritance pattern)
+  // Reference to Person (store Person business ID, e.g. PER0001)
   PersonID: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Person',
+    type: String,
     required: [true, 'Person reference is required'],
-    unique: true
+    unique: true,
+    trim: true,
+    uppercase: true,
+    match: [/^PER\d{4}$/, 'Person business ID must follow format PER0001']
   },
 
   EmployeeType: {
@@ -55,11 +57,11 @@ employeeSchema.index({ Status: 1 });
 employeeSchema.index({ EmployeeType: 1 });
 employeeSchema.index({ HiredDate: 1 });
 
-// Virtual: Populate person details
+// Virtual: Populate person details by matching Person.ID (business ID)
 employeeSchema.virtual('person', {
   ref: 'Person',
   localField: 'PersonID',
-  foreignField: '_id',
+  foreignField: 'ID',
   justOne: true
 });
 

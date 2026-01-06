@@ -53,21 +53,35 @@ export default function CustomersTable({ customers, phoneIcon, onView, onViewCar
     }
   };
 
-  const rows = customers.map(customer => ({
+  const rows = customers.map(customer => {
+    const person = customer?.person
+    const name = customer?.name || person?.FullName || ''
+    const email = customer?.email || ''
+    const phone = customer?.phone || person?.Phone || ''
+    const initials = customer?.initials || (name
+      ? name
+          .trim()
+          .split(/\s+/)
+          .slice(0, 2)
+          .map((n) => n[0]?.toUpperCase())
+          .join('')
+      : '')
+
+    return {
     id: customer.id,
     customer: (
       <div className="customer-cell">
-        <div className="customer-avatar blue">{customer.initials}</div>
+        <div className="customer-avatar blue">{initials}</div>
         <div className="customer-info">
-          <div className="customer-name">{customer.name}</div>
-          <div className="customer-email">{customer.email}</div>
+          <div className="customer-name">{name}</div>
+          <div className="customer-email">{email}</div>
         </div>
       </div>
     ),
     contact: (
       <div className="contact-cell">
         <img src={phoneIcon} alt="" className="phone-icon" />
-        <span>{customer.phone}</span>
+        <span>{phone}</span>
       </div>
     ),
     status: (
@@ -90,7 +104,8 @@ export default function CustomersTable({ customers, phoneIcon, onView, onViewCar
         </button>
       </div>
     )
-  }));
+    }
+  });
 
   return (
     <DataTable 

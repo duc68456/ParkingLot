@@ -28,7 +28,7 @@ customersRouter.get('/', async (request, response) => {
       filter.Status = status.toUpperCase();
     }
 
-    // If search, first find matching persons
+    // If search, first find matching persons and map to Person.ID (business IDs)
     let personIds = [];
     if (search) {
       const persons = await Person.find({
@@ -36,17 +36,17 @@ customersRouter.get('/', async (request, response) => {
           { FullName: new RegExp(search, 'i') },
           { Phone: new RegExp(search, 'i') }
         ]
-      }).select('_id');
-      personIds = persons.map(p => p._id);
+      }).select('ID');
+      personIds = persons.map(p => p.ID).filter(Boolean);
       filter.PersonID = { $in: personIds };
     }
 
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Build query with person population
+    // Build query with person population (PersonID is a business ID string)
     const customers = await Customer.find(filter)
-      .populate('PersonID', 'ID FullName Phone Gender IsActive')
+      .populate('person', 'ID FullName Phone Gender IsActive')
       .skip(skip)
       .limit(parseInt(limit))
       .sort({ createdAt: -1 });
@@ -85,7 +85,7 @@ customersRouter.get('/', async (request, response) => {
 customersRouter.get('/:id', async (request, response) => {
   try {
     const customer = await Customer.findById(request.params.id)
-      .populate('PersonID', 'ID FullName Phone Gender IsActive');
+      .populate('person', 'ID FullName Phone Gender IsActive');
 
     if (!customer) {
       return response.status(404).json({
@@ -137,8 +137,13 @@ customersRouter.post('/', async (request, response) => {
       });
     }
 
-    // Check if person exists
-    const person = await Person.findById(PersonID);
+    // Check if person exists (accept either PER#### or Mongo _id)
+    let person = null;
+    if (/^PER\d{4}$/i.test(String(PersonID))) {
+      person = await Person.findOne({ ID: String(PersonID).toUpperCase() })
+    } else {
+      person = await Person.findById(PersonID)
+    }
     if (!person) {
       return response.status(404).json({
         success: false,
@@ -149,8 +154,8 @@ customersRouter.post('/', async (request, response) => {
       });
     }
 
-    // Check if person is already a customer
-    const existingCustomer = await Customer.findOne({ PersonID });
+    // Check if person is already a customer (PersonID stored as Person.ID)
+    const existingCustomer = await Customer.findOne({ PersonID: person.ID });
     if (existingCustomer) {
       return response.status(409).json({
         success: false,
@@ -163,15 +168,15 @@ customersRouter.post('/', async (request, response) => {
 
     // Create customer
     const customer = new Customer({
-      PersonID,
+      PersonID: person.ID,
       RegisteredDay: RegisteredDay || new Date(),
       Status: Status || 'ACTIVE'
     });
 
     const savedCustomer = await customer.save();
 
-    // Populate person details before returning
-    await savedCustomer.populate('PersonID', 'ID FullName Phone Gender IsActive');
+  // Populate person details before returning
+  await savedCustomer.populate('person', 'ID FullName Phone Gender IsActive');
 
     response.status(201).json({
       success: true,
@@ -232,7 +237,7 @@ customersRouter.put('/:id', async (request, response) => {
     if (Status !== undefined) customer.Status = Status.toUpperCase();
 
     const updatedCustomer = await customer.save();
-    await updatedCustomer.populate('PersonID', 'ID FullName Phone Gender IsActive');
+  await updatedCustomer.populate('person', 'ID FullName Phone Gender IsActive');
 
     response.json({
       success: true,
@@ -271,7 +276,7 @@ customersRouter.put('/:id', async (request, response) => {
 customersRouter.delete('/:id', async (request, response) => {
   try {
     const customer = await Customer.findById(request.params.id)
-      .populate('PersonID', 'ID FullName');
+      .populate('person', 'ID FullName');
 
     if (!customer) {
       return response.status(404).json({

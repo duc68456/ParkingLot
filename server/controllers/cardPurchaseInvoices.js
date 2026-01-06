@@ -94,13 +94,38 @@ cardPurchaseInvoicesRouter.get('/', async (req, res) => {
     const customers = await Customer.find({ ID: { $in: customerIds } }).select('ID PersonID Status RegisteredDay')
     const employees = await Employee.find({ ID: { $in: employeeIds } }).select('ID PersonID EmployeeType Status')
 
-    const personIds = Array.from(new Set([
+    // Resolve Person documents referenced by Customer.PersonID / Employee.PersonID.
+    // PersonID may be stored as a PER#### (business ID) or an ObjectId string. Build
+    // two lists and query Person by either _id or ID.
+    const rawPersonRefs = Array.from(new Set([
       ...customers.map(c => c.PersonID).filter(Boolean),
       ...employees.map(e => e.PersonID).filter(Boolean)
-    ].map(id => id.toString())))
+    ]))
 
-    const persons = await Person.find({ _id: { $in: personIds } }).select('ID FullName Phone Gender')
-    const personById = new Map(persons.map(p => [p._id.toString(), p]))
+    const objectIdRefs = []
+    const businessIdRefs = []
+    rawPersonRefs.forEach((r) => {
+      if (!r) return
+      if (mongoose.Types.ObjectId.isValid(String(r))) objectIdRefs.push(String(r))
+      else if (/^PER\d{4}$/i.test(String(r))) businessIdRefs.push(String(r).toUpperCase())
+    })
+
+    const personQuery = objectIdRefs.length && businessIdRefs.length
+      ? { $or: [{ _id: { $in: objectIdRefs } }, { ID: { $in: businessIdRefs } }] }
+      : objectIdRefs.length
+        ? { _id: { $in: objectIdRefs } }
+        : businessIdRefs.length
+          ? { ID: { $in: businessIdRefs } }
+          : { _id: { $in: [] } }
+
+    const persons = await Person.find(personQuery).select('ID FullName Phone Gender')
+
+    // Build lookup that maps both _id and business ID to the person document
+    const personById = new Map()
+    persons.forEach((p) => {
+      if (p._id) personById.set(p._id.toString(), p)
+      if (p.ID) personById.set(String(p.ID), p)
+    })
 
     const customerByBusinessId = new Map(customers.map(c => [c.ID, ({
       ...c.toJSON(),
@@ -183,11 +208,29 @@ cardPurchaseInvoicesRouter.get('/:id', async (req, res) => {
     const customer = await Customer.findOne({ ID: invoice.CustomerID }).select('ID PersonID Status RegisteredDay')
     const employee = await Employee.findOne({ ID: invoice.SaledBy }).select('ID PersonID EmployeeType Status')
 
-    const personIds = [customer?.PersonID, employee?.PersonID].filter(Boolean).map(id => id.toString())
-    const persons = personIds.length
-      ? await Person.find({ _id: { $in: Array.from(new Set(personIds)) } }).select('ID FullName Phone Gender')
+    const rawRefs = [customer?.PersonID, employee?.PersonID].filter(Boolean)
+    const objRefs = []
+    const bizRefs = []
+    rawRefs.forEach((r) => {
+      if (!r) return
+      if (mongoose.Types.ObjectId.isValid(String(r))) objRefs.push(String(r))
+      else if (/^PER\d{4}$/i.test(String(r))) bizRefs.push(String(r).toUpperCase())
+    })
+
+    const persons2 = (objRefs.length || bizRefs.length)
+      ? await Person.find(objRefs.length && bizRefs.length
+        ? { $or: [{ _id: { $in: objRefs } }, { ID: { $in: bizRefs } }] }
+        : objRefs.length
+          ? { _id: { $in: objRefs } }
+          : { ID: { $in: bizRefs } }
+      ).select('ID FullName Phone Gender')
       : []
-    const personById = new Map(persons.map(p => [p._id.toString(), p]))
+
+    const personById2 = new Map()
+    persons2.forEach((p) => {
+      if (p._id) personById2.set(p._id.toString(), p)
+      if (p.ID) personById2.set(String(p.ID), p)
+    })
 
     const hydratedInvoice = {
       ...invoice.toJSON(),

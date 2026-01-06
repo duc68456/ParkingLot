@@ -44,14 +44,30 @@ function AssignCardModal({ card, onClose, onAssign, defaultAssignType = '', defa
         }
         const custList = Array.isArray(custJson?.data?.customers) ? custJson.data.customers : [];
 
-        // Normalize into { id: PERSON_ID, name: FULL_NAME, type }
+        // Normalize into { id: PERSON_BUSINESS_ID (PER####), name: FULL_NAME, type }
+        // The assign endpoint expects a *person business id*:
+        //   POST /api/cards/:id/assign  body: { type: 'customer', personId: 'PER####' }
+        // After the PersonID refactor:
+        // - `c.PersonID` is already a string PER####
+        // - `c.person` is the populated Person doc (virtual populate)
         setCustomers(
           custList
             .map((c) => {
-              const p = c?.PersonID;
+              const person = c?.person;
+              const fullName =
+                person?.FullName ??
+                person?.fullName ??
+                c?.FullName ??
+                c?.name ??
+                '';
+
+              const personBusinessId =
+                person?.ID ??
+                (typeof c?.PersonID === 'string' ? c.PersonID : undefined);
+
               return {
-                id: p?.ID ?? p?._id ?? c?.PersonID,
-                name: p?.FullName ?? 'Unknown',
+                id: personBusinessId,
+                name: fullName || 'Unknown',
                 type: 'Customer'
               };
             })

@@ -1,6 +1,6 @@
 import '../styles/components/SubscriptionTypesTable.css';
 
-const addIcon = "http://localhost:3845/assets/25c699331c374458f53e2c0a64f9f8de133e7e81.svg";
+const addIcon = "data:image/svg+xml,%3Csvg%20width%3D%2220%22height%3D%2220%22viewBox%3D%220%200%2020%2020%22fill%3D%22none%22xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M10%204.16667V15.8333M4.16667%2010H15.8333%22%20stroke%3D%22white%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E";
 
 export default function SubscriptionTypesTable({ subscriptionTypes, onAddType }) {
   return (
@@ -9,7 +9,7 @@ export default function SubscriptionTypesTable({ subscriptionTypes, onAddType })
       <div className="add-type-section">
         <button className="btn-add-type" onClick={onAddType}>
           <img src={addIcon} alt="" className="btn-icon" />
-          Add Type
+          + Add Type
         </button>
       </div>
 

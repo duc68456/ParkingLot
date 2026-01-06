@@ -1,0 +1,252 @@
+/* Edit Subscription Type Modal - all classes prefixed with edit-subscription-type- */
+
+.edit-subscription-type-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+.edit-subscription-type-wrapper {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.edit-subscription-type-modal {
+  width: 448px;
+  max-width: 90vw;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+}
+
+.edit-subscription-type-modal form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Header */
+.edit-subscription-type-header {
+  height: 68.8px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 0.8px solid #e2e8f0;
+}
+
+.edit-subscription-type-title {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 28px;
+  color: #0f172b;
+  margin: 0;
+}
+
+.edit-subscription-type-close-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  transition: background-color 0.2s;
+}
+
+.edit-subscription-type-close-btn:hover {
+  background: #f1f5f9;
+}
+
+.edit-subscription-type-close-btn:active {
+  background: #e2e8f0;
+}
+
+/* Body */
+.edit-subscription-type-body {
+  padding: 24px;
+}
+
+.edit-subscription-type-info {
+  background: #eff6ff;
+  border: 0.8px solid #bedbff;
+  border-radius: 10px;
+  padding: 16.8px;
+  padding-bottom: 0.8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.edit-subscription-type-info-title {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+  color: #1447e6;
+  margin: 0;
+}
+
+.edit-subscription-type-info-subtitle {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #1c398e;
+  margin: 0;
+}
+
+.edit-subscription-type-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.edit-subscription-type-field--textarea {
+  margin-bottom: 0;
+}
+
+.edit-subscription-type-label {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #314158;
+}
+
+.edit-subscription-type-required {
+  color: #fb2c36;
+}
+
+.edit-subscription-type-input {
+  height: 41.6px;
+  padding: 10px 16px;
+  border: 0.8px solid #cad5e2;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #314158;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.edit-subscription-type-input::placeholder {
+  color: rgba(10, 10, 10, 0.5);
+}
+
+.edit-subscription-type-input:focus {
+  outline: none;
+  border-color: #155dfc;
+  box-shadow: 0 0 0 3px rgba(21, 93, 252, 0.1);
+}
+
+.edit-subscription-type-textarea {
+  height: 81.6px;
+  padding: 10px 16px;
+  border: 0.8px solid #cad5e2;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #314158;
+  resize: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.edit-subscription-type-textarea::placeholder {
+  color: rgba(10, 10, 10, 0.5);
+}
+
+.edit-subscription-type-textarea:focus {
+  outline: none;
+  border-color: #155dfc;
+  box-shadow: 0 0 0 3px rgba(21, 93, 252, 0.1);
+}
+
+.edit-subscription-type-error {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 0.8px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-family: 'Arimo', sans-serif;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+/* Footer */
+.edit-subscription-type-footer {
+  height: 78.4px;
+  padding: 0.8px 24px 0;
+  background: #f8fafc;
+  border-top: 0.8px solid #e2e8f0;
+  border-radius: 0 0 16px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.edit-subscription-type-cancel {
+  height: 45.6px;
+  padding: 0 20px;
+  background: #ffffff;
+  border: 0.8px solid #cad5e2;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #314158;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.edit-subscription-type-cancel:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.edit-subscription-type-submit {
+  height: 44px;
+  padding: 0 20px;
+  background: #155dfc;
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.edit-subscription-type-submit:hover {
+  background: #1447e6;
+}
+
+.edit-subscription-type-submit:disabled,
+.edit-subscription-type-cancel:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}

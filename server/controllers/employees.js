@@ -34,24 +34,24 @@ employeesRouter.get('/', async (request, response) => {
       filter.EmployeeType = employeeType.toUpperCase();
     }
 
-    // If search, first find matching persons
+    // If search, first find matching persons and map to Person.ID (business IDs)
     if (search) {
       const persons = await Person.find({
         $or: [
           { FullName: new RegExp(search, 'i') },
           { Phone: new RegExp(search, 'i') }
         ]
-      }).select('_id');
-      const personIds = persons.map(p => p._id);
+      }).select('ID');
+      const personIds = persons.map(p => p.ID).filter(Boolean);
       filter.PersonID = { $in: personIds };
     }
 
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Build query with person population
+    // Build query with person population (PersonID is a business ID string)
     const employees = await Employee.find(filter)
-      .populate('PersonID', 'ID FullName Phone Gender IsActive')
+      .populate('person', 'ID FullName Phone Gender IsActive')
       .skip(skip)
       .limit(parseInt(limit))
       .sort({ createdAt: -1 });
@@ -90,7 +90,7 @@ employeesRouter.get('/', async (request, response) => {
 employeesRouter.get('/:id', async (request, response) => {
   try {
     const employee = await Employee.findById(request.params.id)
-      .populate('PersonID', 'ID FullName Phone Gender IsActive');
+      .populate('person', 'ID FullName Phone Gender IsActive');
 
     if (!employee) {
       return response.status(404).json({
@@ -143,8 +143,13 @@ employeesRouter.post('/', async (request, response) => {
       });
     }
 
-    // Check if person exists
-    const person = await Person.findById(PersonID);
+    // Check if person exists (accept either PER#### or Mongo _id)
+    let person = null;
+    if (/^PER\d{4}$/i.test(String(PersonID))) {
+      person = await Person.findOne({ ID: String(PersonID).toUpperCase() })
+    } else {
+      person = await Person.findById(PersonID)
+    }
     if (!person) {
       return response.status(404).json({
         success: false,
@@ -155,8 +160,8 @@ employeesRouter.post('/', async (request, response) => {
       });
     }
 
-    // Check if person is already an employee
-    const existingEmployee = await Employee.findOne({ PersonID });
+    // Check if person is already an employee (PersonID stored as Person.ID)
+    const existingEmployee = await Employee.findOne({ PersonID: person.ID });
     if (existingEmployee) {
       return response.status(409).json({
         success: false,
@@ -169,7 +174,7 @@ employeesRouter.post('/', async (request, response) => {
 
     // Create employee
     const employee = new Employee({
-      PersonID,
+      PersonID: person.ID,
       EmployeeType: EmployeeType ? EmployeeType.toUpperCase() : 'STAFF',
       HiredDate: HiredDate || new Date(),
       Status: Status ? Status.toUpperCase() : 'ACTIVE'
@@ -177,8 +182,8 @@ employeesRouter.post('/', async (request, response) => {
 
     const savedEmployee = await employee.save();
 
-    // Populate person details before returning
-    await savedEmployee.populate('PersonID', 'ID FullName Phone Gender IsActive');
+  // Populate person details before returning
+  await savedEmployee.populate('person', 'ID FullName Phone Gender IsActive');
 
     response.status(201).json({
       success: true,
@@ -241,7 +246,7 @@ employeesRouter.put('/:id', async (request, response) => {
     if (Status !== undefined) employee.Status = Status.toUpperCase();
 
     const updatedEmployee = await employee.save();
-    await updatedEmployee.populate('PersonID', 'ID FullName Phone Gender IsActive');
+  await updatedEmployee.populate('person', 'ID FullName Phone Gender IsActive');
 
     response.json({
       success: true,
@@ -280,7 +285,7 @@ employeesRouter.put('/:id', async (request, response) => {
 employeesRouter.delete('/:id', async (request, response) => {
   try {
     const employee = await Employee.findById(request.params.id)
-      .populate('PersonID', 'ID FullName');
+      .populate('person', 'ID FullName');
 
     if (!employee) {
       return response.status(404).json({

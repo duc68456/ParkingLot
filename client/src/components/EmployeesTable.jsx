@@ -11,7 +11,7 @@ const eyeIcon = "http://localhost:3845/assets/fff43459d23d75a693e463832b4f1a77ee
 const editIcon = "http://localhost:3845/assets/22ed6fed4c4d56385d3b4d40f1a0236ded42a86e.svg";
 const deleteIcon = "http://localhost:3845/assets/1fdb1f29273b223332a28061a714a4354ee0c9ae.svg";
 
-export default function EmployeesTable({ employees, onEdit, onDelete }) {
+export default function EmployeesTable({ employees, onEdit, onDelete, onViewCards }) {
   const headers = ['ID', 'Employee', 'Role', 'Status', 'Hired Date', 'Actions'];
 
   const getStatusBadgeClass = (status) => {
@@ -36,10 +36,11 @@ export default function EmployeesTable({ employees, onEdit, onDelete }) {
 
   const [showEditEmployeeModal, setShowEditEmployeeModal] = useState(false);
 
-  // Temporary mock cards until backend/API is wired.
+  // Cards are loaded by PeoplePage and passed into ViewCardsModal via the `cards` prop.
+  // Keep a safe fallback to an empty list.
   const employeeCards = useMemo(() => {
     if (!selectedEmployee) return [];
-    return selectedEmployee.cards || [];
+    return Array.isArray(selectedEmployee?.cards) ? selectedEmployee.cards : [];
   }, [selectedEmployee]);
 
   const handleViewEmployee = (employee) => {
@@ -48,6 +49,12 @@ export default function EmployeesTable({ employees, onEdit, onDelete }) {
   };
 
   const handleViewCards = (employee) => {
+    // Prefer parent-provided handler that fetches real cards.
+    if (onViewCards) {
+      onViewCards(employee)
+      return
+    }
+
     setSelectedEmployee(employee);
     setShowViewCardsModal(true);
   };

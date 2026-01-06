@@ -163,12 +163,16 @@ export default function PeoplePage() {
   ];
 
   const normalizeEmployee = (e) => {
-    const person = e?.PersonID ?? e?.person
+    // API returns:
+    // - `person`: populated Person document (virtual populate)
+    // - `PersonID`: string business id (PER####)
+    // Prefer the populated person object first.
+    const person = e?.person ?? e?.PersonID
     const fullName = person?.FullName ?? e?.FullName ?? e?.name ?? ''
     const phone = person?.Phone ?? e?.Phone ?? e?.phone ?? ''
     const gender = person?.Gender ?? e?.Gender ?? e?.gender
     const employeeType = e?.EmployeeType ?? e?.employeeType ?? e?.role ?? 'STAFF'
-    const isActive = person?.IsActive
+    const isActive = person?.IsActive ?? person?.Isactive ?? person?.isActive
     const hiredDateRaw = e?.HiredDate ?? e?.hiredDate
 
     const initials = fullName
@@ -191,9 +195,9 @@ export default function PeoplePage() {
       EmployeeID: e?.ID ?? e?.id,
 
       // Person linkage
-      personId: person?.id ?? person?._id ?? e?.PersonID,
-  // Person business ID (PER####) when available (needed for Card.OwnerID)
-  personBusinessId: person?.ID,
+    personId: e?.person?.id ?? e?.person?._id,
+    // Person business ID (PER####) when available (needed for Card.OwnerID)
+    personBusinessId: e?.person?.ID ?? (typeof e?.PersonID === 'string' ? e.PersonID : undefined),
 
       // UI fields expected by existing components
       name: fullName,
@@ -207,12 +211,16 @@ export default function PeoplePage() {
   }
 
   const normalizeCustomer = (c) => {
-    const person = c?.PersonID ?? c?.person
+    // API returns:
+    // - `person`: populated Person document
+    // - `PersonID`: string business id (PER####)
+    // Prefer the populated person object first.
+    const person = c?.person ?? c?.PersonID
     const fullName = person?.FullName ?? c?.FullName ?? c?.name ?? ''
     const phone = person?.Phone ?? c?.Phone ?? c?.phone ?? ''
     const gender = person?.Gender ?? c?.Gender ?? c?.gender
 
-    const isActive = person?.IsActive
+    const isActive = person?.IsActive ?? person?.Isactive ?? person?.isActive
     const registeredRaw = c?.RegisteredDay ?? c?.registeredDay ?? c?.createdAt
 
     const registered = registeredRaw
@@ -233,7 +241,10 @@ export default function PeoplePage() {
       _id: c?._id ?? c?.id,
       CustomerID: c?.ID ?? c?.id,
 
-      personId: person?.id ?? person?._id ?? c?.PersonID,
+      // Mongo _id of person (used for PUT /api/persons/:id)
+      personId: c?.person?.id ?? c?.person?._id,
+      // Person business ID (PER####) when available (needed for Card.OwnerID)
+      personBusinessId: c?.person?.ID ?? (typeof c?.PersonID === 'string' ? c.PersonID : undefined),
 
       name: fullName,
       initials,
@@ -378,8 +389,9 @@ export default function PeoplePage() {
     setSelectedCustomer(customer);
     setShowCardsModal(true);
 
-    const customerId = customer?.id || customer?.ID;
-    if (!customerId) {
+    // Card.OwnerID stores Person.ID (PER####). Prefer that.
+    const ownerId = customer?.personBusinessId || customer?.personId || customer?.id || customer?.ID;
+    if (!ownerId) {
       setCustomerCards([]);
       setCustomerCardsError('Missing customer id');
       return;
@@ -390,7 +402,7 @@ export default function PeoplePage() {
         setCustomerCardsError('');
         setCustomerCardsLoading(true);
 
-        const res = await fetch(`${API_BASE_URL}/api/cards?limit=200&ownerId=${encodeURIComponent(customerId)}`, {
+        const res = await fetch(`${API_BASE_URL}/api/cards?limit=200&ownerId=${encodeURIComponent(ownerId)}`, {
           headers: { ...authHeaders }
         })
 
@@ -810,6 +822,7 @@ export default function PeoplePage() {
         ) : (
           <EmployeesTable
             employees={filteredEmployees}
+            onViewCards={handleViewCards}
             onEdit={handleEditEmployee}
             onDelete={handleDeleteEmployee}
           />

@@ -48,10 +48,8 @@ cardsRouter.get('/', async (req, res) => {
       if (/^CUS\d{4}$/i.test(ownerIdStr)) {
         const customer = await Customer.findOne({ ID: ownerIdStr.toUpperCase() }).select('PersonID')
         if (customer?.PersonID) {
-          const person = await Person.findById(customer.PersonID).select('ID')
-          if (person?.ID) {
-            resolvedOwnerPersonBusinessId = String(person.ID)
-          }
+          // Customer.PersonID stores Person.ID (PER####) after the refactor.
+          resolvedOwnerPersonBusinessId = String(customer.PersonID)
         }
       }
 
@@ -435,7 +433,7 @@ cardsRouter.post('/:id/assign', async (req, res) => {
       })
     }
 
-    const customer = await Customer.findOne({ PersonID: person._id })
+    const customer = await Customer.findOne({ PersonID: person.ID })
     if (!customer) {
       return res.status(404).json({
         success: false,

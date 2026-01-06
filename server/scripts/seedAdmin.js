@@ -68,7 +68,7 @@ async function main() {
 
     console.log('[seed-admin] creating Employee (ADMIN)...')
     const employee = await Employee.create({
-      PersonID: person._id,
+      PersonID: person.ID || person._id,
       EmployeeType: 'ADMIN',
       Status: 'ACTIVE'
     })
@@ -85,8 +85,8 @@ async function main() {
     console.log('[seed-admin] ✅ done')
     console.log('---')
     console.log('Created:')
-    console.log(`  PersonID: ${person._id}`)
-    console.log(`  EmployeeID: ${employee._id}`)
+  console.log(`  PersonID: ${person.ID || person._id}`)
+  console.log(`  EmployeeID: ${employee._id}`)
     console.log(`  AdminAccountID: ${adminAccount._id}`)
     console.log('Credentials:')
     console.log(`  Username: ${username}`)

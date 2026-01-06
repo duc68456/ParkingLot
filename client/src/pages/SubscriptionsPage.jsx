@@ -3,6 +3,11 @@ import '../styles/pages/SubscriptionsPage.css';
 import RegisterSubscriptionModal from '../components/RegisterSubscriptionModal';
 import ViewSubscriptionModal from '../components/ViewSubscriptionModal';
 import PauseSubscriptionModal from '../components/PauseSubscriptionModal';
+import AddSubscriptionTypeModal from '../components/AddSubscriptionTypeModal';
+import EditSubscriptionTypeModal from '../components/EditSubscriptionTypeModal';
+
+const addIcon = "data:image/svg+xml,%3Csvg%20width%3D%2220%22height%3D%2220%22viewBox%3D%220%200%2020%2020%22fill%3D%22none%22xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M10%204.16667V15.8333M4.16667%2010H15.8333%22%20stroke%3D%22white%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E";
+const editIcon = "data:image/svg+xml,%3Csvg%20width%3D%2216%22height%3D%2216%22viewBox%3D%220%200%2016%2016%22fill%3D%22none%22xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M1.33337%2014.6667H4.00004L12.6667%206.00004C12.8435%205.82323%2012.9838%205.61333%2013.0794%205.38231C13.1751%205.15129%2013.2242%204.90369%2013.2242%204.65371C13.2242%204.40372%2013.1751%204.15612%2013.0794%203.9251C12.9838%203.69408%2012.8435%203.48418%2012.6667%203.30737L12.6927%203.33337C12.5159%203.15655%2012.306%203.01631%2012.0749%202.92064C11.8439%202.82497%2011.5963%202.77572%2011.3463%202.77572C11.0964%202.77572%2010.8488%202.82497%2010.6178%202.92064C10.3868%203.01631%2010.1769%203.15655%2010.0001%203.33337L1.33337%2012V14.6667Z%22%20stroke%3D%22155DFC%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E";
 
 // Mock data for subscriptions
 const mockSubscriptions = [
@@ -58,6 +63,9 @@ function SubscriptionsPage() {
   const [selectedSubscription, setSelectedSubscription] = useState(null);
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [selectedSubscriptionForPause, setSelectedSubscriptionForPause] = useState(null);
+  const [showAddTypeModal, setShowAddTypeModal] = useState(false);
+  const [showEditTypeModal, setShowEditTypeModal] = useState(false);
+  const [selectedSubscriptionType, setSelectedSubscriptionType] = useState(null);
 
   const tabs = [
     { id: 'subscriptions', label: 'Subscriptions' },
@@ -263,16 +271,14 @@ function SubscriptionsPage() {
 
       {/* Subscription Types Tab Content */}
       {activeTab === 'subscription-types' && (
-        <div className="subscription-types-content">
-          {/* Action Button */}
-          <div className="types-header">
-            <button className="btn-add-type" onClick={() => alert('Add Type functionality coming soon!')}>
-              <img src="http://localhost:3845/assets/25c699331c374458f53e2c0a64f9f8de133e7e81.svg" alt="Add" />
-              Add Type
+        <div className="subscriptions-content">
+          <div className="register-section">
+            <button className="btn-register" onClick={() => setShowAddTypeModal(true)}>
+              <img src={addIcon} alt="" />
+              + Add Type
             </button>
           </div>
 
-          {/* Data Table */}
           <div className="data-table">
             <table>
               <thead>
@@ -281,6 +287,7 @@ function SubscriptionsPage() {
                   <th>NAME</th>
                   <th>DURATION (DAYS)</th>
                   <th>DESCRIPTION</th>
+                  <th className="text-right">ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
@@ -290,12 +297,26 @@ function SubscriptionsPage() {
                     <td>{type.name}</td>
                     <td>{type.duration}</td>
                     <td>{type.description}</td>
+                    <td>
+                      <div className="action-buttons action-buttons-right">
+                        <button
+                          type="button"
+                          className="subtype-action-btn"
+                          title="Edit"
+                          onClick={() => {
+                            setSelectedSubscriptionType(type);
+                            setShowEditTypeModal(true);
+                          }}
+                        >
+                          <img src={editIcon} alt="" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
 
-            {/* Pagination Footer */}
             <div className="table-footer">
               <p className="results-text">
                 Showing <span className="results-count">{subscriptionTypes.length}</span> results
@@ -331,6 +352,49 @@ function SubscriptionsPage() {
           subscription={selectedSubscriptionForPause}
           onClose={handleClosePauseModal}
           onPause={handleSubmitPause}
+        />
+      )}
+
+      {showAddTypeModal && (
+        <AddSubscriptionTypeModal
+          onClose={() => setShowAddTypeModal(false)}
+          onSubmit={({ name, durationDays, description }) => {
+            const nextNumber = subscriptionTypes.length + 1;
+            const id = `ST${String(nextNumber).padStart(3, '0')}`;
+            setSubscriptionTypes((prev) => [
+              ...prev,
+              {
+                id,
+                name,
+                duration: durationDays,
+                description,
+              },
+            ]);
+          }}
+        />
+      )}
+
+      {showEditTypeModal && selectedSubscriptionType && (
+        <EditSubscriptionTypeModal
+          type={selectedSubscriptionType}
+          onClose={() => {
+            setShowEditTypeModal(false);
+            setSelectedSubscriptionType(null);
+          }}
+          onSubmit={({ id, name, durationDays, description }) => {
+            setSubscriptionTypes((prev) =>
+              prev.map((t) =>
+                t.id === id
+                  ? {
+                      ...t,
+                      name,
+                      duration: durationDays,
+                      description,
+                    }
+                  : t
+              )
+            );
+          }}
         />
       )}
     </div>
