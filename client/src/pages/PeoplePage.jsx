@@ -192,6 +192,8 @@ export default function PeoplePage() {
 
       // Person linkage
       personId: person?.id ?? person?._id ?? e?.PersonID,
+  // Person business ID (PER####) when available (needed for Card.OwnerID)
+  personBusinessId: person?.ID,
 
       // UI fields expected by existing components
       name: fullName,

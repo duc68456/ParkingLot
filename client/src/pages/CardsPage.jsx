@@ -445,12 +445,22 @@ function CardsPage() {
   const handleAssignCard = (assignData) => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/cards/${encodeURIComponent(assignData.cardId)}/assign`, {
+        const uidValue = String(assignData?.uid || '').trim();
+
+        // IMPORTANT:
+        // For newly purchased inventory cards, UID is blank until assignment-time scan.
+        // If we call the endpoint using the scanned UID in the URL, the server can't find
+        // the card yet (because it doesn't have that UID). So always target the selected
+        // card by its identifier (CardID or Mongo _id), and send the scanned UID in body.
+        const assignIdentifier = String(assignData.cardId);
+
+        const res = await fetch(`${API_BASE_URL}/api/cards/${encodeURIComponent(assignIdentifier)}/assign`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...authHeaders },
           body: JSON.stringify({
             type: 'customer',
-            personId: assignData.personId
+            personId: assignData.personId,
+            uid: uidValue || undefined
           })
         });
 
@@ -467,7 +477,7 @@ function CardsPage() {
         }
 
         handleCloseAssignModal();
-        window.alert(`Card ${assignData.cardId} assigned successfully!`);
+        window.alert(`Card ${assignIdentifier} assigned successfully!`);
       } catch (err) {
         console.error('Assign card error:', err);
         window.alert(err?.message || 'Failed to assign card');

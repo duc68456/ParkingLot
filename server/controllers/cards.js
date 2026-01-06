@@ -246,12 +246,26 @@ cardsRouter.post('/', async (req, res) => {
     } = req.body
 
     // Validate required fields
-    if (!CardCategoryID || !UID) {
+    if (!CardCategoryID) {
       return res.status(400).json({
         success: false,
         error: {
-          message: 'CardCategoryID and UID are required',
+          message: 'CardCategoryID is required',
           code: 'MISSING_REQUIRED_FIELDS'
+        }
+      })
+    }
+
+    // UID is required when creating an already-active/assigned card (e.g. employee card flow).
+    // Inventory purchase flow creates cards with blank UID.
+    const normalizedStatus = Status ? String(Status).toUpperCase() : ''
+    const requiresUid = Boolean(OwnerID) || normalizedStatus === 'ACTIVE'
+    if (requiresUid && !UID) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'UID is required for active/assigned cards',
+          code: 'UID_REQUIRED'
         }
       })
     }
@@ -268,16 +282,18 @@ cardsRouter.post('/', async (req, res) => {
       })
     }
 
-    // Check if UID already exists
-    const existingCard = await Card.findOne({ UID })
-    if (existingCard) {
-      return res.status(409).json({
-        success: false,
-        error: {
-          message: 'Card with this UID already exists',
-          code: 'DUPLICATE_UID'
-        }
-      })
+    // Check if UID already exists (only when provided)
+    if (UID) {
+      const existingCard = await Card.findOne({ UID })
+      if (existingCard) {
+        return res.status(409).json({
+          success: false,
+          error: {
+            message: 'Card with this UID already exists',
+            code: 'DUPLICATE_UID'
+          }
+        })
+      }
     }
 
     // Validate OwnerID if provided
@@ -313,8 +329,8 @@ cardsRouter.post('/', async (req, res) => {
       OwnerID: OwnerID || null,
       ActiveDay: ActiveDay || new Date(),
       ExpireDay: ExpireDay || null,
-      UID,
-      Status: Status ? String(Status).toUpperCase() : undefined,
+      UID: UID || null,
+      Status: normalizedStatus || undefined,
       UIDScannedAt: UIDScannedAt || null,
       UIDScannedBy: UIDScannedBy || null
     })
@@ -350,11 +366,11 @@ cardsRouter.post('/', async (req, res) => {
 })
 
 // POST - Assign card to a customer
-// Accepts either Mongo _id or business CardID in :id
+// Accepts Mongo _id, business CardID, or UID in :id
 // Body: { personId: 'PER0001' } (type can be provided but will be ignored unless it's 'customer')
 cardsRouter.post('/:id/assign', async (req, res) => {
   try {
-    const { type, personId } = req.body || {}
+    const { type, personId, uid } = req.body || {}
     const assignType = String(type || '').toLowerCase()
 
     if (!personId) {
@@ -377,10 +393,13 @@ cardsRouter.post('/:id/assign', async (req, res) => {
       })
     }
 
-    // Locate card by Mongo _id first, then by business CardID.
+    // Locate card by Mongo _id first, then by business CardID, then by UID.
     let card = await Card.findById(req.params.id).catch(() => null)
     if (!card) {
       card = await Card.findOne({ CardID: req.params.id })
+    }
+    if (!card) {
+      card = await Card.findOne({ UID: String(req.params.id) })
     }
 
     if (!card) {
@@ -429,7 +448,37 @@ cardsRouter.post('/:id/assign', async (req, res) => {
 
     // Apply assignment
     card.OwnerID = String(personId)
-    // If RFID not yet scanned/written, keep it pending; else activate.
+
+    // If UID is not yet known, allow providing it at assignment time (scan/type).
+    if (!card.UID) {
+      const nextUid = String(uid || '').trim()
+      if (!nextUid) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            message: 'uid is required to assign a card without UID',
+            code: 'UID_REQUIRED'
+          }
+        })
+      }
+
+      // Ensure UID not already used by another card.
+      const existing = await Card.findOne({ UID: nextUid })
+      if (existing) {
+        return res.status(409).json({
+          success: false,
+          error: {
+            message: 'UID already exists',
+            code: 'UID_ALREADY_EXISTS'
+          }
+        })
+      }
+
+      card.UID = nextUid
+      card.UIDScannedAt = new Date()
+    }
+
+    // If RFID is now present, activate; otherwise keep pending.
     card.Status = card.UID ? 'ACTIVE' : 'PENDING_RFID'
     if (!card.ActiveDay) card.ActiveDay = new Date()
 

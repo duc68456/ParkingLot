@@ -126,6 +126,42 @@
   color: #314158;
 }
 
+.assign-card-required {
+  color: #fb2c36;
+  margin-left: 2px;
+}
+
+.assign-card-input {
+  height: 41.6px;
+  background: #ffffff;
+  border: 0.8px solid #cad5e2;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-family: 'Cousine', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  font-size: 14px;
+  color: #0a0a0a;
+  outline: none;
+}
+
+.assign-card-input:hover {
+  border-color: #155dfc;
+}
+
+.assign-card-input:focus {
+  border-color: #155dfc;
+  box-shadow: 0 0 0 3px rgba(21, 93, 252, 0.1);
+}
+
+.assign-card-help {
+  margin: 0;
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+  color: #62748e;
+}
+
 .assign-card-select {
   height: 41.6px;
   background: #ffffff;

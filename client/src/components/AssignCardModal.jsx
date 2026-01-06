@@ -17,6 +17,8 @@ function AssignCardModal({ card, onClose, onAssign, defaultAssignType = '', defa
 
   const [selectedAssignKey, setSelectedAssignKey] = useState(initialAssignKey);
 
+  const [cardUid, setCardUid] = useState('');
+
   const [peopleLoading, setPeopleLoading] = useState(false);
   const [peopleError, setPeopleError] = useState('');
   const [customers, setCustomers] = useState([]);
@@ -69,6 +71,14 @@ function AssignCardModal({ card, onClose, onAssign, defaultAssignType = '', defa
     return () => controller.abort();
   }, [authHeaders]);
 
+  // Keep the UID field prefilled when opening the modal or when card changes.
+  useEffect(() => {
+    const nextUid = String(card?.uid || card?.UID || card?.Uid || '').trim();
+    // When purchasing cards, UID can legitimately be blank until scanned.
+    // Keep the field empty in that case so the user can scan/type the real UID.
+    setCardUid(nextUid);
+  }, [card]);
+
   const peopleOptions = useMemo(() => {
     const customerOptions = customers.map((c) => ({
       key: `customer:${c.id}`,
@@ -88,8 +98,13 @@ function AssignCardModal({ card, onClose, onAssign, defaultAssignType = '', defa
 
   const handleAssign = () => {
     if (!selectedPersonMeta) return;
+
+    const uidValue = String(cardUid || '').trim();
+    if (!uidValue) return;
+
     onAssign({
       cardId: card.id,
+      uid: uidValue,
       personId: selectedPersonMeta.id,
       type: selectedPersonMeta.type,
     });
@@ -120,7 +135,7 @@ function AssignCardModal({ card, onClose, onAssign, defaultAssignType = '', defa
                 <img src={cardIcon} alt="" />
               </div>
               <div className="assign-card-cardinfo-text">
-                <div className="assign-card-carduid" title={card.uid || ''}>{card.id}</div>
+                <div className="assign-card-carduid" title={card.uid || ''}>{card.uid || card.id}</div>
                 <div className="assign-card-cardcat">{card.category}</div>
               </div>
             </div>
@@ -131,6 +146,21 @@ function AssignCardModal({ card, onClose, onAssign, defaultAssignType = '', defa
               {peopleError}
             </div>
           ) : null}
+
+          <div className="assign-card-fieldblock">
+            <label className="assign-card-label">
+              Card UID<span className="assign-card-required">*</span>
+            </label>
+            <input
+              className="assign-card-input"
+              value={cardUid}
+              onChange={(e) => setCardUid(e.target.value)}
+              placeholder="UID-123458"
+              inputMode="text"
+              autoComplete="off"
+            />
+            <p className="assign-card-help">Enter the card UID manually or use a card reader to scan it</p>
+          </div>
 
           <div className="assign-card-fieldblock">
             <label className="assign-card-label">Assign To</label>
@@ -158,7 +188,7 @@ function AssignCardModal({ card, onClose, onAssign, defaultAssignType = '', defa
             className="assign-card-assign"
             type="button"
             onClick={handleAssign}
-            disabled={!selectedPersonMeta}
+            disabled={!selectedPersonMeta || !String(cardUid || '').trim()}
           >
             Assign Card
           </button>

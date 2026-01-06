@@ -499,7 +499,7 @@ cardPurchaseInvoicesRouter.post('/:id/confirm-payment', async (req, res) => {
         })
       }
 
-      // Create fresh inventory cards (UNASSIGNED, no owner, no UID yet)
+  // Create fresh inventory cards (UNASSIGNED, no owner, UID not known yet)
       // based on quantities per purchased card category.
       let nextCardId = await generateNextCardId(session)
       let nextCardSeq = parseInt(nextCardId.substring(3))
@@ -515,7 +515,8 @@ cardPurchaseInvoicesRouter.post('/:id/confirm-payment', async (req, res) => {
             OwnerID: null,
             ActiveDay: new Date(),
             ExpireDay: null,
-            UID: `UNASSIGNED-${invoice.ID}-${d.CardCategoryID}-${i}-${Date.now()}-${Math.random().toString(16).slice(2)}`.slice(0, 64),
+            // UID will be scanned/entered later during assignment.
+            UID: null,
             Status: 'UNASSIGNED',
             UIDScannedAt: null,
             UIDScannedBy: null

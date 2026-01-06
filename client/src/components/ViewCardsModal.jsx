@@ -1,6 +1,9 @@
 import '../styles/components/ViewCardsModal.css';
 import { useEffect, useState } from 'react';
 import AddEmployeeCardModal from './AddEmployeeCardModal';
+import { useAuth } from '../contexts/AuthContext';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 const closeIcon = "http://localhost:3845/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
 const cardIcon = "http://localhost:3845/assets/923d46cce1e4af18f527473ac71c6e5e36154ca6.svg";
@@ -10,6 +13,8 @@ const listCardIcon = "http://localhost:3845/assets/037bbde1a147a4d17c55cfd547055
 
 export default function ViewCardsModal({ customer, cards, onClose, loading = false, error = '' }) {
   if (!customer || !Array.isArray(cards)) return null;
+
+  const { authHeaders } = useAuth();
 
   const [showAddCardModal, setShowAddCardModal] = useState(false);
   const [localCards, setLocalCards] = useState(cards);
@@ -35,7 +40,11 @@ export default function ViewCardsModal({ customer, cards, onClose, loading = fal
 
   const hasActiveCard = localCards.some((c) => (c.status || '').toLowerCase() === 'active');
 
-  const isEmployeeFlow = (customer?.role || customer?.type || '').toLowerCase() === 'employee';
+  // Employee records in this app often come in as { ID: 'EMP0001', ... } without role/type.
+  // Use a robust heuristic so employee cards modal shows the Add Card UI reliably.
+  const isEmployeeFlow =
+    (customer?.role || customer?.type || '').toLowerCase() === 'employee' ||
+    String(customer?.ID || customer?.id || '').toUpperCase().startsWith('EMP');
 
   const handleAddCard = () => {
     if (hasActiveCard) return;
@@ -47,28 +56,104 @@ export default function ViewCardsModal({ customer, cards, onClose, loading = fal
   };
 
   const handleCreateCard = (payload) => {
-    // TODO: Wire to backend/API. For now just log for visibility.
-    console.log('Create & assign card:', payload);
+    (async () => {
+      try {
+        // Employee flow contract:
+        // - OwnerID must be the Person business ID (PER####)
+        // - Category must be 'Staff'
+        // - UID is required for staff cards (scanned at creation)
+        const uidValue = String(payload?.uid || '').trim();
+        if (!uidValue) throw new Error('Card UID is required');
 
-    // Update list immediately so the new card shows up when returning to the list.
-    const nextCardId = `CARD-${String(localCards.length + 1).padStart(3, '0')}`;
-    const expiryDate = payload.expiryDate
-      ? new Date(payload.expiryDate).toLocaleDateString('en-GB')
-      : '-';
+  const ownerPersonBusinessId = String(customer?.PersonBusinessId || customer?.personBusinessId || '').trim();
+        // normalizeEmployee provides personId as Mongo ObjectId, but OwnerID in Card is Person.ID (PER####).
+        // So try to use a PER#### field if already present; otherwise we cannot proceed safely.
+        const ownerId = /^PER\d{4}$/i.test(ownerPersonBusinessId)
+          ? ownerPersonBusinessId.toUpperCase()
+          : null;
 
-    setLocalCards((prev) => [
-      ...prev,
-      {
-        cardId: nextCardId,
-        uid: payload.uid,
-        status: payload.status || 'Active',
-        expiryDate
+        if (!ownerId) {
+          throw new Error('Missing employee Person business ID (PER####) for card owner');
+        }
+
+        // Find Staff category business ID (CardCategory.ID) by name.
+        const catsRes = await fetch(`${API_BASE_URL}/api/card-categories?limit=200`, {
+          headers: { ...authHeaders }
+        });
+        const catsJson = await catsRes.json().catch(() => null);
+        if (!catsRes.ok) {
+          const msg = catsJson?.error?.message || `Failed to load categories (${catsRes.status})`;
+          throw new Error(msg);
+        }
+
+        const cats = Array.isArray(catsJson?.data?.cardCategories) ? catsJson.data.cardCategories : [];
+        const staffCat = cats.find((c) => String(c?.Name || '').trim().toLowerCase() === 'staff');
+        const staffCategoryId = staffCat?.ID;
+        if (!staffCategoryId) {
+          throw new Error("Card category 'Staff' not found");
+        }
+
+        // Create card (server will generate CardID).
+        const createRes = await fetch(`${API_BASE_URL}/api/cards`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
+          body: JSON.stringify({
+            CardCategoryID: staffCategoryId,
+            OwnerID: ownerId,
+            UID: uidValue,
+            Status: 'ACTIVE',
+            ExpireDay: payload?.expiryDate || null,
+            UIDScannedAt: new Date().toISOString()
+          })
+        });
+        const createJson = await createRes.json().catch(() => null);
+        if (!createRes.ok) {
+          const msg = createJson?.error?.message || `Create card failed (${createRes.status})`;
+          throw new Error(msg);
+        }
+
+        // Refresh cards list for this employee (ownerId is PER####)
+        const cardsRes = await fetch(`${API_BASE_URL}/api/cards?limit=200&ownerId=${encodeURIComponent(ownerId)}`, {
+          headers: { ...authHeaders }
+        });
+        const cardsJson = await cardsRes.json().catch(() => null);
+        if (!cardsRes.ok) {
+          const msg = cardsJson?.error?.message || `Failed to refresh cards (${cardsRes.status})`;
+          throw new Error(msg);
+        }
+
+        const items = Array.isArray(cardsJson?.data?.items) ? cardsJson.data.items : [];
+        const normalized = items.map((c) => {
+          const categoryName = c?.CardCategoryID?.Name || c?.CardCategoryID?.ID || c?.CardCategoryID;
+          const rawStatus = String(c?.Status || '');
+          const status = rawStatus
+            ? rawStatus.charAt(0) + rawStatus.slice(1).toLowerCase().replace(/_(.)/g, (_, ch) => ` ${ch.toUpperCase()}`)
+            : '-';
+
+          const expiryDate = c?.ExpireDay
+            ? (() => {
+              const d = new Date(c.ExpireDay);
+              if (Number.isNaN(d.getTime())) return '-';
+              return d.toLocaleDateString('en-GB');
+            })()
+            : '-';
+
+          return {
+            cardId: c?.CardID || c?.id || c?._id,
+            uid: c?.UID,
+            status,
+            expiryDate,
+            category: categoryName || '-'
+          };
+        });
+
+        setLocalCards(normalized);
+        handleCloseAddCardModal();
+      } catch (err) {
+        console.error('Create employee card error:', err);
+        window.alert(err?.message || 'Failed to create employee card');
       }
-    ]);
-
-    handleCloseAddCardModal();
-    // In the real flow we'd refresh cards. For now, we keep the cards modal visible
-    // again after creating (per the requested UX).
+    })();
   };
 
   const formatExpiryDate = (value) => {
@@ -89,7 +174,7 @@ export default function ViewCardsModal({ customer, cards, onClose, loading = fal
         <>
           <div className="view-cards-overlay" onClick={handleOverlayClick}></div>
           <div className="view-cards-modal-wrapper">
-            <div className="view-cards-modal">
+            <div className={`view-cards-modal ${isEmployeeFlow ? 'view-cards-modal--employee' : ''}`}>
               <div className="view-cards-header">
                 <h3 className="view-cards-title">Cards - {customer.name}</h3>
                 <button className="view-cards-close-btn" onClick={onClose}>
@@ -113,7 +198,7 @@ export default function ViewCardsModal({ customer, cards, onClose, loading = fal
                 )}
 
                 {isEmployeeFlow && (
-                  <div className="view-cards-toolbar">
+                  <div className="view-cards-employee-topbar">
                     <button
                       className="view-cards-add-btn"
                       onClick={handleAddCard}
@@ -134,7 +219,7 @@ export default function ViewCardsModal({ customer, cards, onClose, loading = fal
                     <p className="view-cards-empty-title">{error}</p>
                   </div>
                 ) : localCards.length === 0 ? (
-                  <div className="view-cards-empty">
+                  <div className={`view-cards-empty ${isEmployeeFlow ? 'view-cards-empty--employee' : ''}`}>
                     <div className="view-cards-empty-icon" aria-hidden="true">
                       <img src={cardIcon} alt="" />
                     </div>

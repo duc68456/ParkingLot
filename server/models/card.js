@@ -15,7 +15,7 @@ const CARD_STATUSES = [
 const cardSchema = new mongoose.Schema({
   CardID: {
     type: String,
-    required: true,
+    required: false,
     unique: true,
     index: true,
     match: /^CRD\d{4}$/
@@ -41,8 +41,6 @@ const cardSchema = new mongoose.Schema({
   },
   UID: {
     type: String,
-    required: true,
-    unique: true,
     trim: true,
     maxLength: 64
   },
@@ -74,6 +72,17 @@ const cardSchema = new mongoose.Schema({
 
 // Indexes similar to dbdiagram
 cardSchema.index({ OwnerID: 1, Status: 1 })
+
+// Enforce UID uniqueness only when it's actually set.
+// This supports the workflow where cards enter inventory with blank UID and get scanned later.
+cardSchema.index(
+  { UID: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { UID: { $type: 'string' } }
+  }
+)
+
 cardSchema.index({ UID: 1, Status: 1 })
 
 // Auto-generate CardID before saving

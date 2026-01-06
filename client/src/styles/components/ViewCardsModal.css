@@ -41,6 +41,11 @@
   overflow: hidden;
 }
 
+/* Employee flow (Figma node 307:386) */
+.view-cards-modal--employee {
+  height: 466px;
+}
+
 /* Header */
 .view-cards-header {
   display: flex;
@@ -88,6 +93,12 @@
   padding: 24px;
   overflow-y: auto;
   flex: 1;
+}
+
+.view-cards-employee-topbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
 }
 
 /* Keep the modal height tight like Figma (2 items visible) */
@@ -167,6 +178,10 @@
   transition: filter 0.2s, transform 0.05s;
 }
 
+.view-cards-modal--employee .view-cards-add-btn {
+  border-radius: 12px;
+}
+
 .view-cards-add-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -229,6 +244,10 @@
   justify-content: center;
   text-align: center;
   gap: 8px;
+}
+
+.view-cards-empty--employee {
+  height: 262px;
 }
 
 .view-cards-empty-icon {

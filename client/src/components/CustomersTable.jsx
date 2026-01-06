@@ -76,14 +76,14 @@ export default function CustomersTable({ customers, phoneIcon, onView, onViewCar
     registered: customer.registered,
     actions: (
       <div className="table-actions">
+        <button className="action-btn" onClick={() => handleManageCards(customer)} title="View Cards">
+          <img src={cardIcon} alt="Cards" />
+        </button>
         <button className="action-btn" onClick={() => handleView(customer)} title="View">
           <img src={eyeIcon} alt="View" />
         </button>
         <button className="action-btn" onClick={() => handleEdit(customer)} title="Edit">
           <img src={editIcon} alt="Edit" />
-        </button>
-        <button className="action-btn" onClick={() => handleManageCards(customer)} title="Manage Cards">
-          <img src={cardIcon} alt="Cards" />
         </button>
         <button className="action-btn" onClick={() => handleDelete(customer)} title="Delete">
           <img src={deleteIcon} alt="Delete" />
