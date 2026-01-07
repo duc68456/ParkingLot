@@ -3,7 +3,7 @@ const mongoose = require('mongoose')
 const subscriptionPricingRuleDetailSchema = new mongoose.Schema({
   ID: {
     type: String,
-    required: true,
+    required: false,
     unique: true,
     index: true,
     match: /^SPD\d{4}$/
@@ -61,7 +61,10 @@ subscriptionPricingRuleDetailSchema.pre('save', async function (next) {
 // Configure toJSON
 subscriptionPricingRuleDetailSchema.set('toJSON', {
   transform: (document, returnedObject) => {
-    returnedObject.id = returnedObject._id.toString()
+    // Preserve business ID and expose mongo id separately
+    returnedObject.mongoId = returnedObject._id.toString()
+    // Keep `id` as a stable identifier for clients; prefer business ID when available
+    returnedObject.id = returnedObject.ID || returnedObject._id.toString()
     delete returnedObject._id
     delete returnedObject.__v
   }

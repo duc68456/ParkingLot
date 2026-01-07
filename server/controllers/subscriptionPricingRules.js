@@ -1,8 +1,12 @@
 const subscriptionPricingRulesRouter = require('express').Router()
 const SubscriptionPricingRule = require('../models/subscriptionPricingRule')
+const SubscriptionPricingRuleDetail = require('../models/subscriptionPricingRuleDetail')
 const CardCategory = require('../models/cardCategory')
 const VehicleType = require('../models/vehicleType')
 const SubscriptionType = require('../models/subscriptionType')
+const mongoose = require('mongoose')
+
+const isObjectId = (value) => mongoose.Types.ObjectId.isValid(value)
 
 // GET all subscription pricing rules with filtering and pagination
 subscriptionPricingRulesRouter.get('/', async (req, res) => {
@@ -18,15 +22,30 @@ subscriptionPricingRulesRouter.get('/', async (req, res) => {
     const filter = {}
 
     if (cardCategoryId) {
-      filter.CardCategoryID = cardCategoryId
+      if (isObjectId(cardCategoryId)) {
+        filter.CardCategoryID = cardCategoryId
+      } else {
+        const cc = await CardCategory.findOne({ ID: cardCategoryId }).select('_id')
+        if (cc?._id) filter.CardCategoryID = cc._id
+      }
     }
 
     if (vehicleTypeId) {
-      filter.VehicleTypeID = vehicleTypeId
+      if (isObjectId(vehicleTypeId)) {
+        filter.VehicleTypeID = vehicleTypeId
+      } else {
+        const vt = await VehicleType.findOne({ VehicleTypeID: vehicleTypeId }).select('_id')
+        if (vt?._id) filter.VehicleTypeID = vt._id
+      }
     }
 
     if (subscriptionTypeId) {
-      filter.SubscriptionTypeID = subscriptionTypeId
+      if (isObjectId(subscriptionTypeId)) {
+        filter.SubscriptionTypeID = subscriptionTypeId
+      } else {
+        const st = await SubscriptionType.findOne({ ID: subscriptionTypeId }).select('_id')
+        if (st?._id) filter.SubscriptionTypeID = st._id
+      }
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit)
@@ -67,8 +86,12 @@ subscriptionPricingRulesRouter.get('/', async (req, res) => {
 // GET single subscription pricing rule by ID
 subscriptionPricingRulesRouter.get('/:id', async (req, res) => {
   try {
+    const idOrBusinessId = req.params.id
     const rule = await SubscriptionPricingRule
-      .findById(req.params.id)
+      .findOne(mongoose.Types.ObjectId.isValid(idOrBusinessId)
+        ? { _id: idOrBusinessId }
+        : { ID: idOrBusinessId }
+      )
       .populate('CardCategoryID', 'ID Name')
       .populate('VehicleTypeID', 'VehicleTypeID Name')
       .populate('SubscriptionTypeID', 'ID TypeName DurationDays Description')
@@ -103,11 +126,33 @@ subscriptionPricingRulesRouter.get('/find/:cardCategoryId/:vehicleTypeId/:subscr
   try {
     const { cardCategoryId, vehicleTypeId, subscriptionTypeId } = req.params
 
+    const cardCategory = isObjectId(cardCategoryId)
+      ? await CardCategory.findById(cardCategoryId)
+      : await CardCategory.findOne({ ID: cardCategoryId })
+
+    const vehicleType = isObjectId(vehicleTypeId)
+      ? await VehicleType.findById(vehicleTypeId)
+      : await VehicleType.findOne({ VehicleTypeID: vehicleTypeId })
+
+    const subscriptionType = isObjectId(subscriptionTypeId)
+      ? await SubscriptionType.findById(subscriptionTypeId)
+      : await SubscriptionType.findOne({ ID: subscriptionTypeId })
+
+    if (!cardCategory || !vehicleType || !subscriptionType) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          message: 'CardCategory, VehicleType, or SubscriptionType not found',
+          code: 'RELATED_ENTITY_NOT_FOUND'
+        }
+      })
+    }
+
     const rule = await SubscriptionPricingRule
       .findOne({
-        CardCategoryID: cardCategoryId,
-        VehicleTypeID: vehicleTypeId,
-        SubscriptionTypeID: subscriptionTypeId
+        CardCategoryID: cardCategory._id,
+        VehicleTypeID: vehicleType._id,
+        SubscriptionTypeID: subscriptionType._id
       })
       .populate('CardCategoryID', 'ID Name')
       .populate('VehicleTypeID', 'VehicleTypeID Name')
@@ -155,7 +200,9 @@ subscriptionPricingRulesRouter.post('/', async (req, res) => {
     }
 
     // Check if CardCategory exists
-    const cardCategory = await CardCategory.findOne({ ID: CardCategoryID })
+    const cardCategory = isObjectId(CardCategoryID)
+      ? await CardCategory.findById(CardCategoryID)
+      : await CardCategory.findOne({ ID: CardCategoryID })
     if (!cardCategory) {
       return res.status(404).json({
         success: false,
@@ -167,7 +214,9 @@ subscriptionPricingRulesRouter.post('/', async (req, res) => {
     }
 
     // Check if VehicleType exists
-    const vehicleType = await VehicleType.findOne({ VehicleTypeID })
+    const vehicleType = isObjectId(VehicleTypeID)
+      ? await VehicleType.findById(VehicleTypeID)
+      : await VehicleType.findOne({ VehicleTypeID })
     if (!vehicleType) {
       return res.status(404).json({
         success: false,
@@ -179,7 +228,9 @@ subscriptionPricingRulesRouter.post('/', async (req, res) => {
     }
 
     // Check if SubscriptionType exists
-    const subscriptionType = await SubscriptionType.findOne({ ID: SubscriptionTypeID })
+    const subscriptionType = isObjectId(SubscriptionTypeID)
+      ? await SubscriptionType.findById(SubscriptionTypeID)
+      : await SubscriptionType.findOne({ ID: SubscriptionTypeID })
     if (!subscriptionType) {
       return res.status(404).json({
         success: false,
@@ -192,9 +243,9 @@ subscriptionPricingRulesRouter.post('/', async (req, res) => {
 
     // Check if combination already exists
     const existingRule = await SubscriptionPricingRule.findOne({
-      CardCategoryID,
-      VehicleTypeID,
-      SubscriptionTypeID
+      CardCategoryID: cardCategory._id,
+      VehicleTypeID: vehicleType._id,
+      SubscriptionTypeID: subscriptionType._id
     })
 
     if (existingRule) {
@@ -208,9 +259,9 @@ subscriptionPricingRulesRouter.post('/', async (req, res) => {
     }
 
     const rule = new SubscriptionPricingRule({
-      CardCategoryID,
-      VehicleTypeID,
-      SubscriptionTypeID
+      CardCategoryID: cardCategory._id,
+      VehicleTypeID: vehicleType._id,
+      SubscriptionTypeID: subscriptionType._id
     })
 
     const savedRule = await rule.save()
@@ -242,7 +293,12 @@ subscriptionPricingRulesRouter.post('/', async (req, res) => {
 // DELETE - Hard delete subscription pricing rule
 subscriptionPricingRulesRouter.delete('/:id', async (req, res) => {
   try {
-    const rule = await SubscriptionPricingRule.findById(req.params.id)
+    const idParam = req.params.id
+    const looksLikeObjectId = (value) => typeof value === 'string' && /^[a-f\d]{24}$/i.test(value)
+
+    const rule = looksLikeObjectId(idParam)
+      ? await SubscriptionPricingRule.findById(idParam)
+      : await SubscriptionPricingRule.findOne({ ID: idParam })
     if (!rule) {
       return res.status(404).json({
         success: false,
@@ -253,7 +309,12 @@ subscriptionPricingRulesRouter.delete('/:id', async (req, res) => {
       })
     }
 
-    await SubscriptionPricingRule.findByIdAndDelete(req.params.id)
+    // Delete dependent pricing details first (they reference the rule by business ID)
+    if (rule.ID) {
+      await SubscriptionPricingRuleDetail.deleteMany({ SubscriptionPricingRuleID: rule.ID })
+    }
+
+    await SubscriptionPricingRule.findByIdAndDelete(rule._id)
 
     res.json({
       success: true,

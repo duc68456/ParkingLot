@@ -3,7 +3,7 @@ const mongoose = require('mongoose')
 const subscriptionSchema = new mongoose.Schema({
   ID: {
     type: String,
-    required: true,
+    // Auto-generated in pre('save') hook
     unique: true,
     index: true,
     match: /^SSN\d{4}$/

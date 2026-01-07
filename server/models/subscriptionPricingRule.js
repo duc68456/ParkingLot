@@ -3,23 +3,23 @@ const mongoose = require('mongoose')
 const subscriptionPricingRuleSchema = new mongoose.Schema({
   ID: {
     type: String,
-    required: true,
+    required: false,
     unique: true,
     index: true,
     match: /^SPS\d{4}$/
   },
   CardCategoryID: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
     required: true,
     ref: 'CardCategory'
   },
   VehicleTypeID: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
     required: true,
     ref: 'VehicleType'
   },
   SubscriptionTypeID: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
     required: true,
     ref: 'SubscriptionType'
   }
@@ -52,7 +52,9 @@ subscriptionPricingRuleSchema.pre('save', async function (next) {
 // Configure toJSON
 subscriptionPricingRuleSchema.set('toJSON', {
   transform: (document, returnedObject) => {
-    returnedObject.id = returnedObject._id.toString()
+    // Preserve business ID and expose mongo id separately
+    returnedObject.mongoId = returnedObject._id.toString()
+    returnedObject.id = returnedObject.ID || returnedObject._id.toString()
     delete returnedObject._id
     delete returnedObject.__v
   }

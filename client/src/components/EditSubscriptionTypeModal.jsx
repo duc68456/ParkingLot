@@ -49,7 +49,7 @@ export default function EditSubscriptionTypeModal({ type, onClose, onSubmit }) {
 
     try {
       await onSubmit?.({
-        id: type?.id,
+        id: type?.id ?? type?._id,
         name: trimmedName,
         durationDays: Number(trimmedDuration),
         description: String(description ?? '').trim(),

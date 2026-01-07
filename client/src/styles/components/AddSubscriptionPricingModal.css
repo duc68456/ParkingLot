@@ -1,0 +1,244 @@
+/* Add Subscription Pricing Modal - matches Pricing Figma */
+
+.add-subscription-pricing-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+.add-subscription-pricing-wrapper {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.add-subscription-pricing-modal {
+  width: 672px;
+  max-width: 90vw;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+}
+
+.add-subscription-pricing-modal form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.add-subscription-pricing-header {
+  height: 68.8px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 0.8px solid #e2e8f0;
+}
+
+.add-subscription-pricing-title {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 28px;
+  color: #0f172b;
+  margin: 0;
+}
+
+.add-subscription-pricing-close-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  transition: background-color 0.2s;
+}
+
+.add-subscription-pricing-close-btn:hover {
+  background: #f1f5f9;
+}
+
+.add-subscription-pricing-close-btn:active {
+  background: #e2e8f0;
+}
+
+.add-subscription-pricing-body {
+  padding: 24px;
+}
+
+.add-subscription-pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.add-subscription-pricing-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.add-subscription-pricing-label {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #314158;
+}
+
+.add-subscription-pricing-select {
+  height: 41.6px;
+  padding: 10px 16px;
+  border: 0.8px solid #cad5e2;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #314158;
+  background: #ffffff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.add-subscription-pricing-select:focus {
+  outline: none;
+  border-color: #155dfc;
+  box-shadow: 0 0 0 3px rgba(21, 93, 252, 0.1);
+}
+
+.add-subscription-pricing-price-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.add-subscription-pricing-dollar {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #62748e;
+  pointer-events: none;
+}
+
+.add-subscription-pricing-price-input {
+  width: 100%;
+  height: 41.6px;
+  padding: 10px 16px 10px 32px;
+  border: 0.8px solid #cad5e2;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #314158;
+  background: #ffffff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.add-subscription-pricing-price-input::placeholder {
+  color: rgba(10, 10, 10, 0.5);
+}
+
+.add-subscription-pricing-price-input:focus {
+  outline: none;
+  border-color: #155dfc;
+  box-shadow: 0 0 0 3px rgba(21, 93, 252, 0.1);
+}
+
+.add-subscription-pricing-error {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 0.8px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-family: 'Arimo', sans-serif;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.add-subscription-pricing-footer {
+  height: 78.4px;
+  padding: 0.8px 24px 0;
+  background: #f8fafc;
+  border-top: 0.8px solid #e2e8f0;
+  border-radius: 0 0 16px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.add-subscription-pricing-cancel {
+  height: 45.6px;
+  padding: 0 20px;
+  background: #ffffff;
+  border: 0.8px solid #cad5e2;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #314158;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.add-subscription-pricing-cancel:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.add-subscription-pricing-submit {
+  height: 44px;
+  padding: 0 20px;
+  background: #155dfc;
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-subscription-pricing-submit:hover {
+  background: #1447e6;
+}
+
+.add-subscription-pricing-submit:disabled,
+.add-subscription-pricing-cancel:disabled,
+.add-subscription-pricing-select:disabled,
+.add-subscription-pricing-price-input:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+@media (max-width: 720px) {
+  .add-subscription-pricing-modal {
+    width: 448px;
+  }
+
+  .add-subscription-pricing-grid {
+    grid-template-columns: 1fr;
+  }
+}

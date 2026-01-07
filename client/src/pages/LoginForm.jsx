@@ -58,6 +58,8 @@ export default function LoginForm({ type }) {
             email: data?.Username ? `${data.Username}` : username,
             initials,
             id: data?.ID,
+            employeeId: data?.EmployeeID?.ID,
+            employeeMongoId: data?.EmployeeID?.id,
             type: 'admin'
           },
           'admin',

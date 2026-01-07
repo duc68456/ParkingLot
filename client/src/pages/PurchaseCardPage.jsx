@@ -31,7 +31,7 @@ const buildInitials = (fullName = '') => {
 };
 
 const normalizeCustomer = (c) => {
-  const person = c?.PersonID;
+  const person = c?.person ?? c?.PersonID;
   const fullName = person?.FullName || c?.FullName || '';
   const phone = person?.Phone || c?.Phone || '';
 

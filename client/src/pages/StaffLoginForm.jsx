@@ -57,6 +57,8 @@ export default function StaffLoginForm({ type }) {
             email: 'staff',
             initials,
             id: data?.ID,
+            employeeId: data?.EmployeeID?.ID,
+            employeeMongoId: data?.EmployeeID?.id,
             type: 'staff'
           },
           'staff',

@@ -1,63 +1,89 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import '../styles/pages/SubscriptionsPage.css';
 import RegisterSubscriptionModal from '../components/RegisterSubscriptionModal';
 import ViewSubscriptionModal from '../components/ViewSubscriptionModal';
 import PauseSubscriptionModal from '../components/PauseSubscriptionModal';
 import AddSubscriptionTypeModal from '../components/AddSubscriptionTypeModal';
 import EditSubscriptionTypeModal from '../components/EditSubscriptionTypeModal';
+import { useAuth } from '../contexts/AuthContext';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 const addIcon = "data:image/svg+xml,%3Csvg%20width%3D%2220%22height%3D%2220%22viewBox%3D%220%200%2020%2020%22fill%3D%22none%22xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M10%204.16667V15.8333M4.16667%2010H15.8333%22%20stroke%3D%22white%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E";
 const editIcon = "data:image/svg+xml,%3Csvg%20width%3D%2216%22height%3D%2216%22viewBox%3D%220%200%2016%2016%22fill%3D%22none%22xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M1.33337%2014.6667H4.00004L12.6667%206.00004C12.8435%205.82323%2012.9838%205.61333%2013.0794%205.38231C13.1751%205.15129%2013.2242%204.90369%2013.2242%204.65371C13.2242%204.40372%2013.1751%204.15612%2013.0794%203.9251C12.9838%203.69408%2012.8435%203.48418%2012.6667%203.30737L12.6927%203.33337C12.5159%203.15655%2012.306%203.01631%2012.0749%202.92064C11.8439%202.82497%2011.5963%202.77572%2011.3463%202.77572C11.0964%202.77572%2010.8488%202.82497%2010.6178%202.92064C10.3868%203.01631%2010.1769%203.15655%2010.0001%203.33337L1.33337%2012V14.6667Z%22%20stroke%3D%22155DFC%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E";
 
-// Mock data for subscriptions
-const mockSubscriptions = [
-  {
-    id: 'SUB001',
-    customerName: 'John Doe',
-    vehiclePlate: 'ABC-1234',
-    type: 'Monthly',
-    startDate: '01/01/2024',
-    endDate: '31/01/2024',
-    status: 'Active'
-  },
-  {
-    id: 'SUB002',
-    customerName: 'Jane Smith',
-    vehiclePlate: 'XYZ-5678',
-    type: 'Quarterly',
-    startDate: '01/01/2024',
-    endDate: '31/03/2024',
-    status: 'Active'
-  }
-];
+const formatDate = (value) => {
+  if (!value) return '--';
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return '--';
+  return d.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+};
 
-// Mock data for subscription types
-const mockSubscriptionTypes = [
-  {
-    id: 'ST001',
-    name: 'Monthly',
-    duration: 30,
-    description: '30-day parking access'
-  },
-  {
-    id: 'ST002',
-    name: 'Quarterly',
-    duration: 90,
-    description: '90-day parking access'
-  },
-  {
-    id: 'ST003',
-    name: 'Annual',
-    duration: 365,
-    description: 'Full year parking access'
-  }
-];
+const normalizeSubscription = (s) => {
+  if (!s) return null;
+
+  const customerPerson = s?.CustomerID?.PersonID;
+  const customerName =
+    customerPerson?.FullName ||
+    customerPerson?.fullName ||
+    customerPerson?.name ||
+    '—';
+
+  const vehicle = s?.VehicleID;
+  const vehiclePlate = vehicle?.PlateNumber || vehicle?.plateNumber || '—';
+
+  const subType = s?.SubscriptionTypeID;
+  const typeName = subType?.TypeName || subType?.typeName || '—';
+
+  const isSuspended = Boolean(s?.IsSuspended);
+
+  return {
+    // Mongo id (router uses findById)
+    id: s?.id ?? s?._id,
+    // Business ID (SSN0001)
+    subscriptionId: s?.ID,
+    customerName,
+    customerId: s?.CustomerID?.ID || s?.CustomerID || null,
+    vehicleId: vehicle?.VehicleID || s?.VehicleID || null,
+    vehiclePlate,
+    cardId: s?.CardID?.CardID || s?.CardID || null,
+    type: typeName,
+    startDate: formatDate(s?.StartDate),
+    endDate: formatDate(s?.EndDate),
+    price: Number.isFinite(Number(s?.PricePaid)) ? Number(s.PricePaid) : null,
+    status: isSuspended ? 'Paused' : 'Active'
+  };
+};
+
+const normalizeSubscriptionType = (t) => {
+  if (!t) return null;
+  return {
+    // Backend has a business ID (field `ID` like SUB0001) and also Mongo id (`id` after toJSON)
+    // - `mongoId`: used for API operations (PUT/DELETE by :id)
+    // - `id`: displayed in the table
+    mongoId: t.id ?? t._id,
+    id: t.ID ?? t.id ?? t._id,
+    // Keep display-friendly legacy fields expected by UI
+    name: t.TypeName ?? t.name ?? '',
+    duration: t.DurationDays ?? t.duration ?? 0,
+    description: t.Description ?? t.description ?? ''
+  };
+};
 
 function SubscriptionsPage() {
+  const { authHeaders } = useAuth();
   const [activeTab, setActiveTab] = useState('subscriptions');
   const [searchQuery, setSearchQuery] = useState('');
-  const [subscriptions, setSubscriptions] = useState(mockSubscriptions);
-  const [subscriptionTypes, setSubscriptionTypes] = useState(mockSubscriptionTypes);
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [subsLoading, setSubsLoading] = useState(false);
+  const [subsError, setSubsError] = useState('');
+  const [subscriptionTypes, setSubscriptionTypes] = useState([]);
+  const [typesLoading, setTypesLoading] = useState(false);
+  const [typesError, setTypesError] = useState('');
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedSubscription, setSelectedSubscription] = useState(null);
@@ -66,6 +92,96 @@ function SubscriptionsPage() {
   const [showAddTypeModal, setShowAddTypeModal] = useState(false);
   const [showEditTypeModal, setShowEditTypeModal] = useState(false);
   const [selectedSubscriptionType, setSelectedSubscriptionType] = useState(null);
+
+  const fetchSubscriptions = async ({ query } = {}) => {
+    setSubsLoading(true);
+    setSubsError('');
+
+    try {
+      // Server currently supports filtering by IDs; it doesn't have a generic 'search' yet.
+      // We'll still fetch a reasonable limit and do client-side filter by text.
+      const qs = new URLSearchParams({ limit: '200' });
+      const res = await fetch(`${API_BASE_URL}/api/subscriptions?${qs.toString()}`, {
+        headers: { ...authHeaders }
+      });
+
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = json?.error?.message || `Failed to fetch subscriptions (${res.status})`;
+        throw new Error(msg);
+      }
+
+      const list = Array.isArray(json?.data?.items)
+        ? json.data.items
+        : Array.isArray(json?.data)
+          ? json.data
+          : [];
+
+      const normalized = list.map(normalizeSubscription).filter(Boolean);
+      const q = String(query ?? '').trim().toLowerCase();
+      if (!q) {
+        setSubscriptions(normalized);
+      } else {
+        setSubscriptions(
+          normalized.filter((s) =>
+            String(s?.subscriptionId || '').toLowerCase().includes(q) ||
+            String(s?.customerName || '').toLowerCase().includes(q) ||
+            String(s?.vehiclePlate || '').toLowerCase().includes(q)
+          )
+        );
+      }
+    } catch (err) {
+      console.error('Fetch subscriptions error:', err);
+      setSubscriptions([]);
+      setSubsError(err?.message || 'Failed to load subscriptions');
+    } finally {
+      setSubsLoading(false);
+    }
+  };
+
+  const fetchSubscriptionTypes = async () => {
+    setTypesLoading(true);
+    setTypesError('');
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/subscription-types?limit=200`, {
+        headers: { ...authHeaders }
+      });
+
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = json?.error?.message || `Failed to fetch subscription types (${res.status})`;
+        throw new Error(msg);
+      }
+
+      const list = Array.isArray(json?.data?.items)
+        ? json.data.items
+        : Array.isArray(json?.data)
+          ? json.data
+          : [];
+
+      setSubscriptionTypes(list.map(normalizeSubscriptionType).filter(Boolean));
+    } catch (err) {
+      console.error('Fetch subscription types error:', err);
+      setSubscriptionTypes([]);
+      setTypesError(err?.message || 'Failed to load subscription types');
+    } finally {
+      setTypesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Only fetch types when tab is active (and whenever auth changes)
+    if (activeTab !== 'subscription-types') return;
+    fetchSubscriptionTypes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, authHeaders]);
+
+  useEffect(() => {
+    if (activeTab !== 'subscriptions') return;
+    fetchSubscriptions({ query: searchQuery });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, authHeaders]);
 
   const tabs = [
     { id: 'subscriptions', label: 'Subscriptions' },
@@ -80,10 +196,58 @@ function SubscriptionsPage() {
     setShowRegisterModal(false);
   };
 
-  const handleSubmitRegistration = (newSubscription) => {
-    setSubscriptions([...subscriptions, newSubscription]);
-    setShowRegisterModal(false);
-    alert(`Subscription ${newSubscription.id} registered successfully!`);
+  const handleSubmitRegistration = async (newSubscription) => {
+    // RegisterSubscriptionModal is still mock-based; once it's bound, it should submit
+    // the exact fields the backend expects.
+    // For now we try to map a minimal payload if possible, otherwise keep local append.
+    try {
+      const payload = {
+        // TODO: replace with logged-in employee business ID when available
+        ProcessedBy: 'EMP0001',
+        VehicleID: newSubscription?.vehicleId,
+        VehicleTypeID: newSubscription?.vehicleTypeId,
+        CardID: newSubscription?.cardId,
+        SubscriptionTypeID: newSubscription?.subscriptionTypeId,
+        PricePaid: newSubscription?.price,
+        StartDate: newSubscription?.startDateRaw || undefined,
+        CustomerID: newSubscription?.customerId || undefined
+      };
+
+      // If it's not yet real, fall back to local behavior.
+      const hasRequired =
+        payload.VehicleID &&
+        payload.VehicleTypeID &&
+        payload.CardID &&
+        payload.SubscriptionTypeID &&
+        payload.PricePaid !== undefined &&
+        payload.PricePaid !== null;
+
+      if (!hasRequired) {
+        setSubscriptions((prev) => [...prev, newSubscription]);
+        setShowRegisterModal(false);
+        return;
+      }
+
+      const res = await fetch(`${API_BASE_URL}/api/subscriptions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = json?.error?.message || `Failed to register subscription (${res.status})`;
+        throw new Error(msg);
+      }
+
+      setShowRegisterModal(false);
+      await fetchSubscriptions({ query: searchQuery });
+    } catch (err) {
+      alert(err?.message || 'Failed to register subscription');
+    }
   };
 
   const handleViewSubscription = (subscriptionId) => {
@@ -112,27 +276,58 @@ function SubscriptionsPage() {
     setSelectedSubscriptionForPause(null);
   };
 
-  const handleSubmitPause = (subscriptionId, reason) => {
-    setSubscriptions(subscriptions.map(sub => 
-      sub.id === subscriptionId ? { ...sub, status: 'Paused' } : sub
-    ));
-    setShowPauseModal(false);
-    setSelectedSubscriptionForPause(null);
-    alert(`Subscription ${subscriptionId} paused successfully.\nReason: ${reason}`);
-  };
+  const handleSubmitPause = async (subscriptionId, reason) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders
+        },
+        body: JSON.stringify({ IsSuspended: true, Reason: reason })
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = json?.error?.message || `Failed to suspend subscription (${res.status})`;
+        throw new Error(msg);
+      }
 
-  const handleDeleteSubscription = (subscriptionId) => {
-    if (confirm(`Are you sure you want to delete subscription ${subscriptionId}?`)) {
-      setSubscriptions(subscriptions.filter(sub => sub.id !== subscriptionId));
-      alert(`Subscription ${subscriptionId} deleted successfully!`);
+      setShowPauseModal(false);
+      setSelectedSubscriptionForPause(null);
+      await fetchSubscriptions({ query: searchQuery });
+    } catch (err) {
+      alert(err?.message || 'Failed to suspend subscription');
     }
   };
 
-  const filteredSubscriptions = subscriptions.filter(sub =>
-    sub.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    sub.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    sub.vehiclePlate.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleDeleteSubscription = async (subscriptionId) => {
+    if (!confirm(`Are you sure you want to delete subscription ${subscriptionId}?`)) return;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+        method: 'DELETE',
+        headers: { ...authHeaders }
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = json?.error?.message || `Failed to delete subscription (${res.status})`;
+        throw new Error(msg);
+      }
+      await fetchSubscriptions({ query: searchQuery });
+    } catch (err) {
+      alert(err?.message || 'Failed to delete subscription');
+    }
+  };
+
+  const filteredSubscriptions = useMemo(() => {
+    const q = String(searchQuery || '').trim().toLowerCase();
+    if (!q) return subscriptions;
+    return subscriptions.filter((sub) =>
+      String(sub?.subscriptionId || '').toLowerCase().includes(q) ||
+      String(sub?.customerName || '').toLowerCase().includes(q) ||
+      String(sub?.vehiclePlate || '').toLowerCase().includes(q)
+    );
+  }, [subscriptions, searchQuery]);
 
   return (
     <div className="subscriptions-page">
@@ -185,6 +380,24 @@ function SubscriptionsPage() {
 
           {/* Data Table */}
           <div className="data-table">
+            {subsLoading ? (
+              <div className="table-footer">
+                <p className="results-text">Loading subscriptions…</p>
+              </div>
+            ) : subsError ? (
+              <div className="table-footer">
+                <p className="results-text" style={{ color: '#dc2626' }}>{subsError}</p>
+                <div className="pagination-buttons">
+                  <button
+                    type="button"
+                    className="pagination-btn"
+                    onClick={() => fetchSubscriptions({ query: searchQuery })}
+                  >
+                    Retry
+                  </button>
+                </div>
+              </div>
+            ) : null}
             <table>
               <thead>
                 <tr>
@@ -199,7 +412,7 @@ function SubscriptionsPage() {
               <tbody>
                 {filteredSubscriptions.map((subscription) => (
                   <tr key={subscription.id}>
-                    <td className="subscription-id-cell">{subscription.id}</td>
+                    <td className="subscription-id-cell">{subscription.subscriptionId || subscription.id}</td>
                     <td className="customer-cell">
                       <div className="customer-info">
                         <div className="customer-name">{subscription.customerName}</div>
@@ -280,6 +493,20 @@ function SubscriptionsPage() {
           </div>
 
           <div className="data-table">
+            {typesLoading ? (
+              <div className="table-footer">
+                <p className="results-text">Loading subscription types…</p>
+              </div>
+            ) : typesError ? (
+              <div className="table-footer">
+                <p className="results-text" style={{ color: '#dc2626' }}>{typesError}</p>
+                <div className="pagination-buttons">
+                  <button className="pagination-btn" type="button" onClick={fetchSubscriptionTypes}>
+                    Retry
+                  </button>
+                </div>
+              </div>
+            ) : null}
             <table>
               <thead>
                 <tr>
@@ -292,7 +519,7 @@ function SubscriptionsPage() {
               </thead>
               <tbody>
                 {subscriptionTypes.map((type) => (
-                  <tr key={type.id}>
+                  <tr key={type.mongoId ?? type.id}>
                     <td className="type-id-cell">{type.id}</td>
                     <td>{type.name}</td>
                     <td>{type.duration}</td>
@@ -304,7 +531,8 @@ function SubscriptionsPage() {
                           className="subtype-action-btn"
                           title="Edit"
                           onClick={() => {
-                            setSelectedSubscriptionType(type);
+                            // Ensure edit uses Mongo id even if UI shows business ID
+                            setSelectedSubscriptionType({ ...type, id: type.mongoId ?? type.id });
                             setShowEditTypeModal(true);
                           }}
                         >
@@ -358,18 +586,28 @@ function SubscriptionsPage() {
       {showAddTypeModal && (
         <AddSubscriptionTypeModal
           onClose={() => setShowAddTypeModal(false)}
-          onSubmit={({ name, durationDays, description }) => {
-            const nextNumber = subscriptionTypes.length + 1;
-            const id = `ST${String(nextNumber).padStart(3, '0')}`;
-            setSubscriptionTypes((prev) => [
-              ...prev,
-              {
-                id,
-                name,
-                duration: durationDays,
-                description,
+          onSubmit={async ({ name, durationDays, description }) => {
+            const res = await fetch(`${API_BASE_URL}/api/subscription-types`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...authHeaders
               },
-            ]);
+              body: JSON.stringify({
+                TypeName: name,
+                DurationDays: durationDays,
+                Description: description || null
+              })
+            });
+
+            const json = await res.json().catch(() => null);
+            if (!res.ok) {
+              const msg = json?.error?.message || `Failed to create subscription type (${res.status})`;
+              throw new Error(msg);
+            }
+
+            // Refresh list (server is source of truth)
+            await fetchSubscriptionTypes();
           }}
         />
       )}
@@ -381,19 +619,27 @@ function SubscriptionsPage() {
             setShowEditTypeModal(false);
             setSelectedSubscriptionType(null);
           }}
-          onSubmit={({ id, name, durationDays, description }) => {
-            setSubscriptionTypes((prev) =>
-              prev.map((t) =>
-                t.id === id
-                  ? {
-                      ...t,
-                      name,
-                      duration: durationDays,
-                      description,
-                    }
-                  : t
-              )
-            );
+          onSubmit={async ({ id, name, durationDays, description }) => {
+            const res = await fetch(`${API_BASE_URL}/api/subscription-types/${encodeURIComponent(id)}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                ...authHeaders
+              },
+              body: JSON.stringify({
+                TypeName: name,
+                DurationDays: durationDays,
+                Description: description || null
+              })
+            });
+
+            const json = await res.json().catch(() => null);
+            if (!res.ok) {
+              const msg = json?.error?.message || `Failed to update subscription type (${res.status})`;
+              throw new Error(msg);
+            }
+
+            await fetchSubscriptionTypes();
           }}
         />
       )}

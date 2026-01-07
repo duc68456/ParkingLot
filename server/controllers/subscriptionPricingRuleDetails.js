@@ -3,6 +3,8 @@ const SubscriptionPricingRuleDetail = require('../models/subscriptionPricingRule
 const SubscriptionPricingRule = require('../models/subscriptionPricingRule')
 const Employee = require('../models/employee')
 
+const looksLikeObjectId = (value) => typeof value === 'string' && /^[a-f\d]{24}$/i.test(value)
+
 // GET all subscription pricing rule details with filtering and pagination
 subscriptionPricingRuleDetailsRouter.get('/', async (req, res) => {
   try {
@@ -85,6 +87,130 @@ subscriptionPricingRuleDetailsRouter.get('/', async (req, res) => {
   }
 })
 
+// GET current price for a subscription pricing rule
+subscriptionPricingRuleDetailsRouter.get('/current/:subscriptionPricingRuleId', async (req, res) => {
+  try {
+    const now = new Date()
+
+    const ruleParam = req.params.subscriptionPricingRuleId
+    const rule = looksLikeObjectId(ruleParam)
+      ? await SubscriptionPricingRule.findById(ruleParam)
+      : await SubscriptionPricingRule.findOne({ ID: ruleParam })
+
+    if (!rule) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          message: 'SubscriptionPricingRule not found',
+          code: 'SUBSCRIPTION_PRICING_RULE_NOT_FOUND'
+        }
+      })
+    }
+
+    const currentPrice = await SubscriptionPricingRuleDetail
+      .findOne({
+        SubscriptionPricingRuleID: rule.ID,
+        StartDateApply: { $lte: now }
+      })
+      .sort({ StartDateApply: -1 })
+      .limit(1)
+
+    if (!currentPrice) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          message: 'No current price found for this subscription pricing rule',
+          code: 'NO_CURRENT_PRICE'
+        }
+      })
+    }
+
+    const data = currentPrice.toJSON ? currentPrice.toJSON() : currentPrice
+    // Attach the resolved rule so UI can still show CardCategory/VehicleType/SubscriptionType.
+    data.SubscriptionPricingRule = rule
+    // Attach ChangedBy employee without attempting ObjectId populate.
+    data.ChangedByEmployee = await Employee.findOne({ ID: data.ChangedBy })
+
+    res.json({
+      success: true,
+      data
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: {
+        message: error.message,
+        code: 'GET_CURRENT_SUBSCRIPTION_PRICE_ERROR'
+      }
+    })
+  }
+})
+
+// GET price history for a subscription pricing rule
+subscriptionPricingRuleDetailsRouter.get('/history/:subscriptionPricingRuleId', async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query
+
+    const ruleParam = req.params.subscriptionPricingRuleId
+    const rule = looksLikeObjectId(ruleParam)
+      ? await SubscriptionPricingRule.findById(ruleParam)
+      : await SubscriptionPricingRule.findOne({ ID: ruleParam })
+
+    if (!rule) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          message: 'SubscriptionPricingRule not found',
+          code: 'SUBSCRIPTION_PRICING_RULE_NOT_FOUND'
+        }
+      })
+    }
+
+    const filter = { SubscriptionPricingRuleID: rule.ID }
+    const skip = (parseInt(page) - 1) * parseInt(limit)
+    const total = await SubscriptionPricingRuleDetail.countDocuments(filter)
+
+    const history = await SubscriptionPricingRuleDetail
+      .find(filter)
+      .populate('SubscriptionPricingRuleDetailPrev', 'ID Price StartDateApply')
+      .limit(parseInt(limit))
+      .skip(skip)
+      .sort({ StartDateApply: -1 })
+
+    const employeeIds = [...new Set(history.map((h) => h.ChangedBy).filter(Boolean))]
+    const employees = await Employee.find({ ID: { $in: employeeIds } })
+    const employeeById = new Map(employees.map((e) => [e.ID, e]))
+
+    const items = history.map((h) => {
+      const obj = h.toJSON ? h.toJSON() : h
+      obj.SubscriptionPricingRule = rule
+      obj.ChangedByEmployee = employeeById.get(obj.ChangedBy) || null
+      return obj
+    })
+
+    res.json({
+      success: true,
+      data: {
+        items,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      }
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: {
+        message: error.message,
+        code: 'GET_SUBSCRIPTION_PRICE_HISTORY_ERROR'
+      }
+    })
+  }
+})
+
 // GET single subscription pricing rule detail by ID
 subscriptionPricingRuleDetailsRouter.get('/:id', async (req, res) => {
   try {
@@ -133,115 +259,6 @@ subscriptionPricingRuleDetailsRouter.get('/:id', async (req, res) => {
   }
 })
 
-// GET current price for a subscription pricing rule
-subscriptionPricingRuleDetailsRouter.get('/current/:subscriptionPricingRuleId', async (req, res) => {
-  try {
-    const now = new Date()
-
-    const currentPrice = await SubscriptionPricingRuleDetail
-      .findOne({
-        SubscriptionPricingRuleID: req.params.subscriptionPricingRuleId,
-        StartDateApply: { $lte: now }
-      })
-      .populate({
-        path: 'SubscriptionPricingRuleID',
-        populate: [
-          { path: 'CardCategoryID', select: 'ID Name' },
-          { path: 'VehicleTypeID', select: 'VehicleTypeID Name' },
-          { path: 'SubscriptionTypeID', select: 'ID TypeName DurationDays' }
-        ]
-      })
-      .populate({
-        path: 'ChangedBy',
-        select: 'ID EmployeeType',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName'
-        }
-      })
-      .sort({ StartDateApply: -1 })
-      .limit(1)
-
-    if (!currentPrice) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          message: 'No current price found for this subscription pricing rule',
-          code: 'NO_CURRENT_PRICE'
-        }
-      })
-    }
-
-    res.json({
-      success: true,
-      data: currentPrice
-    })
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: {
-        message: error.message,
-        code: 'GET_CURRENT_SUBSCRIPTION_PRICE_ERROR'
-      }
-    })
-  }
-})
-
-// GET price history for a subscription pricing rule
-subscriptionPricingRuleDetailsRouter.get('/history/:subscriptionPricingRuleId', async (req, res) => {
-  try {
-    const { page = 1, limit = 20 } = req.query
-
-    const filter = { SubscriptionPricingRuleID: req.params.subscriptionPricingRuleId }
-    const skip = (parseInt(page) - 1) * parseInt(limit)
-    const total = await SubscriptionPricingRuleDetail.countDocuments(filter)
-
-    const history = await SubscriptionPricingRuleDetail
-      .find(filter)
-      .populate({
-        path: 'SubscriptionPricingRuleID',
-        populate: [
-          { path: 'CardCategoryID', select: 'ID Name' },
-          { path: 'VehicleTypeID', select: 'VehicleTypeID Name' },
-          { path: 'SubscriptionTypeID', select: 'ID TypeName DurationDays' }
-        ]
-      })
-      .populate({
-        path: 'ChangedBy',
-        select: 'ID EmployeeType',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName'
-        }
-      })
-      .populate('SubscriptionPricingRuleDetailPrev', 'ID Price StartDateApply')
-      .limit(parseInt(limit))
-      .skip(skip)
-      .sort({ StartDateApply: -1 })
-
-    res.json({
-      success: true,
-      data: {
-        items: history,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / parseInt(limit))
-        }
-      }
-    })
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: {
-        message: error.message,
-        code: 'GET_SUBSCRIPTION_PRICE_HISTORY_ERROR'
-      }
-    })
-  }
-})
-
 // POST - Create new subscription pricing rule detail (immutable - never update, only insert)
 subscriptionPricingRuleDetailsRouter.post('/', async (req, res) => {
   try {
@@ -275,8 +292,11 @@ subscriptionPricingRuleDetailsRouter.post('/', async (req, res) => {
       })
     }
 
-    // Check if SubscriptionPricingRule exists
-    const subscriptionPricingRule = await SubscriptionPricingRule.findOne({ ID: SubscriptionPricingRuleID })
+    // Check if SubscriptionPricingRule exists (accept business ID like SPS0001 or Mongo ObjectId)
+    const ruleParam = SubscriptionPricingRuleID
+    const subscriptionPricingRule = looksLikeObjectId(ruleParam)
+      ? await SubscriptionPricingRule.findById(ruleParam)
+      : await SubscriptionPricingRule.findOne({ ID: ruleParam })
     if (!subscriptionPricingRule) {
       return res.status(404).json({
         success: false,
@@ -286,6 +306,9 @@ subscriptionPricingRuleDetailsRouter.post('/', async (req, res) => {
         }
       })
     }
+
+    // Normalize to always store business ID in detail
+    const ruleBusinessId = subscriptionPricingRule.ID
 
     // Check if Employee exists
     const employee = await Employee.findOne({ ID: ChangedBy })
@@ -303,14 +326,14 @@ subscriptionPricingRuleDetailsRouter.post('/', async (req, res) => {
     const startDate = StartDateApply ? new Date(StartDateApply) : new Date()
     const previousDetail = await SubscriptionPricingRuleDetail
       .findOne({
-        SubscriptionPricingRuleID,
+        SubscriptionPricingRuleID: ruleBusinessId,
         StartDateApply: { $lt: startDate }
       })
       .sort({ StartDateApply: -1 })
       .limit(1)
 
     const detail = new SubscriptionPricingRuleDetail({
-      SubscriptionPricingRuleID,
+      SubscriptionPricingRuleID: ruleBusinessId,
       Price,
       StartDateApply: startDate,
       ChangedBy,
@@ -319,29 +342,15 @@ subscriptionPricingRuleDetailsRouter.post('/', async (req, res) => {
     })
 
     const savedDetail = await detail.save()
-    const populatedDetail = await SubscriptionPricingRuleDetail
-      .findById(savedDetail._id)
-      .populate({
-        path: 'SubscriptionPricingRuleID',
-        populate: [
-          { path: 'CardCategoryID', select: 'ID Name' },
-          { path: 'VehicleTypeID', select: 'VehicleTypeID Name' },
-          { path: 'SubscriptionTypeID', select: 'ID TypeName DurationDays' }
-        ]
-      })
-      .populate({
-        path: 'ChangedBy',
-        select: 'ID EmployeeType',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName'
-        }
-      })
-      .populate('SubscriptionPricingRuleDetailPrev', 'ID Price StartDateApply')
+    const savedObj = savedDetail.toJSON ? savedDetail.toJSON() : savedDetail
+    // Avoid populate casting business IDs to ObjectId; attach related docs explicitly
+    savedObj.SubscriptionPricingRule = subscriptionPricingRule
+    savedObj.ChangedByEmployee = employee
+    savedObj.SubscriptionPricingRuleDetailPrev = previousDetail || null
 
     res.status(201).json({
       success: true,
-      data: populatedDetail,
+      data: savedObj,
       message: 'SubscriptionPricingRuleDetail created successfully'
     })
   } catch (error) {

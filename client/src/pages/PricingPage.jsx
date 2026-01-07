@@ -4,6 +4,7 @@ import TabNavigation from '../components/TabNavigation';
 import PricingRulesTable from '../components/PricingRulesTable';
 import CardPriceHistoryModal from '../components/CardPriceHistoryModal';
 import EditCardPriceModal from '../components/EditCardPriceModal';
+import AddSubscriptionPricingModal from '../components/AddSubscriptionPricingModal';
 import '../styles/pages/PricingPage.css';
 
 import addIcon from '../assets/icons/common/actions/add.svg';
@@ -41,34 +42,40 @@ const mockEntryPricingRules = [
 
 // Card pricing will be loaded from backend (CardCategory + CardPrice)
 
-// Mock data for subscription pricing
-const mockSubscriptionPricing = [
-  {
-    id: 'SPR001',
-    cardCategory: 'Standard',
-    vehicleType: 'Car',
-    subscriptionType: 'Monthly',
-    price: 100.00
-  },
-  {
-    id: 'SPR002',
-    cardCategory: 'Premium',
-    vehicleType: 'Car',
-    subscriptionType: 'Monthly',
-    price: 80.00
-  }
-];
+const normalizeSubscriptionPricingRule = (rule, currentPrice) => {
+  const cardCategory = rule?.CardCategoryID;
+  const vehicleType = rule?.VehicleTypeID;
+  const subscriptionType = rule?.SubscriptionTypeID;
+  return {
+    // Mongo id: used for delete GET/DELETE endpoints
+    mongoId: rule?.id ?? rule?._id,
+    // Business ID: used for pricing detail endpoints (current/history/change)
+    id: rule?.ID || rule?.id || rule?._id,
+    cardCategory: cardCategory?.Name || cardCategory?.name || '--',
+    cardCategoryId: cardCategory?.ID || (typeof rule?.CardCategoryID === 'string' ? rule.CardCategoryID : ''),
+    vehicleType: vehicleType?.Name || vehicleType?.name || '--',
+    vehicleTypeId: vehicleType?.VehicleTypeID || (typeof rule?.VehicleTypeID === 'string' ? rule.VehicleTypeID : ''),
+    subscriptionType: subscriptionType?.TypeName || subscriptionType?.typeName || '--',
+    subscriptionTypeId: subscriptionType?.ID || (typeof rule?.SubscriptionTypeID === 'string' ? rule.SubscriptionTypeID : ''),
+    price: typeof currentPrice?.Price === 'number' ? currentPrice.Price : 0
+  };
+};
 
 export default function PricingPage() {
   const [activeTab, setActiveTab] = useState('entry-pricing');
   const [pricingRules, setPricingRules] = useState(mockEntryPricingRules);
   const [cardPricing, setCardPricing] = useState([]);
-  const [subscriptionPricing, setSubscriptionPricing] = useState(mockSubscriptionPricing);
+  const [subscriptionPricing, setSubscriptionPricing] = useState([]);
+
+  const [subscriptionPricingLoading, setSubscriptionPricingLoading] = useState(false);
+  const [subscriptionPricingError, setSubscriptionPricingError] = useState('');
+
+  const [isAddSubscriptionPricingOpen, setIsAddSubscriptionPricingOpen] = useState(false);
 
   const [cardPricingLoading, setCardPricingLoading] = useState(false);
   const [cardPricingError, setCardPricingError] = useState('');
 
-  const { authHeaders } = useAuth();
+  const { authHeaders, user } = useAuth();
 
   // Card Pricing History Modal state
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -194,6 +201,49 @@ export default function PricingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, authHeaders]);
 
+  const loadSubscriptionPricing = async () => {
+    setSubscriptionPricingLoading(true);
+    setSubscriptionPricingError('');
+
+    try {
+      const rulesRes = await fetchJson('/api/subscription-pricing-rules?page=1&limit=200');
+      const raw = rulesRes?.data?.items;
+      const rules = Array.isArray(raw) ? raw : [];
+
+      // Enrich with current price per rule.
+      const rows = await Promise.all(
+        rules.map(async (rule) => {
+          const ruleBusinessId = rule?.ID;
+          let current = null;
+          if (ruleBusinessId) {
+            try {
+              const curRes = await fetchJson(`/api/subscription-pricing-rule-details/current/${encodeURIComponent(ruleBusinessId)}`);
+              current = curRes?.data || null;
+            } catch (e) {
+              const msg = e?.message || '';
+              if (!/no current price/i.test(msg) && !/404/.test(msg)) throw e;
+            }
+          }
+          return normalizeSubscriptionPricingRule(rule, current);
+        })
+      );
+
+      rows.sort((a, b) => String(a.id || '').localeCompare(String(b.id || '')));
+      setSubscriptionPricing(rows);
+    } catch (e) {
+      setSubscriptionPricingError(e?.message || 'Failed to load subscription pricing');
+      setSubscriptionPricing([]);
+    } finally {
+      setSubscriptionPricingLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab !== 'subscription-pricing') return;
+    loadSubscriptionPricing();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, authHeaders]);
+
   const handleViewCardPriceHistory = async (card) => {
     const cardCategoryId = cardCategoryIdByName.get(card.category) || card.id;
     setHistoryTitle(`Price History - ${card.category}`);
@@ -290,17 +340,52 @@ export default function PricingPage() {
   };
 
   const handleAddSubscriptionRule = () => {
-    alert('Add Subscription Pricing Rule functionality coming soon!');
+    setIsAddSubscriptionPricingOpen(true);
   };
 
-  const handleEditSubscriptionRule = (rule) => {
-    alert(`Edit subscription pricing rule: ${rule.id}`);
+  const handleEditSubscriptionRule = async (rule) => {
+    try {
+      const newPriceStr = prompt('Enter new price:', String(rule?.price ?? 0));
+      if (newPriceStr === null) return;
+      const newPrice = Number(newPriceStr);
+      if (!Number.isFinite(newPrice) || newPrice < 0) {
+        alert('Price must be a non-negative number');
+        return;
+      }
+
+      const ChangedBy = prompt('Enter Employee ID (ChangedBy):');
+      if (!ChangedBy) return;
+      const Reason = prompt('Reason (optional):') || null;
+
+      // The details endpoint identifies the rule by BUSINESS ID (rule.ID)
+      await fetchJson('/api/subscription-pricing-rule-details', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          SubscriptionPricingRuleID: rule?.id,
+          Price: newPrice,
+          ChangedBy: String(ChangedBy).trim(),
+          Reason
+        })
+      });
+
+      await loadSubscriptionPricing();
+    } catch (e) {
+      alert(e?.message || 'Failed to update price');
+    }
   };
 
-  const handleDeleteSubscriptionRule = (rule) => {
-    if (confirm(`Are you sure you want to delete subscription pricing rule ${rule.id}?`)) {
-      setSubscriptionPricing(subscriptionPricing.filter(r => r.id !== rule.id));
-      alert(`Subscription pricing rule ${rule.id} deleted successfully!`);
+  const handleDeleteSubscriptionRule = async (rule) => {
+    if (!confirm(`Are you sure you want to delete subscription pricing rule ${rule.id}?`)) return;
+
+    try {
+      // Rule delete endpoint uses MONGO id
+      await fetchJson(`/api/subscription-pricing-rules/${encodeURIComponent(rule.mongoId)}`, {
+        method: 'DELETE'
+      });
+      await loadSubscriptionPricing();
+    } catch (e) {
+      alert(e?.message || 'Failed to delete subscription pricing rule');
     }
   };
 
@@ -439,6 +524,41 @@ export default function PricingPage() {
         onSubmit={handleSubmitEditCardPrice}
       />
 
+      {isAddSubscriptionPricingOpen ? (
+        <AddSubscriptionPricingModal
+          onClose={() => setIsAddSubscriptionPricingOpen(false)}
+          onSubmit={async ({ CardCategoryID, VehicleTypeID, SubscriptionTypeID, Price }) => {
+            // 1) Create the rule (container)
+            const created = await fetchJson('/api/subscription-pricing-rules', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ CardCategoryID, VehicleTypeID, SubscriptionTypeID })
+            });
+
+            const ruleBusinessId = created?.data?.ID;
+            if (!ruleBusinessId) {
+              throw new Error('Created rule is missing ID');
+            }
+
+            // 2) Create initial price detail.
+            const ChangedBy = user?.employeeId || user?.id
+            if (!ChangedBy) throw new Error('Missing employee ID for this session (please login again)')
+
+            await fetchJson('/api/subscription-pricing-rule-details', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                SubscriptionPricingRuleID: ruleBusinessId,
+                Price,
+                ChangedBy: String(ChangedBy).trim()
+              })
+            });
+
+            await loadSubscriptionPricing();
+          }}
+        />
+      ) : null}
+
       {/* Subscription Pricing Tab Content */}
       {activeTab === 'subscription-pricing' && (
         <div className="pricing-content">
@@ -452,6 +572,11 @@ export default function PricingPage() {
 
           {/* Subscription Pricing Table */}
           <div className="data-table">
+            {subscriptionPricingError && (
+              <div className="cphm-state cphm-error" style={{ padding: '12px 24px' }}>
+                {subscriptionPricingError}
+              </div>
+            )}
             <table>
               <thead>
                 <tr>
@@ -464,33 +589,47 @@ export default function PricingPage() {
                 </tr>
               </thead>
               <tbody>
-                {subscriptionPricing.map((rule) => (
-                  <tr key={rule.id}>
-                    <td className="card-id-cell">{rule.id}</td>
-                    <td>{rule.cardCategory}</td>
-                    <td>{rule.vehicleType}</td>
-                    <td>{rule.subscriptionType}</td>
-                    <td>${rule.price.toFixed(2)}</td>
-                    <td>
-                      <div className="action-buttons action-buttons-right">
-                        <button
-                          className="action-btn"
-                          onClick={() => handleEditSubscriptionRule(rule)}
-                          title="Edit"
-                        >
-                          <img src={editIcon} alt="Edit" width="16" height="16" />
-                        </button>
-                        <button
-                          className="action-btn"
-                          onClick={() => handleDeleteSubscriptionRule(rule)}
-                          title="Delete"
-                        >
-                          <img src={deleteIcon} alt="Delete" width="16" height="16" />
-                        </button>
-                      </div>
+                {subscriptionPricingLoading ? (
+                  <tr>
+                    <td colSpan={6} style={{ padding: '16px 24px' }}>
+                      Loading subscription pricing…
                     </td>
                   </tr>
-                ))}
+                ) : subscriptionPricing.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ padding: '16px 24px' }}>
+                      No subscription pricing rules found
+                    </td>
+                  </tr>
+                ) : (
+                  subscriptionPricing.map((rule) => (
+                    <tr key={rule.id}>
+                      <td className="card-id-cell">{rule.id}</td>
+                      <td>{rule.cardCategoryId ? `${rule.cardCategoryId} - ${rule.cardCategory}` : rule.cardCategory}</td>
+                      <td>{rule.vehicleTypeId ? `${rule.vehicleTypeId} - ${rule.vehicleType}` : rule.vehicleType}</td>
+                      <td>{rule.subscriptionTypeId ? `${rule.subscriptionTypeId} - ${rule.subscriptionType}` : rule.subscriptionType}</td>
+                      <td>${rule.price.toFixed(2)}</td>
+                      <td>
+                        <div className="action-buttons action-buttons-right">
+                          <button
+                            className="action-btn"
+                            onClick={() => handleEditSubscriptionRule(rule)}
+                            title="Edit"
+                          >
+                            <img src={editIcon} alt="Edit" width="16" height="16" />
+                          </button>
+                          <button
+                            className="action-btn"
+                            onClick={() => handleDeleteSubscriptionRule(rule)}
+                            title="Delete"
+                          >
+                            <img src={deleteIcon} alt="Delete" width="16" height="16" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
 
