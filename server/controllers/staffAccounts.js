@@ -422,10 +422,13 @@ staffAccountsRouter.post('/verify-pin', async (request, response) => {
     staffAccount.LastLoginAt = new Date();
     await staffAccount.save();
 
+    // Include both mongo employee id and business employee ID.
+    // Prefer using employeeBusinessId in downstream writes to avoid ObjectId casting.
     const token = signToken({
       type: 'staff',
       staffAccountId: staffAccount._id.toString(),
-      employeeId: staffAccount.EmployeeID?._id?.toString()
+      employeeId: staffAccount.EmployeeID?._id?.toString(),
+      employeeBusinessId: staffAccount.EmployeeID?.ID
     })
 
     response.json({

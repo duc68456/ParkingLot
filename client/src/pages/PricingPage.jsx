@@ -43,9 +43,11 @@ const mockEntryPricingRules = [
 // Card pricing will be loaded from backend (CardCategory + CardPrice)
 
 const normalizeSubscriptionPricingRule = (rule, currentPrice) => {
-  const cardCategory = rule?.CardCategoryID;
-  const vehicleType = rule?.VehicleTypeID;
-  const subscriptionType = rule?.SubscriptionTypeID;
+  // Server may return hydrated objects as CardCategory/VehicleType/SubscriptionType.
+  // Legacy responses might send them as CardCategoryID/VehicleTypeID/SubscriptionTypeID (either strings or populated docs).
+  const cardCategory = rule?.CardCategory || rule?.CardCategoryID;
+  const vehicleType = rule?.VehicleType || rule?.VehicleTypeID;
+  const subscriptionType = rule?.SubscriptionType || rule?.SubscriptionTypeID;
   return {
     // Mongo id: used for delete GET/DELETE endpoints
     mongoId: rule?.id ?? rule?._id,
@@ -605,9 +607,9 @@ export default function PricingPage() {
                   subscriptionPricing.map((rule) => (
                     <tr key={rule.id}>
                       <td className="card-id-cell">{rule.id}</td>
-                      <td>{rule.cardCategoryId ? `${rule.cardCategoryId} - ${rule.cardCategory}` : rule.cardCategory}</td>
-                      <td>{rule.vehicleTypeId ? `${rule.vehicleTypeId} - ${rule.vehicleType}` : rule.vehicleType}</td>
-                      <td>{rule.subscriptionTypeId ? `${rule.subscriptionTypeId} - ${rule.subscriptionType}` : rule.subscriptionType}</td>
+                      <td>{rule.cardCategory}</td>
+                      <td>{rule.vehicleType}</td>
+                      <td>{rule.subscriptionType}</td>
                       <td>${rule.price.toFixed(2)}</td>
                       <td>
                         <div className="action-buttons action-buttons-right">

@@ -26,18 +26,24 @@ const formatDate = (value) => {
 const normalizeSubscription = (s) => {
   if (!s) return null;
 
-  const customerPerson = s?.CustomerID?.PersonID;
+  const customerObj = s?.Customer || s?.CustomerID;
+  const customerPerson = customerObj?.PersonID;
   const customerName =
     customerPerson?.FullName ||
     customerPerson?.fullName ||
     customerPerson?.name ||
+    customerObj?.FullName ||
+    customerObj?.fullName ||
+    customerObj?.name ||
     '—';
 
-  const vehicle = s?.VehicleID;
+  const vehicle = s?.Vehicle || s?.VehicleID;
   const vehiclePlate = vehicle?.PlateNumber || vehicle?.plateNumber || '—';
 
-  const subType = s?.SubscriptionTypeID;
-  const typeName = subType?.TypeName || subType?.typeName || '—';
+  const subType = s?.SubscriptionType || s?.SubscriptionTypeID;
+  const typeName = subType?.TypeName || subType?.typeName || subType?.name || '—';
+
+  const cardCategory = s.Card?.CardCategoryID?.Name
 
   const isSuspended = Boolean(s?.IsSuspended);
 
@@ -46,12 +52,13 @@ const normalizeSubscription = (s) => {
     id: s?.id ?? s?._id,
     // Business ID (SSN0001)
     subscriptionId: s?.ID,
-    customerName,
-    customerId: s?.CustomerID?.ID || s?.CustomerID || null,
-    vehicleId: vehicle?.VehicleID || s?.VehicleID || null,
+  customerName,
+  customerId: customerObj?.ID || customerObj?.id || customerObj || null,
+  vehicleId: vehicle?.VehicleID || s?.VehicleID || null,
     vehiclePlate,
     cardId: s?.CardID?.CardID || s?.CardID || null,
-    type: typeName,
+  cardCategory: cardCategory,
+  type: typeName,
     startDate: formatDate(s?.StartDate),
     endDate: formatDate(s?.EndDate),
     price: Number.isFinite(Number(s?.PricePaid)) ? Number(s.PricePaid) : null,
@@ -202,8 +209,7 @@ function SubscriptionsPage() {
     // For now we try to map a minimal payload if possible, otherwise keep local append.
     try {
       const payload = {
-        // TODO: replace with logged-in employee business ID when available
-        ProcessedBy: 'EMP0001',
+        // ProcessedBy is derived from the logged-in employee on the server.
         VehicleID: newSubscription?.vehicleId,
         VehicleTypeID: newSubscription?.vehicleTypeId,
         CardID: newSubscription?.cardId,
@@ -454,7 +460,7 @@ function SubscriptionsPage() {
                         </button>
                         <button
                           className="action-btn action-btn-delete"
-                          onClick={() => handleDeleteSubscription(subscription.id)}
+                          onClick={() => handleDeleteSubscription(subscription.subscriptionId || subscription.id)}
                           title="Delete"
                         >
                           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">

@@ -84,7 +84,10 @@ subscriptionSchema.pre('save', async function (next) {
 // Configure toJSON
 subscriptionSchema.set('toJSON', {
   transform: (document, returnedObject) => {
-    returnedObject.id = returnedObject._id.toString()
+    // Prefer business ID everywhere.
+    returnedObject.id = returnedObject.ID
+    // Keep Mongo id for internal/debug use.
+    returnedObject.mongoId = returnedObject._id.toString()
     delete returnedObject._id
     delete returnedObject.__v
   }

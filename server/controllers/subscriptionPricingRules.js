@@ -8,6 +8,24 @@ const mongoose = require('mongoose')
 
 const isObjectId = (value) => mongoose.Types.ObjectId.isValid(value)
 
+const attachRuleRelations = async (ruleDocOrObj) => {
+  const rule = ruleDocOrObj?.toJSON ? ruleDocOrObj.toJSON() : ruleDocOrObj
+  if (!rule) return rule
+
+  const [cardCategory, vehicleType, subscriptionType] = await Promise.all([
+    rule.CardCategoryID ? CardCategory.findOne({ ID: rule.CardCategoryID }).select('ID Name') : null,
+    rule.VehicleTypeID ? VehicleType.findOne({ VehicleTypeID: rule.VehicleTypeID }).select('VehicleTypeID Name') : null,
+    rule.SubscriptionTypeID ? SubscriptionType.findOne({ ID: rule.SubscriptionTypeID }).select('ID TypeName DurationDays Description') : null
+  ])
+
+  return {
+    ...rule,
+    CardCategory: cardCategory || null,
+    VehicleType: vehicleType || null,
+    SubscriptionType: subscriptionType || null
+  }
+}
+
 // GET all subscription pricing rules with filtering and pagination
 subscriptionPricingRulesRouter.get('/', async (req, res) => {
   try {
@@ -23,28 +41,28 @@ subscriptionPricingRulesRouter.get('/', async (req, res) => {
 
     if (cardCategoryId) {
       if (isObjectId(cardCategoryId)) {
-        filter.CardCategoryID = cardCategoryId
+        const cc = await CardCategory.findById(cardCategoryId).select('ID')
+        if (cc?.ID) filter.CardCategoryID = cc.ID
       } else {
-        const cc = await CardCategory.findOne({ ID: cardCategoryId }).select('_id')
-        if (cc?._id) filter.CardCategoryID = cc._id
+        filter.CardCategoryID = cardCategoryId
       }
     }
 
     if (vehicleTypeId) {
       if (isObjectId(vehicleTypeId)) {
-        filter.VehicleTypeID = vehicleTypeId
+        const vt = await VehicleType.findById(vehicleTypeId).select('VehicleTypeID')
+        if (vt?.VehicleTypeID) filter.VehicleTypeID = vt.VehicleTypeID
       } else {
-        const vt = await VehicleType.findOne({ VehicleTypeID: vehicleTypeId }).select('_id')
-        if (vt?._id) filter.VehicleTypeID = vt._id
+        filter.VehicleTypeID = vehicleTypeId
       }
     }
 
     if (subscriptionTypeId) {
       if (isObjectId(subscriptionTypeId)) {
-        filter.SubscriptionTypeID = subscriptionTypeId
+        const st = await SubscriptionType.findById(subscriptionTypeId).select('ID')
+        if (st?.ID) filter.SubscriptionTypeID = st.ID
       } else {
-        const st = await SubscriptionType.findOne({ ID: subscriptionTypeId }).select('_id')
-        if (st?._id) filter.SubscriptionTypeID = st._id
+        filter.SubscriptionTypeID = subscriptionTypeId
       }
     }
 
@@ -53,17 +71,16 @@ subscriptionPricingRulesRouter.get('/', async (req, res) => {
 
     const rules = await SubscriptionPricingRule
       .find(filter)
-      .populate('CardCategoryID', 'ID Name')
-      .populate('VehicleTypeID', 'VehicleTypeID Name')
-      .populate('SubscriptionTypeID', 'ID TypeName DurationDays')
       .limit(parseInt(limit))
       .skip(skip)
       .sort({ createdAt: -1 })
 
+    const hydrated = await Promise.all(rules.map((r) => attachRuleRelations(r)))
+
     res.json({
       success: true,
       data: {
-        items: rules,
+        items: hydrated,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -92,9 +109,6 @@ subscriptionPricingRulesRouter.get('/:id', async (req, res) => {
         ? { _id: idOrBusinessId }
         : { ID: idOrBusinessId }
       )
-      .populate('CardCategoryID', 'ID Name')
-      .populate('VehicleTypeID', 'VehicleTypeID Name')
-      .populate('SubscriptionTypeID', 'ID TypeName DurationDays Description')
 
     if (!rule) {
       return res.status(404).json({
@@ -108,7 +122,7 @@ subscriptionPricingRulesRouter.get('/:id', async (req, res) => {
 
     res.json({
       success: true,
-      data: rule
+      data: await attachRuleRelations(rule)
     })
   } catch (error) {
     res.status(500).json({
@@ -150,13 +164,10 @@ subscriptionPricingRulesRouter.get('/find/:cardCategoryId/:vehicleTypeId/:subscr
 
     const rule = await SubscriptionPricingRule
       .findOne({
-        CardCategoryID: cardCategory._id,
-        VehicleTypeID: vehicleType._id,
-        SubscriptionTypeID: subscriptionType._id
+        CardCategoryID: cardCategory.ID,
+        VehicleTypeID: vehicleType.VehicleTypeID,
+        SubscriptionTypeID: subscriptionType.ID
       })
-      .populate('CardCategoryID', 'ID Name')
-      .populate('VehicleTypeID', 'VehicleTypeID Name')
-      .populate('SubscriptionTypeID', 'ID TypeName DurationDays Description')
 
     if (!rule) {
       return res.status(404).json({
@@ -170,7 +181,7 @@ subscriptionPricingRulesRouter.get('/find/:cardCategoryId/:vehicleTypeId/:subscr
 
     res.json({
       success: true,
-      data: rule
+      data: await attachRuleRelations(rule)
     })
   } catch (error) {
     res.status(500).json({
@@ -243,9 +254,9 @@ subscriptionPricingRulesRouter.post('/', async (req, res) => {
 
     // Check if combination already exists
     const existingRule = await SubscriptionPricingRule.findOne({
-      CardCategoryID: cardCategory._id,
-      VehicleTypeID: vehicleType._id,
-      SubscriptionTypeID: subscriptionType._id
+      CardCategoryID: cardCategory.ID,
+      VehicleTypeID: vehicleType.VehicleTypeID,
+      SubscriptionTypeID: subscriptionType.ID
     })
 
     if (existingRule) {
@@ -259,21 +270,16 @@ subscriptionPricingRulesRouter.post('/', async (req, res) => {
     }
 
     const rule = new SubscriptionPricingRule({
-      CardCategoryID: cardCategory._id,
-      VehicleTypeID: vehicleType._id,
-      SubscriptionTypeID: subscriptionType._id
+      CardCategoryID: cardCategory.ID,
+      VehicleTypeID: vehicleType.VehicleTypeID,
+      SubscriptionTypeID: subscriptionType.ID
     })
 
     const savedRule = await rule.save()
-    const populatedRule = await SubscriptionPricingRule
-      .findById(savedRule._id)
-      .populate('CardCategoryID', 'ID Name')
-      .populate('VehicleTypeID', 'VehicleTypeID Name')
-      .populate('SubscriptionTypeID', 'ID TypeName DurationDays Description')
 
     res.status(201).json({
       success: true,
-      data: populatedRule,
+      data: await attachRuleRelations(savedRule),
       message: 'SubscriptionPricingRule created successfully'
     })
   } catch (error) {

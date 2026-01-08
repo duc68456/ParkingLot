@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState, useEffect } from 'react';
 import '../styles/components/RegisterSubscriptionModal.css';
 import { useAuth } from '../contexts/AuthContext';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 const addDaysIso = (startIso, days) => {
   if (!startIso || !days) return '';
@@ -17,10 +17,14 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
 
   const [cardId, setCardId] = useState('');
   const [vehicleId, setVehicleId] = useState('');
+  const [customerId, setCustomerId] = useState('');
   const [subscriptionType, setSubscriptionType] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [price, setPrice] = useState('0.00');
+  const [priceLoading, setPriceLoading] = useState(false);
+  const [priceError, setPriceError] = useState('');
+  const [vehicleTypeId, setVehicleTypeId] = useState('');
 
   const [subscriptionTypes, setSubscriptionTypes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -47,6 +51,11 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
   const vehicleSelected = useMemo(
     () => (vehicleId ? vehicleResults.find(r => r.id === vehicleId) || null : null),
     [vehicleId, vehicleResults]
+  );
+
+  const selectedType = useMemo(
+    () => (subscriptionType ? subscriptionTypes.find(t => t.id === subscriptionType) || null : null),
+    [subscriptionType, subscriptionTypes]
   );
 
   // Set today's date on mount
@@ -120,7 +129,8 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
           items.map((c) => ({
             id: c?.CardID,
             uid: c?.UID,
-            category: c?.CardCategoryID?.Name || c?.CardCategoryID?.name || ''
+            category: c?.CardCategoryID?.Name || c?.CardCategoryID?.name || '',
+            categoryId: c?.CardCategoryID?.ID || c?.CardCategoryID?.id || ''
           })).filter((c) => c.id)
         );
       } catch (e) {
@@ -159,7 +169,8 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
           items.map((v) => ({
             id: v?.VehicleID,
             plate: v?.PlateNumber,
-            typeName: v?.VehicleType?.Name || v?.VehicleType?.name || ''
+            typeName: v?.VehicleType?.Name || v?.VehicleType?.name || '',
+            typeId: v?.VehicleType?.VehicleTypeID || v?.VehicleType?.id || ''
           })).filter((v) => v.id)
         );
       } catch (e) {
@@ -176,15 +187,130 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
   // Calculate end date and price when subscription type changes
   useEffect(() => {
     if (subscriptionType && startDate) {
-      const selectedType = subscriptionTypes.find(t => t.id === subscriptionType);
       if (selectedType) {
         setEndDate(addDaysIso(startDate, selectedType.duration));
-        // If backend doesn't define a 'Price' on subscription type, keep 0.00 and let backend validate.
-        const p = selectedType.price;
-        setPrice(Number.isFinite(p) ? Number(p).toFixed(2) : '0.00');
       }
     }
-  }, [subscriptionType, startDate]);
+  }, [subscriptionType, startDate, selectedType]);
+
+  // Derive VehicleTypeID from selected vehicle
+  useEffect(() => {
+    if (!vehicleId) {
+      setVehicleTypeId('');
+      return;
+    }
+
+    const t = vehicleSelected?.typeId || '';
+    setVehicleTypeId(t);
+  }, [vehicleId, vehicleSelected]);
+
+  // Derive CustomerID from selected card (best-effort)
+  useEffect(() => {
+    // Clear if no card selected
+    if (!cardId) {
+      setCustomerId('');
+      return;
+    }
+
+    const derive = async () => {
+      try {
+        // Prefer reading customer directly from the selected card if present
+        const immediate = cardSelected?.customerId || '';
+        if (immediate) {
+          setCustomerId(immediate);
+          return;
+        }
+
+        // Fallback: fetch card by id and derive customer business ID if API includes it
+        const res = await fetch(`${API_BASE_URL}/api/cards/${encodeURIComponent(cardId)}`, {
+          headers: { ...authHeaders }
+        });
+        const json = await res.json().catch(() => null);
+        if (!res.ok) return;
+
+        // Common shapes we've used elsewhere: CustomerID (business string) or populated customer with ID.
+        const derived =
+          json?.data?.CustomerID?.ID ||
+          json?.data?.CustomerID?.id ||
+          json?.data?.CustomerID ||
+          json?.data?.customerId ||
+          '';
+
+        setCustomerId(String(derived || ''));
+      } catch {
+        // If derivation fails, keep customerId empty; subscription can still be registered without a customer.
+        setCustomerId('');
+      }
+    };
+
+    derive();
+  }, [cardId, cardSelected, authHeaders]);
+
+  // Load current subscription price based on (card category + vehicle type + subscription type)
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCurrentPrice = async () => {
+      setPriceError('');
+
+      // Require the core inputs
+      if (!subscriptionType || !vehicleTypeId) {
+        setPrice('0.00');
+        return;
+      }
+
+      // Card category is needed for subscription pricing rule; derive from selected card
+      const cardCategoryId = cardSelected?.categoryId || '';
+      if (!cardCategoryId) {
+        setPrice('0.00');
+        return;
+      }
+
+      setPriceLoading(true);
+
+      try {
+        const ruleRes = await fetch(
+          `${API_BASE_URL}/api/subscription-pricing-rules/find/${encodeURIComponent(cardCategoryId)}/${encodeURIComponent(vehicleTypeId)}/${encodeURIComponent(subscriptionType)}`,
+          { headers: { ...authHeaders } }
+        );
+        const ruleJson = await ruleRes.json().catch(() => null);
+        if (!ruleRes.ok) {
+          const msg = ruleJson?.error?.message || `Failed to find pricing rule (${ruleRes.status})`;
+          throw new Error(msg);
+        }
+
+        const ruleBusinessId = ruleJson?.data?.ID || ruleJson?.data?.id;
+        if (!ruleBusinessId) throw new Error('Pricing rule not found');
+
+        const curRes = await fetch(
+          `${API_BASE_URL}/api/subscription-pricing-rule-details/current/${encodeURIComponent(ruleBusinessId)}`,
+          { headers: { ...authHeaders } }
+        );
+        const curJson = await curRes.json().catch(() => null);
+        if (!curRes.ok) {
+          const msg = curJson?.error?.message || `Failed to load current price (${curRes.status})`;
+          throw new Error(msg);
+        }
+
+        const p = Number(curJson?.data?.Price);
+        if (!Number.isFinite(p)) throw new Error('Invalid price returned');
+        if (cancelled) return;
+        setPrice(p.toFixed(2));
+      } catch (e) {
+        if (cancelled) return;
+        setPrice('0.00');
+        setPriceError(e?.message || 'Failed to load price');
+      } finally {
+        if (!cancelled) setPriceLoading(false);
+      }
+    };
+
+    loadCurrentPrice();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [subscriptionType, vehicleTypeId, cardSelected, authHeaders]);
 
   const handleSubmit = () => {
     if (!cardId || !vehicleId || !subscriptionType) {
@@ -192,17 +318,33 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
       return;
     }
 
+    if (!vehicleTypeId) {
+      alert('Please select a vehicle that has a vehicle type');
+      return;
+    }
+
+    if (priceLoading) {
+      alert('Price is still loading. Please wait a moment.');
+      return;
+    }
+
+    if (priceError || !Number.isFinite(Number(price)) || Number(price) <= 0) {
+      alert(priceError || 'No valid price found for this subscription type');
+      return;
+    }
+
   const selectedCard = cardResults.find(c => c.id === cardId) || cardSelected;
   const selectedVehicle = vehicleResults.find(v => v.id === vehicleId) || vehicleSelected;
-    const selectedType = subscriptionTypes.find(t => t.id === subscriptionType);
 
     const newSubscription = {
       id: `SUB${String(Date.now()).slice(-3)}`,
       cardId,
       vehicleId,
+      customerId: customerId || undefined,
       subscriptionTypeId: subscriptionType,
+      vehicleTypeId,
       vehiclePlate: selectedVehicle?.plate,
-      customerName: 'New Customer', // In real app, get from card/vehicle owner
+      customerName: customerId || '—',
       type: selectedType?.name,
       startDate,
       endDate,
@@ -449,7 +591,11 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
                 />
               </div>
               <p className="register-subscription-field-hint">
-                {subscriptionType ? 'Calculated based on subscription type' : 'Select a subscription type to calculate price'}
+                {priceLoading
+                  ? 'Loading current price…'
+                  : subscriptionType
+                    ? (priceError ? `Price unavailable: ${priceError}` : 'Current active price based on pricing rules')
+                    : 'Select a subscription type to calculate price'}
               </p>
             </div>
           </div>

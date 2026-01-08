@@ -2,8 +2,40 @@ const subscriptionPricingRuleDetailsRouter = require('express').Router()
 const SubscriptionPricingRuleDetail = require('../models/subscriptionPricingRuleDetail')
 const SubscriptionPricingRule = require('../models/subscriptionPricingRule')
 const Employee = require('../models/employee')
+const CardCategory = require('../models/cardCategory')
+const VehicleType = require('../models/vehicleType')
+const SubscriptionType = require('../models/subscriptionType')
+const Person = require('../models/person')
 
 const looksLikeObjectId = (value) => typeof value === 'string' && /^[a-f\d]{24}$/i.test(value)
+
+const attachRuleRelations = async (ruleDocOrObj) => {
+  const rule = ruleDocOrObj?.toJSON ? ruleDocOrObj.toJSON() : ruleDocOrObj
+  if (!rule) return rule
+
+  const [cardCategory, vehicleType, subscriptionType] = await Promise.all([
+    rule.CardCategoryID ? CardCategory.findOne({ ID: rule.CardCategoryID }).select('ID Name') : null,
+    rule.VehicleTypeID ? VehicleType.findOne({ VehicleTypeID: rule.VehicleTypeID }).select('VehicleTypeID Name') : null,
+    rule.SubscriptionTypeID ? SubscriptionType.findOne({ ID: rule.SubscriptionTypeID }).select('ID TypeName DurationDays Description') : null
+  ])
+
+  return {
+    ...rule,
+    CardCategory: cardCategory || null,
+    VehicleType: vehicleType || null,
+    SubscriptionType: subscriptionType || null
+  }
+}
+
+const attachChangedByEmployee = async (employeeBusinessId) => {
+  if (!employeeBusinessId) return null
+  const employee = await Employee.findOne({ ID: employeeBusinessId })
+  if (!employee) return null
+  const e = employee.toJSON ? employee.toJSON() : employee
+  const person = e.PersonID ? await Person.findOne({ ID: e.PersonID }) : null
+  if (person) e.PersonID = person.toJSON ? person.toJSON() : person
+  return e
+}
 
 // GET all subscription pricing rule details with filtering and pagination
 subscriptionPricingRuleDetailsRouter.get('/', async (req, res) => {
@@ -43,31 +75,51 @@ subscriptionPricingRuleDetailsRouter.get('/', async (req, res) => {
 
     const details = await SubscriptionPricingRuleDetail
       .find(filter)
-      .populate({
-        path: 'SubscriptionPricingRuleID',
-        populate: [
-          { path: 'CardCategoryID', select: 'ID Name' },
-          { path: 'VehicleTypeID', select: 'VehicleTypeID Name' },
-          { path: 'SubscriptionTypeID', select: 'ID TypeName DurationDays' }
-        ]
-      })
-      .populate({
-        path: 'ChangedBy',
-        select: 'ID EmployeeType',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName'
-        }
-      })
-      .populate('SubscriptionPricingRuleDetailPrev', 'ID Price StartDateApply')
       .limit(parseInt(limit))
       .skip(skip)
       .sort({ StartDateApply: -1 })
 
+    const ruleIds = [...new Set(details.map((d) => d.SubscriptionPricingRuleID).filter(Boolean))]
+    const rules = await SubscriptionPricingRule.find({ ID: { $in: ruleIds } })
+    const ruleById = new Map(rules.map((r) => [r.ID, r]))
+
+    const prevIds = [...new Set(details.map((d) => d.SubscriptionPricingRuleDetailPrev).filter(Boolean))]
+    const prevDocs = prevIds.length
+      ? await SubscriptionPricingRuleDetail.find({ ID: { $in: prevIds } }).select('ID Price StartDateApply Reason')
+      : []
+    const prevById = new Map(prevDocs.map((p) => [p.ID, p]))
+
+    const employeeIds = [...new Set(details.map((d) => d.ChangedBy).filter(Boolean))]
+    const employees = employeeIds.length ? await Employee.find({ ID: { $in: employeeIds } }) : []
+    const employeeById = new Map(employees.map((e) => [e.ID, e]))
+
+    const personIds = [...new Set(employees.map((e) => e.PersonID).filter(Boolean))]
+    const persons = personIds.length ? await Person.find({ ID: { $in: personIds } }) : []
+    const personById = new Map(persons.map((p) => [p.ID, p]))
+
+    const items = await Promise.all(details.map(async (d) => {
+      const obj = d.toJSON ? d.toJSON() : d
+      const rule = ruleById.get(obj.SubscriptionPricingRuleID) || null
+      obj.SubscriptionPricingRule = rule ? await attachRuleRelations(rule) : null
+      const empRaw = employeeById.get(obj.ChangedBy)
+      if (empRaw) {
+        const eobj = empRaw.toJSON ? empRaw.toJSON() : empRaw
+        const p = eobj.PersonID ? personById.get(eobj.PersonID) : null
+        if (p) eobj.PersonID = p.toJSON ? p.toJSON() : p
+        obj.ChangedByEmployee = eobj
+      } else {
+        obj.ChangedByEmployee = null
+      }
+      obj.SubscriptionPricingRuleDetailPrev = obj.SubscriptionPricingRuleDetailPrev
+        ? (prevById.get(obj.SubscriptionPricingRuleDetailPrev)?.toJSON?.() || prevById.get(obj.SubscriptionPricingRuleDetailPrev) || null)
+        : null
+      return obj
+    }))
+
     res.json({
       success: true,
       data: {
-        items: details,
+        items,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -214,25 +266,10 @@ subscriptionPricingRuleDetailsRouter.get('/history/:subscriptionPricingRuleId', 
 // GET single subscription pricing rule detail by ID
 subscriptionPricingRuleDetailsRouter.get('/:id', async (req, res) => {
   try {
-    const detail = await SubscriptionPricingRuleDetail
-      .findById(req.params.id)
-      .populate({
-        path: 'SubscriptionPricingRuleID',
-        populate: [
-          { path: 'CardCategoryID', select: 'ID Name' },
-          { path: 'VehicleTypeID', select: 'VehicleTypeID Name' },
-          { path: 'SubscriptionTypeID', select: 'ID TypeName DurationDays Description' }
-        ]
-      })
-      .populate({
-        path: 'ChangedBy',
-        select: 'ID EmployeeType',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName Phone'
-        }
-      })
-      .populate('SubscriptionPricingRuleDetailPrev', 'ID Price StartDateApply Reason')
+    const idParam = req.params.id
+    const detail = looksLikeObjectId(idParam)
+      ? await SubscriptionPricingRuleDetail.findById(idParam)
+      : await SubscriptionPricingRuleDetail.findOne({ ID: idParam })
 
     if (!detail) {
       return res.status(404).json({
@@ -244,9 +281,21 @@ subscriptionPricingRuleDetailsRouter.get('/:id', async (req, res) => {
       })
     }
 
+    const obj = detail.toJSON ? detail.toJSON() : detail
+    const rule = obj.SubscriptionPricingRuleID
+      ? await SubscriptionPricingRule.findOne({ ID: obj.SubscriptionPricingRuleID })
+      : null
+    const prev = obj.SubscriptionPricingRuleDetailPrev
+      ? await SubscriptionPricingRuleDetail.findOne({ ID: obj.SubscriptionPricingRuleDetailPrev }).select('ID Price StartDateApply Reason')
+      : null
+
+    obj.SubscriptionPricingRule = rule ? await attachRuleRelations(rule) : null
+    obj.SubscriptionPricingRuleDetailPrev = prev ? (prev.toJSON ? prev.toJSON() : prev) : null
+    obj.ChangedByEmployee = await attachChangedByEmployee(obj.ChangedBy)
+
     res.json({
       success: true,
-      data: detail
+      data: obj
     })
   } catch (error) {
     res.status(500).json({

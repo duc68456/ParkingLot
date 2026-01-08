@@ -1,4 +1,5 @@
 const subscriptionsRouter = require('express').Router()
+const { authRequired } = require('../utils/middleware')
 const Subscription = require('../models/subscription')
 const Customer = require('../models/customer')
 const Vehicle = require('../models/vehicle')
@@ -6,6 +7,58 @@ const VehicleType = require('../models/vehicleType')
 const Card = require('../models/card')
 const SubscriptionType = require('../models/subscriptionType')
 const Employee = require('../models/employee')
+const Person = require('../models/person')
+const CardCategory = require('../models/cardCategory');
+
+const isMongoObjectId = (value) => typeof value === 'string' && /^[0-9a-fA-F]{24}$/.test(value)
+
+// Helper: Attach related docs without using populate (our refs store business IDs, not ObjectIds)
+const attachSubscriptionRelations = async (subscriptionDoc) => {
+  const obj = subscriptionDoc?.toJSON ? subscriptionDoc.toJSON() : subscriptionDoc
+  if (!obj) return obj
+
+  const [employeeRaw, customerRaw, vehicle, vehicleType, cardRaw  , subscriptionType] = await Promise.all([
+    obj.ProcessedBy ? Employee.findOne({ ID: obj.ProcessedBy }).lean() : null,
+    obj.CustomerID ? Customer.findOne({ ID: obj.CustomerID }).lean() : null,
+    obj.VehicleID ? Vehicle.findOne({ VehicleID: obj.VehicleID }).lean() : null,
+    obj.VehicleTypeID ? VehicleType.findOne({ VehicleTypeID: obj.VehicleTypeID }).lean() : null,
+    obj.CardID ? Card.findOne({ CardID: obj.CardID }).lean() : null,
+    obj.SubscriptionTypeID ? SubscriptionType.findOne({ ID: obj.SubscriptionTypeID }).lean() : null
+  ])
+
+  // Attach Person details (by business ID) so UI can display names.
+  const [employeePerson, customerPerson, cardCategory] = await Promise.all([
+    employeeRaw?.PersonID ? Person.findOne({ ID: employeeRaw.PersonID }).lean() : null,
+    customerRaw?.PersonID ? Person.findOne({ ID: customerRaw.PersonID }).lean() : null,
+    cardRaw?.CardCategoryID ? CardCategory.findOne({ ID: cardRaw.CardCategoryID }).lean() : null
+  ])
+
+  // if (cardRaw && cardRaw.CardCategoryID) {
+  //   // Tìm thông tin Category dựa trên ID lưu trong Card
+  //   const category = await CardCategory.findOne({ CardCategoryID: cardRaw.CardCategoryID }).lean();
+  //   // Gộp thông tin category vào object card
+  //   card = { ...cardRaw, CardCategory: category };
+  // }
+
+  const card = cardRaw 
+    ? {...cardRaw, CardCategoryID: cardCategory || cardRaw.CardCategoryID}
+    : null
+  const employee = employeeRaw
+    ? { ...employeeRaw, PersonID: employeePerson || employeeRaw.PersonID }
+    : null
+  const customer = customerRaw
+    ? { ...customerRaw, PersonID: customerPerson || customerRaw.PersonID }
+    : null
+
+  obj.ProcessedByEmployee = employee
+  obj.Customer = customer
+  obj.Vehicle = vehicle
+  obj.VehicleType = vehicleType
+  obj.Card = card
+  obj.SubscriptionType = subscriptionType
+
+  return obj
+}
 
 // Helper function to calculate end date
 const calculateEndDate = (startDate, durationDays) => {
@@ -79,47 +132,16 @@ subscriptionsRouter.get('/', async (req, res) => {
 
     const subscriptions = await Subscription
       .find(filter)
-      .populate({
-        path: 'ProcessedBy',
-        select: 'ID EmployeeType',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName'
-        }
-      })
-      .populate({
-        path: 'CustomerID',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName Phone'
-        }
-      })
-      .populate({
-        path: 'VehicleID',
-        select: 'VehicleID PlateNumber',
-        populate: {
-          path: 'VehicleTypeID',
-          select: 'VehicleTypeID Name'
-        }
-      })
-      .populate('VehicleTypeID', 'VehicleTypeID Name')
-      .populate({
-        path: 'CardID',
-        select: 'CardID UID CardCategoryID',
-        populate: {
-          path: 'CardCategoryID',
-          select: 'ID Name'
-        }
-      })
-      .populate('SubscriptionTypeID', 'ID TypeName DurationDays')
       .limit(parseInt(limit))
       .skip(skip)
       .sort({ ProcessedAt: -1 })
 
+    const items = await Promise.all(subscriptions.map((s) => attachSubscriptionRelations(s)))
+
     res.json({
       success: true,
       data: {
-        items: subscriptions,
+        items,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -142,41 +164,13 @@ subscriptionsRouter.get('/', async (req, res) => {
 // GET single subscription by ID
 subscriptionsRouter.get('/:id', async (req, res) => {
   try {
-    const subscription = await Subscription
-      .findById(req.params.id)
-      .populate({
-        path: 'ProcessedBy',
-        select: 'ID EmployeeType',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName Phone'
-        }
-      })
-      .populate({
-        path: 'CustomerID',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName Phone Gender'
-        }
-      })
-      .populate({
-        path: 'VehicleID',
-        select: 'VehicleID PlateNumber Color Status',
-        populate: {
-          path: 'VehicleTypeID',
-          select: 'VehicleTypeID Name'
-        }
-      })
-      .populate('VehicleTypeID', 'VehicleTypeID Name')
-      .populate({
-        path: 'CardID',
-        select: 'CardID UID CardCategoryID ActiveDay ExpireDay',
-        populate: {
-          path: 'CardCategoryID',
-          select: 'ID Name'
-        }
-      })
-      .populate('SubscriptionTypeID', 'ID TypeName DurationDays Description')
+    // Accept either business ID (SSN####) or Mongo ObjectId.
+    // IMPORTANT: never query {_id: 'SSN0001'} because Mongoose will try to cast and throw.
+    const idParam = req.params.id
+    const or = [{ ID: idParam }]
+    if (isMongoObjectId(idParam)) or.unshift({ _id: idParam })
+
+    const subscription = await Subscription.findOne({ $or: or })
 
     if (!subscription) {
       return res.status(404).json({
@@ -189,7 +183,7 @@ subscriptionsRouter.get('/:id', async (req, res) => {
     }
 
     // Add computed field for validity
-    const subscriptionData = subscription.toJSON()
+    const subscriptionData = await attachSubscriptionRelations(subscription)
     subscriptionData.isValid = isSubscriptionValid(subscription)
 
     res.json({
@@ -258,10 +252,9 @@ subscriptionsRouter.get('/check/:cardId', async (req, res) => {
 })
 
 // POST - Create new subscription
-subscriptionsRouter.post('/', async (req, res) => {
+subscriptionsRouter.post('/', authRequired, async (req, res) => {
   try {
     const {
-      ProcessedBy,
       CustomerID,
       VehicleID,
       VehicleTypeID,
@@ -271,6 +264,15 @@ subscriptionsRouter.post('/', async (req, res) => {
       StartDate
     } = req.body
 
+    // Derive ProcessedBy from token user (preferred) and fall back to body for backward compatibility.
+    // We store employee references as BUSINESS IDs (e.g., EMP0001) in the Subscription model.
+    let ProcessedBy = req.user?.employeeBusinessId || req.body.ProcessedBy
+
+    // Backward-compatible fallback: if token only has mongo employeeId, resolve it to business ID.
+    if (!ProcessedBy && req.user?.employeeId && isMongoObjectId(req.user.employeeId)) {
+      const emp = await Employee.findById(req.user.employeeId)
+      ProcessedBy = emp?.ID || null
+    }
     // Validate required fields
     if (!ProcessedBy || !VehicleID || !VehicleTypeID || !CardID || !SubscriptionTypeID || PricePaid === undefined) {
       return res.status(400).json({
@@ -294,9 +296,20 @@ subscriptionsRouter.post('/', async (req, res) => {
       })
     }
 
-    // Validate CustomerID if provided
-    if (CustomerID) {
-      const customer = await Customer.findOne({ ID: CustomerID })
+    // Derive CustomerID from card ownership if not explicitly provided.
+    // Card.OwnerID stores the PERSON business ID (Person.ID) when a card is assigned.
+    let resolvedCustomerId = CustomerID || null
+    if (!resolvedCustomerId) {
+      const cardForCustomer = await Card.findOne({ CardID }).select('OwnerID')
+      if (cardForCustomer?.OwnerID) {
+        const cust = await Customer.findOne({ PersonID: String(cardForCustomer.OwnerID) }).select('ID')
+        if (cust?.ID) resolvedCustomerId = cust.ID
+      }
+    }
+
+    // Validate CustomerID if provided/derived
+    if (resolvedCustomerId) {
+      const customer = await Customer.findOne({ ID: resolvedCustomerId })
       if (!customer) {
         return res.status(404).json({
           success: false,
@@ -359,10 +372,9 @@ subscriptionsRouter.post('/', async (req, res) => {
     // Calculate EndDate
     const startDate = StartDate ? new Date(StartDate) : new Date()
     const endDate = calculateEndDate(startDate, subscriptionType.DurationDays)
-
     const subscription = new Subscription({
       ProcessedBy,
-      CustomerID: CustomerID || null,
+      CustomerID: resolvedCustomerId,
       VehicleID,
       VehicleTypeID,
       CardID,
@@ -374,45 +386,12 @@ subscriptionsRouter.post('/', async (req, res) => {
     })
 
     const savedSubscription = await subscription.save()
-    const populatedSubscription = await Subscription
-      .findById(savedSubscription._id)
-      .populate({
-        path: 'ProcessedBy',
-        select: 'ID EmployeeType',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName'
-        }
-      })
-      .populate({
-        path: 'CustomerID',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName Phone'
-        }
-      })
-      .populate({
-        path: 'VehicleID',
-        select: 'VehicleID PlateNumber',
-        populate: {
-          path: 'VehicleTypeID',
-          select: 'VehicleTypeID Name'
-        }
-      })
-      .populate('VehicleTypeID', 'VehicleTypeID Name')
-      .populate({
-        path: 'CardID',
-        select: 'CardID UID CardCategoryID',
-        populate: {
-          path: 'CardCategoryID',
-          select: 'ID Name'
-        }
-      })
-      .populate('SubscriptionTypeID', 'ID TypeName DurationDays')
+
+    const hydrated = await attachSubscriptionRelations(savedSubscription)
 
     res.status(201).json({
       success: true,
-      data: populatedSubscription,
+      data: hydrated,
       message: 'Subscription created successfully'
     })
   } catch (error) {
@@ -431,7 +410,10 @@ subscriptionsRouter.put('/:id', async (req, res) => {
   try {
     const { IsSuspended } = req.body
 
-    const subscription = await Subscription.findById(req.params.id)
+    const idParam = req.params.id
+    const subscription = isMongoObjectId(idParam)
+      ? await Subscription.findById(idParam)
+      : await Subscription.findOne({ ID: idParam })
     if (!subscription) {
       return res.status(404).json({
         success: false,
@@ -447,45 +429,11 @@ subscriptionsRouter.put('/:id', async (req, res) => {
     }
 
     const updatedSubscription = await subscription.save()
-    const populatedSubscription = await Subscription
-      .findById(updatedSubscription._id)
-      .populate({
-        path: 'ProcessedBy',
-        select: 'ID EmployeeType',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName'
-        }
-      })
-      .populate({
-        path: 'CustomerID',
-        populate: {
-          path: 'PersonID',
-          select: 'ID FullName Phone'
-        }
-      })
-      .populate({
-        path: 'VehicleID',
-        select: 'VehicleID PlateNumber',
-        populate: {
-          path: 'VehicleTypeID',
-          select: 'VehicleTypeID Name'
-        }
-      })
-      .populate('VehicleTypeID', 'VehicleTypeID Name')
-      .populate({
-        path: 'CardID',
-        select: 'CardID UID CardCategoryID',
-        populate: {
-          path: 'CardCategoryID',
-          select: 'ID Name'
-        }
-      })
-      .populate('SubscriptionTypeID', 'ID TypeName DurationDays')
+    const hydrated = await attachSubscriptionRelations(updatedSubscription)
 
     res.json({
       success: true,
-      data: populatedSubscription,
+      data: hydrated,
       message: `Subscription ${IsSuspended ? 'suspended' : 'resumed'} successfully`
     })
   } catch (error) {
@@ -502,7 +450,13 @@ subscriptionsRouter.put('/:id', async (req, res) => {
 // DELETE - Delete subscription
 subscriptionsRouter.delete('/:id', async (req, res) => {
   try {
-    const subscription = await Subscription.findById(req.params.id)
+    // Accept either business ID (SSN####) or Mongo ObjectId.
+    // IMPORTANT: never query {_id: 'SSN0001'} because Mongoose will try to cast and throw.
+    const idParam = req.params.id
+    const or = [{ ID: idParam }]
+    if (isMongoObjectId(idParam)) or.unshift({ _id: idParam })
+
+    const subscription = await Subscription.findOne({ $or: or })
     if (!subscription) {
       return res.status(404).json({
         success: false,
@@ -513,7 +467,7 @@ subscriptionsRouter.delete('/:id', async (req, res) => {
       })
     }
 
-    await Subscription.findByIdAndDelete(req.params.id)
+    await Subscription.deleteOne({ _id: subscription._id })
 
     res.json({
       success: true,

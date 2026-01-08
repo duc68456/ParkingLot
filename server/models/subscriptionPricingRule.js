@@ -9,19 +9,22 @@ const subscriptionPricingRuleSchema = new mongoose.Schema({
     match: /^SPS\d{4}$/
   },
   CardCategoryID: {
-    type: mongoose.Schema.Types.ObjectId,
+    // Store business ID (e.g. CAT0001)
+    type: String,
     required: true,
-    ref: 'CardCategory'
+    index: true
   },
   VehicleTypeID: {
-    type: mongoose.Schema.Types.ObjectId,
+    // Store business ID (e.g. VT0001)
+    type: String,
     required: true,
-    ref: 'VehicleType'
+    index: true
   },
   SubscriptionTypeID: {
-    type: mongoose.Schema.Types.ObjectId,
+    // Store business ID (e.g. ST0001)
+    type: String,
     required: true,
-    ref: 'SubscriptionType'
+    index: true
   }
 }, {
   timestamps: true

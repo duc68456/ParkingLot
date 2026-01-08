@@ -472,7 +472,8 @@ adminAccountsRouter.post('/login', async (request, response) => {
       type: 'admin',
       adminAccountId: adminAccount._id.toString(),
       username: adminAccount.Username,
-      employeeId: adminAccount.EmployeeID?._id?.toString()
+      employeeId: adminAccount.EmployeeID?._id?.toString(),
+      employeeBusinessId: adminAccount.EmployeeID?.ID
     })
 
     response.json({
