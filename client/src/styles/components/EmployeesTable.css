@@ -151,6 +151,14 @@
   background: #F0FDF4;
 }
 
+.action-btn--account {
+  background: #F3E8FF;
+}
+
+.action-btn--account:hover {
+  background: #E9D5FF;
+}
+
 .action-btn--card:hover {
   background: #DCFCE7;
 }

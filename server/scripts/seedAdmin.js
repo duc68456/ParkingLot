@@ -76,7 +76,7 @@ async function main() {
     console.log('[seed-admin] creating AdminAccount...')
     const PasswordHash = await AdminAccount.hashPassword(password)
     const adminAccount = await AdminAccount.create({
-      EmployeeID: employee._id,
+      EmployeeID: employee.ID,
       Username: username,
       PasswordHash,
       Status: 'ACTIVE'
@@ -86,7 +86,7 @@ async function main() {
     console.log('---')
     console.log('Created:')
   console.log(`  PersonID: ${person.ID || person._id}`)
-  console.log(`  EmployeeID: ${employee._id}`)
+  console.log(`  EmployeeID: ${employee.ID}`)
     console.log(`  AdminAccountID: ${adminAccount._id}`)
     console.log('Credentials:')
     console.log(`  Username: ${username}`)

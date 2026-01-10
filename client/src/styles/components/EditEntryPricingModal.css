@@ -1,0 +1,210 @@
+.eepm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 164.8px 311.6px 0;
+  z-index: 9999;
+}
+
+.eepm-modal {
+  width: 672px;
+  max-width: calc(100vw - 48px);
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.eepm-header {
+  height: 68.8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 0.8px solid #e2e8f0;
+}
+
+.eepm-title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 400;
+  color: #0f172b;
+}
+
+.eepm-close {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  font-size: 20px;
+  line-height: 20px;
+  color: #45556c;
+  cursor: pointer;
+}
+
+.eepm-body {
+  padding: 24px;
+}
+
+.eepm-grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.eepm-grid3 {
+  display: grid;
+  /* Figma: 3 inputs @ ~197.33px each in a 672px modal.
+     Use a responsive grid so inputs never overflow/overlap. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.eepm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.eepm-label {
+  font-size: 14px;
+  line-height: 20px;
+  color: #314158;
+}
+
+.eepm-input {
+  height: 41.6px;
+  border: 0.8px solid #cad5e2;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.eepm-input:focus {
+  border-color: #155dfc;
+  box-shadow: 0 0 0 3px rgba(21, 93, 252, 0.15);
+}
+
+.eepm-money {
+  position: relative;
+  min-width: 0;
+}
+
+.eepm-money-prefix {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  line-height: 24px;
+  color: #62748e;
+  pointer-events: none;
+}
+
+.eepm-input-money {
+  padding-left: 32px;
+}
+
+/* Keep the exact Figma widths when there's enough room. */
+@media (min-width: 720px) {
+  .eepm-grid3 {
+    grid-template-columns: repeat(3, minmax(0, 197.33px));
+    justify-content: space-between;
+  }
+}
+
+.eepm-note {
+  margin-top: 16px;
+  background: #eff6ff;
+  border: 0.8px solid #bedbff;
+  border-radius: 10px;
+  padding: 16.8px;
+  color: #193cb8;
+}
+
+.eepm-note-text {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.eepm-note-text strong {
+  font-weight: 700;
+}
+
+.eepm-footer {
+  height: 78.4px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 0 24px;
+  border-top: 0.8px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.eepm-btn {
+  border-radius: 10px;
+  font-size: 16px;
+  line-height: 24px;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.eepm-btn-secondary {
+  height: 45.6px;
+  border: 0.8px solid #cad5e2;
+  background: #fff;
+  color: #314158;
+}
+
+.eepm-btn-primary {
+  height: 44px;
+  border: none;
+  background: #155dfc;
+  color: #fff;
+  box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+.eepm-state {
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.eepm-error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.eepm-validation {
+  margin-top: 12px;
+  color: #b42318;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+@media (max-width: 720px) {
+  .eepm-overlay {
+    padding: 72px 16px 0;
+    align-items: flex-start;
+  }
+
+  .eepm-grid2 {
+    grid-template-columns: 1fr;
+  }
+
+  .eepm-grid3 {
+    grid-template-columns: 1fr;
+  }
+}

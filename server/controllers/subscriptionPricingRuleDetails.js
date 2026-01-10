@@ -224,10 +224,18 @@ subscriptionPricingRuleDetailsRouter.get('/history/:subscriptionPricingRuleId', 
 
     const history = await SubscriptionPricingRuleDetail
       .find(filter)
-      .populate('SubscriptionPricingRuleDetailPrev', 'ID Price StartDateApply')
       .limit(parseInt(limit))
       .skip(skip)
       .sort({ StartDateApply: -1 })
+
+    // Our schema stores SubscriptionPricingRuleDetailPrev as a BUSINESS ID (string),
+    // so Mongoose populate() would try to treat it as an ObjectId and throw.
+    // Manually hydrate prev details by ID instead.
+    const prevIds = [...new Set(history.map((h) => h.SubscriptionPricingRuleDetailPrev).filter(Boolean))]
+    const prevDocs = prevIds.length
+      ? await SubscriptionPricingRuleDetail.find({ ID: { $in: prevIds } }).select('ID Price StartDateApply Reason')
+      : []
+    const prevById = new Map(prevDocs.map((p) => [p.ID, (p.toJSON ? p.toJSON() : p)]))
 
     const employeeIds = [...new Set(history.map((h) => h.ChangedBy).filter(Boolean))]
     const employees = await Employee.find({ ID: { $in: employeeIds } })
@@ -237,6 +245,9 @@ subscriptionPricingRuleDetailsRouter.get('/history/:subscriptionPricingRuleId', 
       const obj = h.toJSON ? h.toJSON() : h
       obj.SubscriptionPricingRule = rule
       obj.ChangedByEmployee = employeeById.get(obj.ChangedBy) || null
+      obj.SubscriptionPricingRuleDetailPrev = obj.SubscriptionPricingRuleDetailPrev
+        ? (prevById.get(obj.SubscriptionPricingRuleDetailPrev) || null)
+        : null
       return obj
     })
 

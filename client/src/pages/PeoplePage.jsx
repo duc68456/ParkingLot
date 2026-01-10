@@ -332,6 +332,38 @@ export default function PeoplePage() {
   const handleSubmitEmployee = (formData) => {
     ;(async () => {
       try {
+        // Validate employee info before creating any documents
+        const rawType = String(formData?.employeeType || '').trim().toUpperCase()
+        const allowedTypes = ['STAFF', 'GATE_STAFF', 'MANAGER', 'ADMIN']
+
+        if (!rawType) {
+          throw new Error('Please select a valid employee type.')
+        }
+        if (!allowedTypes.includes(rawType)) {
+          throw new Error(`Employee type "${rawType}" is not supported.`)
+        }
+
+        // Server-side preflight: if invalid, this blocks BEFORE person creation
+        const validateRes = await fetch(`${API_BASE_URL}/api/employees/validate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
+          body: JSON.stringify({
+            EmployeeType: rawType,
+            FullName: formData.fullName,
+            Phone: formData.phone,
+            Gender: formData.gender
+          })
+        })
+
+        const validateJson = await validateRes.json().catch(() => ({}))
+        if (!validateRes.ok || validateJson?.success === false) {
+          const msg = validateJson?.error?.message || 'Employee info is not suitable'
+          const details = validateJson?.error?.details
+          throw new Error(details ? `${msg}: ${details}` : msg)
+        }
+
+        let createdPersonId = null
+
         // 1) Create person first (employee inherits from person)
         const personRes = await fetch(`${API_BASE_URL}/api/persons`, {
           method: 'POST',
@@ -354,6 +386,8 @@ export default function PeoplePage() {
         const personId = person?.id ?? person?._id
         if (!personId) throw new Error('Create person succeeded but no id returned')
 
+  createdPersonId = personId
+
         // 2) Create employee referencing that person
         const employeeRes = await fetch(`${API_BASE_URL}/api/employees`, {
           method: 'POST',
@@ -369,7 +403,19 @@ export default function PeoplePage() {
 
         if (!employeeRes.ok) {
           const msg = employeeJson?.error?.message || `Create employee failed (${employeeRes.status})`
-          throw new Error(msg)
+          // Roll back the created person to avoid leaving orphan records
+          if (createdPersonId) {
+            try {
+              await fetch(`${API_BASE_URL}/api/persons/${encodeURIComponent(createdPersonId)}`, {
+                method: 'DELETE',
+                headers: { ...authHeaders }
+              })
+            } catch {
+              // ignore rollback errors
+            }
+          }
+          const details = employeeJson?.error?.details
+          throw new Error(details ? `${msg}: ${details}` : msg)
         }
 
         const created = employeeJson?.data

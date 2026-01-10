@@ -12,10 +12,14 @@ const staffAccountSchema = new mongoose.Schema({
   },
 
   EmployeeID: {
-    type: mongoose.Schema.Types.ObjectId,
+    // Store employee business ID (e.g. EMP0001) instead of Mongo _id
+    type: String,
     ref: 'Employee',
     required: [true, 'Employee reference is required'],
-    unique: true
+    unique: true,
+    trim: true,
+    uppercase: true,
+    match: [/^EMP\d{4}$/, 'Employee ID must follow format EMP0001']
   },
 
   PINCode: {
@@ -55,7 +59,7 @@ staffAccountSchema.index({ Status: 1 });
 staffAccountSchema.virtual('employee', {
   ref: 'Employee',
   localField: 'EmployeeID',
-  foreignField: '_id',
+  foreignField: 'ID',
   justOne: true
 });
 

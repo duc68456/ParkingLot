@@ -2,6 +2,9 @@ const employeesRouter = require('express').Router();
 const Employee = require('../models/employee');
 const Person = require('../models/person');
 
+const ALLOWED_EMPLOYEE_TYPES = ['STAFF', 'GATE_STAFF', 'MANAGER', 'ADMIN'];
+const ALLOWED_EMPLOYEE_STATUSES = ['ACTIVE', 'INACTIVE', 'ON_LEAVE', 'TERMINATED'];
+
 /**
  * GET /api/employees
  * Get all employees with filtering and pagination
@@ -119,6 +122,64 @@ employeesRouter.get('/:id', async (request, response) => {
 });
 
 /**
+ * POST /api/employees/validate
+ * Preflight validation used by the UI before creating a Person record.
+ * This endpoint MUST NOT create any documents.
+ */
+employeesRouter.post('/validate', async (request, response) => {
+  try {
+    const { EmployeeType, FullName, Phone, Gender } = request.body || {};
+
+    const normalizedType = String(EmployeeType || '').trim().toUpperCase();
+    if (!normalizedType) {
+      return response.status(400).json({
+        success: false,
+        error: { message: 'Validation error', code: 'VALIDATION_ERROR', details: 'EmployeeType is required' }
+      });
+    }
+    if (!ALLOWED_EMPLOYEE_TYPES.includes(normalizedType)) {
+      return response.status(400).json({
+        success: false,
+        error: {
+          message: 'Validation error',
+          code: 'VALIDATION_ERROR',
+          details: `EmployeeType: ${normalizedType} is not a valid employee type`
+        }
+      });
+    }
+
+    // Basic person fields check (UI submits these); more detailed validation happens in /api/persons.
+    if (!FullName || !Phone || !Gender) {
+      return response.status(400).json({
+        success: false,
+        error: {
+          message: 'Missing required fields',
+          code: 'MISSING_REQUIRED_FIELDS',
+          details: 'FullName, Phone, and Gender are required'
+        }
+      });
+    }
+
+    // Block if phone is already taken (would fail person create anyway)
+    const existingPerson = await Person.findOne({ Phone: String(Phone).trim() }).select('ID');
+    if (existingPerson) {
+      return response.status(409).json({
+        success: false,
+        error: { message: 'Phone number already exists', code: 'DUPLICATE_PHONE' }
+      });
+    }
+
+    return response.json({ success: true, data: { ok: true } });
+  } catch (error) {
+    console.error('Validate employee payload error:', error);
+    return response.status(500).json({
+      success: false,
+      error: { message: 'Failed to validate employee payload', details: error.message }
+    });
+  }
+});
+
+/**
  * POST /api/employees
  * Create new employee (requires existing person)
  */
@@ -131,6 +192,9 @@ employeesRouter.post('/', async (request, response) => {
       Status
     } = request.body;
 
+  const allowedEmployeeTypes = ALLOWED_EMPLOYEE_TYPES;
+  const allowedStatuses = ALLOWED_EMPLOYEE_STATUSES;
+
     // Validation
     if (!PersonID) {
       return response.status(400).json({
@@ -141,6 +205,36 @@ employeesRouter.post('/', async (request, response) => {
           details: 'PersonID is required'
         }
       });
+    }
+
+    // Validate EmployeeType early (before any writes)
+    if (EmployeeType !== undefined && EmployeeType !== null && String(EmployeeType).trim() !== '') {
+      const normalizedType = String(EmployeeType).trim().toUpperCase();
+      if (!allowedEmployeeTypes.includes(normalizedType)) {
+        return response.status(400).json({
+          success: false,
+          error: {
+            message: 'Validation error',
+            code: 'VALIDATION_ERROR',
+            details: `EmployeeType: ${normalizedType} is not a valid employee type`
+          }
+        });
+      }
+    }
+
+    // Validate Status early
+    if (Status !== undefined && Status !== null && String(Status).trim() !== '') {
+      const normalizedStatus = String(Status).trim().toUpperCase();
+      if (!allowedStatuses.includes(normalizedStatus)) {
+        return response.status(400).json({
+          success: false,
+          error: {
+            message: 'Validation error',
+            code: 'VALIDATION_ERROR',
+            details: `Status: ${normalizedStatus} is not a valid status`
+          }
+        });
+      }
     }
 
     // Check if person exists (accept either PER#### or Mongo _id)
@@ -160,6 +254,19 @@ employeesRouter.post('/', async (request, response) => {
       });
     }
 
+    // Block employee creation if person is not active/suitable
+    // (This prevents creating an Employee record for a deactivated person.)
+    if (person.IsActive === false) {
+      return response.status(400).json({
+        success: false,
+        error: {
+          message: 'Validation error',
+          code: 'VALIDATION_ERROR',
+          details: 'Person is inactive and cannot be assigned as an employee'
+        }
+      });
+    }
+
     // Check if person is already an employee (PersonID stored as Person.ID)
     const existingEmployee = await Employee.findOne({ PersonID: person.ID });
     if (existingEmployee) {
@@ -175,9 +282,9 @@ employeesRouter.post('/', async (request, response) => {
     // Create employee
     const employee = new Employee({
       PersonID: person.ID,
-      EmployeeType: EmployeeType ? EmployeeType.toUpperCase() : 'STAFF',
+      EmployeeType: EmployeeType ? String(EmployeeType).toUpperCase() : 'STAFF',
       HiredDate: HiredDate || new Date(),
-      Status: Status ? Status.toUpperCase() : 'ACTIVE'
+      Status: Status ? String(Status).toUpperCase() : 'ACTIVE'
     });
 
     const savedEmployee = await employee.save();

@@ -5,40 +5,46 @@ import PricingRulesTable from '../components/PricingRulesTable';
 import CardPriceHistoryModal from '../components/CardPriceHistoryModal';
 import EditCardPriceModal from '../components/EditCardPriceModal';
 import AddSubscriptionPricingModal from '../components/AddSubscriptionPricingModal';
+import EditSubscriptionPricingModal from '../components/EditSubscriptionPricingModal';
+import SubscriptionPriceHistoryModal from '../components/SubscriptionPriceHistoryModal';
+import EditEntryPricingModal from '../components/EditEntryPricingModal';
+import EntryPricingHistoryModal from '../components/EntryPricingHistoryModal';
 import '../styles/pages/PricingPage.css';
 
 import addIcon from '../assets/icons/common/actions/add.svg';
 import editIcon from '../assets/icons/common/actions/edit.svg';
-import deleteIcon from '../assets/icons/common/actions/trash.svg';
 import viewIcon from '../assets/icons/common/actions/view.svg';
 
 import { useAuth } from '../contexts/AuthContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
-// Mock data for entry pricing rules
-const mockEntryPricingRules = [
-  {
-    id: 'PR001',
-    cardCategory: 'Standard',
-    vehicleType: 'Car',
-    startDate: '01/01/2024',
-    endDate: 'Active',
-    dayPrice: 20.00,
-    firstHour: 5.00,
-    nextHour: 3.00
-  },
-  {
-    id: 'PR002',
-    cardCategory: 'Premium',
-    vehicleType: 'Car',
-    startDate: '01/01/2024',
-    endDate: 'Active',
-    dayPrice: 15.00,
-    firstHour: 4.00,
-    nextHour: 2.00
-  }
-];
+const normalizeSinglePricingRule = (rule) => {
+  const cardCategory = rule?.CardCategory;
+  const vehicleType = rule?.VehicleType;
+  const changedByEmployee = rule?.ChangedByEmployee;
+  const changedByPerson = changedByEmployee?.Person;
+
+  return {
+    // Mongo id for row key / potential admin delete
+    mongoId: rule?.id ?? rule?._id,
+    // Business ID (chain reference)
+    id: rule?.ID || rule?.id || rule?._id,
+    cardCategory: cardCategory?.Name || '--',
+    cardCategoryId: cardCategory?.ID || rule?.CardCategoryID,
+    vehicleType: vehicleType?.Name || '--',
+    vehicleTypeId: vehicleType?.VehicleTypeID || rule?.VehicleTypeID,
+    startDate: rule?.StartDateApply || null,
+    endDate: null,
+    dayPrice: typeof rule?.DayPrice === 'number' ? rule.DayPrice : 0,
+    firstHour: typeof rule?.HourPrice === 'number' ? rule.HourPrice : 0,
+    nextHour: typeof rule?.NextHourPrice === 'number' ? rule.NextHourPrice : 0,
+    // Display-friendly name and raw IDs
+    changedBy: changedByPerson?.FullName || changedByPerson?.fullName || changedByEmployee?.ID || rule?.ChangedBy,
+    changedByEmployeeId: changedByEmployee?.ID || rule?.ChangedBy,
+    reason: rule?.Reason || null
+  };
+};
 
 // Card pricing will be loaded from backend (CardCategory + CardPrice)
 
@@ -65,19 +71,49 @@ const normalizeSubscriptionPricingRule = (rule, currentPrice) => {
 
 export default function PricingPage() {
   const [activeTab, setActiveTab] = useState('entry-pricing');
-  const [pricingRules, setPricingRules] = useState(mockEntryPricingRules);
+  const [pricingRules, setPricingRules] = useState([]);
+  const [entryPricingLoading, setEntryPricingLoading] = useState(false);
+  const [entryPricingError, setEntryPricingError] = useState('');
+
   const [cardPricing, setCardPricing] = useState([]);
   const [subscriptionPricing, setSubscriptionPricing] = useState([]);
 
   const [subscriptionPricingLoading, setSubscriptionPricingLoading] = useState(false);
   const [subscriptionPricingError, setSubscriptionPricingError] = useState('');
 
+  // Subscription pricing history modal state
+  const [isSubHistoryOpen, setIsSubHistoryOpen] = useState(false);
+  const [subHistoryTitle, setSubHistoryTitle] = useState('Subscription Pricing History');
+  const [subHistoryRule, setSubHistoryRule] = useState(null);
+  const [subHistoryCurrent, setSubHistoryCurrent] = useState(null);
+  const [subHistoryItems, setSubHistoryItems] = useState([]);
+  const [subHistoryLoading, setSubHistoryLoading] = useState(false);
+  const [subHistoryError, setSubHistoryError] = useState('');
+
   const [isAddSubscriptionPricingOpen, setIsAddSubscriptionPricingOpen] = useState(false);
+  const [isEditSubscriptionPricingOpen, setIsEditSubscriptionPricingOpen] = useState(false);
+  const [editSubscriptionRule, setEditSubscriptionRule] = useState(null);
+  const [editSubscriptionSaving, setEditSubscriptionSaving] = useState(false);
+  const [editSubscriptionError, setEditSubscriptionError] = useState('');
 
   const [cardPricingLoading, setCardPricingLoading] = useState(false);
   const [cardPricingError, setCardPricingError] = useState('');
 
   const { authHeaders, user } = useAuth();
+
+  // Entry pricing edit modal state (mock/local data)
+  const [isEditEntryOpen, setIsEditEntryOpen] = useState(false);
+  const [editEntryRule, setEditEntryRule] = useState(null);
+  const [editEntrySaving, setEditEntrySaving] = useState(false);
+  const [editEntryError, setEditEntryError] = useState('');
+
+  // Entry pricing history modal state (SinglePricingRule history)
+  const [isEntryHistoryOpen, setIsEntryHistoryOpen] = useState(false);
+  const [entryHistoryTitle, setEntryHistoryTitle] = useState('Pricing History');
+  const [entryHistoryCurrent, setEntryHistoryCurrent] = useState(null);
+  const [entryHistoryItems, setEntryHistoryItems] = useState([]);
+  const [entryHistoryLoading, setEntryHistoryLoading] = useState(false);
+  const [entryHistoryError, setEntryHistoryError] = useState('');
 
   // Card Pricing History Modal state
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -104,6 +140,15 @@ export default function PricingPage() {
     }
     return map;
   }, [cardPricing]);
+
+  const [vehicleTypeOptions, setVehicleTypeOptions] = useState([]);
+  const vehicleTypeIdByName = useMemo(() => {
+    const map = new Map();
+    for (const vt of vehicleTypeOptions) {
+      if (vt?.name && vt?.id) map.set(vt.name, vt.id);
+    }
+    return map;
+  }, [vehicleTypeOptions]);
 
   const closeHistory = () => {
     setIsHistoryOpen(false);
@@ -141,6 +186,53 @@ export default function PricingPage() {
       year: 'numeric'
     });
   };
+
+  const loadVehicleTypes = async () => {
+    try {
+      const res = await fetchJson('/api/vehicle-types?page=1&limit=200');
+      const raw = res?.data?.vehicleTypes;
+      const list = Array.isArray(raw) ? raw : [];
+      setVehicleTypeOptions(
+        list
+          .map((v) => ({
+            id: v?.VehicleTypeID || v?.vehicleTypeId,
+            name: v?.Name || v?.name
+          }))
+          .filter((v) => v.id && v.name)
+      );
+    } catch {
+      setVehicleTypeOptions([]);
+    }
+  };
+
+  const loadEntryPricing = async () => {
+    setEntryPricingLoading(true);
+    setEntryPricingError('');
+
+    try {
+      const res = await fetchJson('/api/single-pricing-rules?page=1&limit=200');
+      const raw = res?.data?.items;
+      const items = Array.isArray(raw) ? raw : [];
+      const rows = items.map(normalizeSinglePricingRule);
+      rows.sort((a, b) => new Date(b.startDate || 0).getTime() - new Date(a.startDate || 0).getTime());
+      setPricingRules(rows);
+    } catch (e) {
+      setEntryPricingError(e?.message || 'Failed to load entry pricing rules');
+      setPricingRules([]);
+    } finally {
+      setEntryPricingLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab !== 'entry-pricing') return;
+    // Needed for Add Pricing Rule -> Card Category dropdown binding (ID + name).
+    // We reuse the Card Pricing loader because it already fetches categories + IDs.
+    loadCardPricing();
+    loadVehicleTypes();
+    loadEntryPricing();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, authHeaders]);
 
   const loadCardPricing = async () => {
     setCardPricingLoading(true);
@@ -283,11 +375,228 @@ export default function PricingPage() {
   ];
 
   const handleAddPricingRule = () => {
-    alert('Add Pricing Rule functionality coming soon!');
+    setEditEntryRule(null);
+    setEditEntryError('');
+    setEditEntrySaving(false);
+    setIsEditEntryOpen(true);
   };
 
   const handleEditRule = (rule) => {
-    alert(`Edit pricing rule: ${rule.id}`);
+    setEditEntryRule(rule || null);
+    setEditEntryError('');
+    setEditEntrySaving(false);
+    setIsEditEntryOpen(true);
+  };
+
+  const closeEditEntry = () => {
+    setIsEditEntryOpen(false);
+    setEditEntryRule(null);
+    setEditEntryError('');
+    setEditEntrySaving(false);
+  };
+
+  const closeEntryHistory = () => {
+    setIsEntryHistoryOpen(false);
+    setEntryHistoryTitle('Pricing History');
+    setEntryHistoryCurrent(null);
+    setEntryHistoryItems([]);
+    setEntryHistoryError('');
+    setEntryHistoryLoading(false);
+  };
+
+  const handleViewEntryPricingHistory = async (rule) => {
+    const cardCategoryName = rule?.cardCategory || '';
+    const vehicleTypeName = rule?.vehicleType || '';
+    const parts = [cardCategoryName, vehicleTypeName].filter(Boolean);
+
+    setEntryHistoryTitle(parts.length ? `Pricing History - ${parts.join(' / ')}` : 'Pricing History');
+    setEntryHistoryCurrent(null);
+    setEntryHistoryItems([]);
+    setEntryHistoryError('');
+    setIsEntryHistoryOpen(true);
+    setEntryHistoryLoading(true);
+
+    try {
+      // Prefer explicit ids on the rule if they exist.
+      const cardCategoryId = rule?.cardCategoryId || cardCategoryIdByName.get(cardCategoryName) || '';
+      const vehicleTypeId = rule?.vehicleTypeId || vehicleTypeIdByName.get(vehicleTypeName) || '';
+
+      if (!cardCategoryId || !vehicleTypeId) {
+        throw new Error('Missing Card Category / Vehicle Type ID for history lookup');
+      }
+
+      const [currentRes, historyRes] = await Promise.all([
+        fetchJson(
+          `/api/single-pricing-rules/current/${encodeURIComponent(cardCategoryId)}/${encodeURIComponent(vehicleTypeId)}`
+        ),
+        fetchJson(
+          `/api/single-pricing-rules/history/${encodeURIComponent(cardCategoryId)}/${encodeURIComponent(vehicleTypeId)}?page=1&limit=50`
+        )
+      ]);
+
+      const current = currentRes?.data || null;
+      const items = historyRes?.data?.items || historyRes?.data || [];
+
+      // Normalize to the history modal expected shape.
+      // Note: backend field names may differ; we do best-effort mapping.
+      setEntryHistoryCurrent(
+        current
+          ? {
+            dayPrice: current?.DayPrice ?? null,
+            firstHour: current?.HourPrice ?? null,
+            nextHour: current?.NextHourPrice ?? null,
+            startDate: current?.StartDateApply ?? null,
+            endDate: current?.EndDateApply ?? null
+          }
+          : null
+      );
+
+      setEntryHistoryItems(
+        Array.isArray(items)
+          ? items
+            .slice()
+            .sort((a, b) => new Date(a?.StartDateApply || a?.createdAt || 0).getTime() - new Date(b?.StartDateApply || b?.createdAt || 0).getTime())
+            .map((it, idx, arr) => {
+              // What the UI component expects per item:
+              // - startDate
+              // - dayPrice / firstHour / nextHour
+              // - prev: { dayPrice, firstHour, nextHour }
+              // - periodStart / periodEnd
+
+              const prevFromServer = it?.SinglePricingRuleDetailPrevRule || it?.SinglePricingRulePrevRule || null
+              const prevFromArray = idx > 0 ? arr[idx - 1] : null
+
+              const prevDayPrice =
+                prevFromServer?.DayPrice ??
+                prevFromArray?.DayPrice ??
+                null
+              const prevFirstHour =
+                prevFromServer?.HourPrice ??
+                prevFromArray?.HourPrice ??
+                null
+              const prevNextHour =
+                prevFromServer?.NextHourPrice ??
+                prevFromArray?.NextHourPrice ??
+                null
+
+              return {
+                id: it?.ID || it?.id || it?._id,
+                startDate: it?.StartDateApply ?? null,
+                changedBy:
+                  it?.ChangedByEmployee?.Person?.FullName ||
+                  it?.ChangedByEmployee?.Person?.fullName ||
+                  it?.ChangedByEmployee?.ID ||
+                  it?.ChangedBy ||
+                  null,
+                reason: it?.Reason || null,
+
+                dayPrice: it?.DayPrice ?? null,
+                firstHour: it?.HourPrice ?? null,
+                nextHour: it?.NextHourPrice ?? null,
+
+                prev: {
+                  dayPrice: prevDayPrice,
+                  firstHour: prevFirstHour,
+                  nextHour: prevNextHour
+                },
+
+                periodStart: it?.StartDateApply ?? null,
+                // We don't currently have EndDateApply in the schema; keep null.
+                periodEnd: it?.EndDateApply ?? null
+              }
+            })
+          : []
+      );
+    } catch (e) {
+      // Fallback: if we can't map to backend IDs yet, show a minimal local view.
+      // This keeps the UI usable while Entry Pricing is still mock/local.
+      setEntryHistoryError(e?.message || 'Failed to load pricing history');
+
+      if (rule) {
+        setEntryHistoryCurrent({
+          dayPrice: rule?.dayPrice ?? null,
+          firstHour: rule?.firstHour ?? null,
+          nextHour: rule?.nextHour ?? null,
+          startDate: rule?.startDate ?? null,
+          endDate: rule?.endDate ?? null
+        });
+        setEntryHistoryItems([]);
+      }
+    } finally {
+      setEntryHistoryLoading(false);
+    }
+  };
+
+  const handleSubmitEditEntry = async (payload) => {
+    setEditEntrySaving(true);
+    setEditEntryError('');
+
+    try {
+      const currentRule = pricingRules.find((r) => r.id === payload.id);
+      if (!currentRule) throw new Error('Pricing rule not found');
+
+      const ChangedBy = user?.employeeId || user?.employeeBusinessId || user?.id;
+      if (!ChangedBy) throw new Error('Missing employee ID for this session (please login again)');
+
+      // SinglePricingRule is immutable: changing price means inserting a new record.
+      await fetchJson('/api/single-pricing-rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          CardCategoryID: currentRule.cardCategoryId,
+          VehicleTypeID: currentRule.vehicleTypeId,
+          DayPrice: payload.dayPrice,
+          HourPrice: payload.firstHour,
+          NextHourPrice: payload.nextHour,
+          ChangedBy: String(ChangedBy).trim(),
+          Reason: payload.reason || null
+        })
+      });
+
+      closeEditEntry();
+      await loadEntryPricing();
+    } catch (e) {
+      setEditEntryError(e?.message || 'Failed to update entry pricing rule');
+    } finally {
+      setEditEntrySaving(false);
+    }
+  };
+
+  const handleSubmitAddEntry = async (payload) => {
+    setEditEntrySaving(true);
+    setEditEntryError('');
+
+    try {
+      const CardCategoryID = payload.cardCategoryId;
+      const VehicleTypeID = payload.vehicleTypeId;
+      if (!CardCategoryID) throw new Error('Card Category is missing an ID mapping');
+      if (!VehicleTypeID) throw new Error('Vehicle Type is missing an ID mapping');
+
+      const ChangedBy = user?.employeeId || user?.employeeBusinessId || user?.id;
+      if (!ChangedBy) throw new Error('Missing employee ID for this session (please login again)');
+
+      await fetchJson('/api/single-pricing-rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          CardCategoryID,
+          VehicleTypeID,
+          DayPrice: payload.dayPrice,
+          HourPrice: payload.firstHour,
+          NextHourPrice: payload.nextHour,
+          ChangedBy: String(ChangedBy).trim(),
+          // Reason optional on create for now.
+          Reason: payload.reason || null
+        })
+      });
+
+      closeEditEntry();
+      await loadEntryPricing();
+    } catch (e) {
+      setEditEntryError(e?.message || 'Failed to create entry pricing rule');
+    } finally {
+      setEditEntrySaving(false);
+    }
   };
 
   const handleDeleteRule = (rule) => {
@@ -346,34 +655,88 @@ export default function PricingPage() {
   };
 
   const handleEditSubscriptionRule = async (rule) => {
+    setEditSubscriptionRule(rule || null);
+    setEditSubscriptionError('');
+    setEditSubscriptionSaving(false);
+    setIsEditSubscriptionPricingOpen(true);
+  };
+
+  const closeEditSubscriptionPricing = () => {
+    setIsEditSubscriptionPricingOpen(false);
+    setEditSubscriptionRule(null);
+    setEditSubscriptionError('');
+    setEditSubscriptionSaving(false);
+  };
+
+  const closeSubHistory = () => {
+    setIsSubHistoryOpen(false);
+    setSubHistoryTitle('Subscription Pricing History');
+    setSubHistoryRule(null);
+    setSubHistoryCurrent(null);
+    setSubHistoryItems([]);
+    setSubHistoryError('');
+    setSubHistoryLoading(false);
+  };
+
+  const handleViewSubscriptionPriceHistory = async (rule) => {
+    setSubHistoryRule(rule || null);
+
+    const parts = [rule?.cardCategory, rule?.vehicleType, rule?.subscriptionType].filter(Boolean);
+    setSubHistoryTitle(
+      parts.length
+        ? `Subscription Pricing History - ${parts.join(' / ')}`
+        : 'Subscription Pricing History'
+    );
+
+    setSubHistoryCurrent(null);
+    setSubHistoryItems([]);
+    setSubHistoryError('');
+    setIsSubHistoryOpen(true);
+    setSubHistoryLoading(true);
+
     try {
-      const newPriceStr = prompt('Enter new price:', String(rule?.price ?? 0));
-      if (newPriceStr === null) return;
-      const newPrice = Number(newPriceStr);
-      if (!Number.isFinite(newPrice) || newPrice < 0) {
-        alert('Price must be a non-negative number');
-        return;
-      }
+      const ruleBusinessId = rule?.id;
+      if (!ruleBusinessId) throw new Error('Missing subscription pricing rule ID');
 
-      const ChangedBy = prompt('Enter Employee ID (ChangedBy):');
-      if (!ChangedBy) return;
-      const Reason = prompt('Reason (optional):') || null;
+      const [currentRes, historyRes] = await Promise.all([
+        fetchJson(`/api/subscription-pricing-rule-details/current/${encodeURIComponent(ruleBusinessId)}`),
+        fetchJson(`/api/subscription-pricing-rule-details/history/${encodeURIComponent(ruleBusinessId)}?page=1&limit=50`)
+      ]);
 
-      // The details endpoint identifies the rule by BUSINESS ID (rule.ID)
+      setSubHistoryCurrent(currentRes?.data || null);
+      setSubHistoryItems(historyRes?.data?.items || []);
+    } catch (e) {
+      setSubHistoryError(e?.message || 'Failed to load subscription pricing history');
+    } finally {
+      setSubHistoryLoading(false);
+    }
+  };
+
+  const handleSubmitEditSubscriptionPricing = async ({ newPrice, reason }) => {
+    setEditSubscriptionSaving(true);
+    setEditSubscriptionError('');
+
+    try {
+      const ChangedBy = user?.employeeId || user?.employeeBusinessId || user?.id;
+      if (!ChangedBy) throw new Error('Missing employee ID for this session (please login again)');
+
       await fetchJson('/api/subscription-pricing-rule-details', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          SubscriptionPricingRuleID: rule?.id,
+          SubscriptionPricingRuleID: editSubscriptionRule?.id,
           Price: newPrice,
           ChangedBy: String(ChangedBy).trim(),
-          Reason
+          Reason: reason || null
         })
       });
 
+      closeEditSubscriptionPricing();
       await loadSubscriptionPricing();
     } catch (e) {
-      alert(e?.message || 'Failed to update price');
+      setEditSubscriptionError(e?.message || 'Failed to update subscription price');
+    } finally {
+      setEditSubscriptionSaving(false);
     }
   };
 
@@ -425,12 +788,22 @@ export default function PricingPage() {
             </button>
           </div>
 
+          {entryPricingError ? (
+            <div className="cphm-state cphm-error" style={{ padding: '12px 24px' }}>
+              {entryPricingError}
+            </div>
+          ) : null}
+
           {/* Pricing Rules Table */}
-          <PricingRulesTable 
-            pricingRules={pricingRules}
-            onEditRule={handleEditRule}
-            onDeleteRule={handleDeleteRule}
-          />
+          {entryPricingLoading ? (
+            <div style={{ padding: '21.2px 24px' }}>Loading...</div>
+          ) : (
+            <PricingRulesTable 
+              pricingRules={pricingRules}
+              onEditRule={handleEditRule}
+              onViewHistory={handleViewEntryPricingHistory}
+            />
+          )}
         </div>
       )}
 
@@ -526,6 +899,52 @@ export default function PricingPage() {
         onSubmit={handleSubmitEditCardPrice}
       />
 
+      <EditEntryPricingModal
+        isOpen={isEditEntryOpen}
+        mode={editEntryRule ? 'edit' : 'create'}
+        rule={editEntryRule}
+        cardCategoryOptions={(cardPricing || [])
+          .map((r) => ({ id: r.id, name: r.category }))
+          .filter((r) => r.id && r.name)}
+        vehicleTypeOptions={(vehicleTypeOptions || [])
+          .map((r) => ({ id: r.id, name: r.name }))
+          .filter((r) => r.id && r.name)}
+        isSaving={editEntrySaving}
+        error={editEntryError}
+        onClose={closeEditEntry}
+        onSubmit={editEntryRule ? handleSubmitEditEntry : handleSubmitAddEntry}
+      />
+
+      <EntryPricingHistoryModal
+        isOpen={isEntryHistoryOpen}
+        title={entryHistoryTitle}
+        current={entryHistoryCurrent}
+        historyItems={entryHistoryItems}
+        isLoading={entryHistoryLoading}
+        error={entryHistoryError}
+        onClose={closeEntryHistory}
+      />
+
+      <EditSubscriptionPricingModal
+        isOpen={isEditSubscriptionPricingOpen}
+        rule={editSubscriptionRule}
+        isSaving={editSubscriptionSaving}
+        error={editSubscriptionError}
+        onClose={closeEditSubscriptionPricing}
+        onSubmit={handleSubmitEditSubscriptionPricing}
+      />
+
+      <SubscriptionPriceHistoryModal
+        isOpen={isSubHistoryOpen}
+        title={subHistoryTitle}
+        rule={subHistoryRule}
+        currentPrice={subHistoryCurrent}
+        historyItems={subHistoryItems}
+        isLoading={subHistoryLoading}
+        error={subHistoryError}
+        onClose={closeSubHistory}
+      />
+
       {isAddSubscriptionPricingOpen ? (
         <AddSubscriptionPricingModal
           onClose={() => setIsAddSubscriptionPricingOpen(false)}
@@ -615,17 +1034,17 @@ export default function PricingPage() {
                         <div className="action-buttons action-buttons-right">
                           <button
                             className="action-btn"
+                            onClick={() => handleViewSubscriptionPriceHistory(rule)}
+                            title="View Price History"
+                          >
+                            <img src={viewIcon} alt="View" width="16" height="16" />
+                          </button>
+                          <button
+                            className="action-btn"
                             onClick={() => handleEditSubscriptionRule(rule)}
                             title="Edit"
                           >
                             <img src={editIcon} alt="Edit" width="16" height="16" />
-                          </button>
-                          <button
-                            className="action-btn"
-                            onClick={() => handleDeleteSubscriptionRule(rule)}
-                            title="Delete"
-                          >
-                            <img src={deleteIcon} alt="Delete" width="16" height="16" />
                           </button>
                         </div>
                       </td>

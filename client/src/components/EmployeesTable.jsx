@@ -3,6 +3,7 @@ import AssignCardModal from './AssignCardModal';
 import ViewCardsModal from './ViewCardsModal';
 import ViewEmployeeModal from './ViewEmployeeModal';
 import EditEmployeeModal from './EditEmployeeModal';
+import EmployeeAccountModal from './EmployeeAccountModal';
 import '../styles/components/EmployeesTable.css';
 
 import { useMemo, useState } from 'react';
@@ -10,6 +11,7 @@ import { useMemo, useState } from 'react';
 const eyeIcon = "http://localhost:3845/assets/fff43459d23d75a693e463832b4f1a77eebd5c88.svg";
 const editIcon = "http://localhost:3845/assets/22ed6fed4c4d56385d3b4d40f1a0236ded42a86e.svg";
 const deleteIcon = "http://localhost:3845/assets/1fdb1f29273b223332a28061a714a4354ee0c9ae.svg";
+const accountIcon = "http://localhost:3845/assets/f768166c48167d152862bf992a99e2c1e0e48b06.svg";
 
 export default function EmployeesTable({ employees, onEdit, onDelete, onViewCards }) {
   const headers = ['ID', 'Employee', 'Role', 'Status', 'Hired Date', 'Actions'];
@@ -36,6 +38,8 @@ export default function EmployeesTable({ employees, onEdit, onDelete, onViewCard
 
   const [showEditEmployeeModal, setShowEditEmployeeModal] = useState(false);
 
+  const [showEmployeeAccountModal, setShowEmployeeAccountModal] = useState(false);
+
   // Cards are loaded by PeoplePage and passed into ViewCardsModal via the `cards` prop.
   // Keep a safe fallback to an empty list.
   const employeeCards = useMemo(() => {
@@ -46,6 +50,11 @@ export default function EmployeesTable({ employees, onEdit, onDelete, onViewCard
   const handleViewEmployee = (employee) => {
     setSelectedEmployee(employee);
     setShowViewEmployeeModal(true);
+  };
+
+  const handleOpenEmployeeAccount = (employee) => {
+    setSelectedEmployee(employee);
+    setShowEmployeeAccountModal(true);
   };
 
   const handleViewCards = (employee) => {
@@ -61,6 +70,11 @@ export default function EmployeesTable({ employees, onEdit, onDelete, onViewCard
 
   const handleCloseViewEmployeeModal = () => {
     setShowViewEmployeeModal(false);
+    setSelectedEmployee(null);
+  };
+
+  const handleCloseEmployeeAccountModal = () => {
+    setShowEmployeeAccountModal(false);
     setSelectedEmployee(null);
   };
 
@@ -154,6 +168,9 @@ export default function EmployeesTable({ employees, onEdit, onDelete, onViewCard
     hiredDate: employee.hiredDate,
     actions: (
       <div className="table-actions">
+        <button className="action-btn action-btn--account" onClick={() => handleOpenEmployeeAccount(employee)} title="Account">
+          <img src={accountIcon} alt="Account" />
+        </button>
         <button className="action-btn action-btn--card" onClick={() => handleViewCards(employee)} title="View Cards">
           <img src="/src/assets/icons/cards.svg" alt="View Cards" />
         </button>
@@ -181,6 +198,10 @@ export default function EmployeesTable({ employees, onEdit, onDelete, onViewCard
 
       {showViewEmployeeModal && (
         <ViewEmployeeModal employee={selectedEmployee} onClose={handleCloseViewEmployeeModal} />
+      )}
+
+      {showEmployeeAccountModal && (
+        <EmployeeAccountModal employee={selectedEmployee} onClose={handleCloseEmployeeAccountModal} />
       )}
 
       {showViewCardsModal && (

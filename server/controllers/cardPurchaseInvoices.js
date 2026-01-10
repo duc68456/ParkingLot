@@ -401,11 +401,15 @@ cardPurchaseInvoicesRouter.post('/', async (req, res) => {
     const createdCustomer = await Customer.findOne({ ID: populatedInvoice.CustomerID }).select('ID PersonID Status RegisteredDay')
     const createdEmployee = await Employee.findOne({ ID: populatedInvoice.SaledBy }).select('ID PersonID EmployeeType Status')
 
-    const createdPersonIds = [createdCustomer?.PersonID, createdEmployee?.PersonID].filter(Boolean).map(id => id.toString())
+    // PersonID fields store BUSINESS IDs (e.g. PER0002), not Mongo ObjectIds.
+    // Never query by _id for these values, or Mongoose will throw cast errors.
+    const createdPersonIds = [createdCustomer?.PersonID, createdEmployee?.PersonID]
+      .filter(Boolean)
+      .map(id => id.toString())
     const createdPersons = createdPersonIds.length
-      ? await Person.find({ _id: { $in: Array.from(new Set(createdPersonIds)) } }).select('ID FullName Phone Gender')
+      ? await Person.find({ ID: { $in: Array.from(new Set(createdPersonIds)) } }).select('ID FullName Phone Gender')
       : []
-    const createdPersonById = new Map(createdPersons.map(p => [p._id.toString(), p]))
+    const createdPersonById = new Map(createdPersons.map(p => [p.ID?.toString(), (p.toJSON ? p.toJSON() : p)]))
 
     const hydratedCreatedInvoice = {
       ...populatedInvoice.toJSON(),

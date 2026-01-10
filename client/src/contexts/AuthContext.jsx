@@ -25,15 +25,43 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
+  const setStaffGateType = (gateType) => {
+    if (gateType !== 'entry' && gateType !== 'exit') return;
+    try {
+      const raw = window.localStorage.getItem('auth')
+      const parsed = raw ? JSON.parse(raw) : {}
+      window.localStorage.setItem(
+        'auth',
+        JSON.stringify({ ...parsed, staffGateType: gateType })
+      )
+    } catch {
+      // ignore
+    }
+  };
+
+  const getStaffGateType = () => {
+    try {
+      const raw = window.localStorage.getItem('auth')
+      const parsed = raw ? JSON.parse(raw) : null
+      const val = parsed?.staffGateType
+      return val === 'exit' ? 'exit' : 'entry'
+    } catch {
+      return 'entry'
+    }
+  };
+
   const login = (userData, type = 'admin', jwtToken = null) => {
     setIsAuthenticated(true)
     setUser(userData)
     setUserType(type)
     setToken(jwtToken)
     try {
+      const raw = window.localStorage.getItem('auth')
+      const parsed = raw ? JSON.parse(raw) : {}
+      // Preserve unrelated auth metadata (e.g. staffGateType) while updating credentials.
       window.localStorage.setItem(
         'auth',
-        JSON.stringify({ token: jwtToken, user: userData, userType: type })
+        JSON.stringify({ ...parsed, token: jwtToken, user: userData, userType: type })
       )
     } catch {
       // ignore storage full
@@ -58,7 +86,19 @@ export function AuthProvider({ children }) {
   }, [token])
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, userType, token, authHeaders, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        isAuthenticated,
+        user,
+        userType,
+        token,
+        authHeaders,
+        login,
+        logout,
+        setStaffGateType,
+        getStaffGateType
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

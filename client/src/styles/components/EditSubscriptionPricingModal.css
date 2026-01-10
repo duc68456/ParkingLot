@@ -1,0 +1,248 @@
+/* Edit Subscription Pricing Modal - aligned with existing Pricing modals */
+
+.espm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.espm-modal {
+  width: 672px;
+  max-width: 90vw;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+}
+
+.espm-header {
+  height: 68.8px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 0.8px solid #e2e8f0;
+}
+
+.espm-title {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 28px;
+  color: #0f172b;
+  margin: 0;
+}
+
+.espm-close {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  transition: background-color 0.2s;
+  font-size: 20px;
+  line-height: 20px;
+  color: #64748b;
+}
+
+.espm-close:hover {
+  background: #f1f5f9;
+}
+
+.espm-close:active {
+  background: #e2e8f0;
+}
+
+.espm-body {
+  padding: 24px;
+}
+
+.espm-info {
+  width: 100%;
+  background: #f8fafc;
+  border: 0.8px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 20px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.espm-info-label {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.espm-info-value {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #0f172b;
+}
+
+.espm-price {
+  margin-top: 20px;
+}
+
+.espm-price-label {
+  display: block;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #0f172b;
+  margin-bottom: 8px;
+}
+
+.espm-input {
+  height: 41.6px;
+  padding: 10px 16px;
+  border: 0.8px solid #cad5e2;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #314158;
+  background: #ffffff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.espm-input::placeholder {
+  color: #94a3b8;
+}
+
+.espm-input:focus {
+  outline: none;
+  border-color: #155dfc;
+  box-shadow: 0 0 0 3px rgba(21, 93, 252, 0.1);
+}
+
+.espm-money-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.espm-money-prefix {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #62748e;
+  pointer-events: none;
+}
+
+.espm-money-wrap .espm-input {
+  width: 100%;
+  padding-left: 32px;
+}
+
+.espm-validation {
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 0.8px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-family: 'Arimo', sans-serif;
+  font-size: 13px;
+  line-height: 18px;
+  margin-top: 8px;
+}
+
+.espm-state {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 0.8px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-family: 'Arimo', sans-serif;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.espm-footer {
+  height: 78.4px;
+  padding: 0.8px 24px 0;
+  background: #f8fafc;
+  border-top: 0.8px solid #e2e8f0;
+  border-radius: 0 0 16px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.espm-btn {
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  cursor: pointer;
+}
+
+.espm-btn-secondary {
+  background: #ffffff;
+  border: 0.8px solid #cad5e2;
+  color: #314158;
+}
+
+.espm-btn-secondary:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.espm-btn-primary {
+  background: #155dfc;
+  border: none;
+  color: #ffffff;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+.espm-btn-primary:hover {
+  background: #1447e6;
+}
+
+.espm-btn:disabled,
+.espm-close:disabled,
+.espm-input:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+@media (max-width: 720px) {
+  .espm-modal {
+    width: 448px;
+  }
+
+  .espm-info {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}

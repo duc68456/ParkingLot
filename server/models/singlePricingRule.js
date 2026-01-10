@@ -3,15 +3,10 @@ const mongoose = require('mongoose')
 const singlePricingRuleSchema = new mongoose.Schema({
   ID: {
     type: String,
-    required: true,
+    required: false,
     unique: true,
     index: true,
     match: /^SPR\d{4}$/
-  },
-  SinglePricingRulePrev: {
-    type: String,
-    ref: 'SinglePricingRule',
-    default: null
   },
   CardCategoryID: {
     type: String,
@@ -22,44 +17,13 @@ const singlePricingRuleSchema = new mongoose.Schema({
     type: String,
     required: true,
     ref: 'VehicleType'
-  },
-  DayPrice: {
-    type: Number,
-    required: true,
-    min: 0
-  },
-  HourPrice: {
-    type: Number,
-    required: true,
-    min: 0
-  },
-  NextHourPrice: {
-    type: Number,
-    required: true,
-    min: 0
-  },
-  StartDateApply: {
-    type: Date,
-    required: true,
-    default: Date.now
-  },
-  ChangedAt: {
-    type: Date,
-    default: Date.now
-  },
-  ChangedBy: {
-    type: String,
-    required: true,
-    ref: 'Employee'
-  },
-  Reason: {
-    type: String,
-    maxLength: 256,
-    default: null
   }
 }, {
   timestamps: true
 })
+
+// One master rule per (CardCategoryID, VehicleTypeID)
+singlePricingRuleSchema.index({ CardCategoryID: 1, VehicleTypeID: 1 }, { unique: true })
 
 // Auto-generate ID before saving
 singlePricingRuleSchema.pre('save', async function (next) {

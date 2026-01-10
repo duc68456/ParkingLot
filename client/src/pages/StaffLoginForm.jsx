@@ -7,12 +7,18 @@ import '../styles/pages/StaffLoginForm.css';
 
 import staffIcon from '../assets/staff-icon.svg';
 
+// Figma assets (node 337:826)
+const entryGateIcon = 'http://localhost:3845/assets/beb5a1a16adfb23e18fb5285dd5344c818657bee.svg';
+const exitGateIcon = 'http://localhost:3845/assets/9e9b9b383ff7de62888fc1987f82f0b64ea02338.svg';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
 
 export default function StaffLoginForm({ type }) {
   const [pin, setPin] = useState(['', '', '', '', '', '']);
   const isPinComplete = pin.every(digit => digit !== '');
-  const { login } = useAuth();
+  const { login, setStaffGateType } = useAuth();
+
+  const [gateType, setGateType] = useState('entry');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -20,14 +26,11 @@ export default function StaffLoginForm({ type }) {
 
     ;(async () => {
       try {
-        // Staff verify endpoint requires EmployeeID + PINCode
-        // We accept EmployeeID as the 6-digit entered PIN for now if your UI hasn't collected EmployeeID yet.
-        // If your backend expects a real EmployeeID, we can extend the UI to ask for it.
+        // Staff verify endpoint supports PIN-only login
         const res = await fetch(`${API_BASE_URL}/api/staff-accounts/verify-pin`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            EmployeeID: pinCode,
             PINCode: pinCode
           })
         })
@@ -50,6 +53,9 @@ export default function StaffLoginForm({ type }) {
               .map((n) => n[0]?.toUpperCase())
               .join('')
           : 'ST'
+
+        // Persist selected gate type so staff view can default to it.
+        setStaffGateType(gateType);
 
         login(
           {
@@ -84,6 +90,29 @@ export default function StaffLoginForm({ type }) {
           value={pin}
           onChange={setPin}
         />
+
+        <div className="staff-gate-type">
+          <p className="staff-gate-type-label">Select Gate Type</p>
+          <div className="staff-gate-type-grid" role="group" aria-label="Select Gate Type">
+            <button
+              type="button"
+              className={`staff-gate-type-option ${gateType === 'entry' ? 'active' : ''}`}
+              onClick={() => setGateType('entry')}
+            >
+              <img src={entryGateIcon} alt="" />
+              <span>Entry Gate</span>
+            </button>
+            <button
+              type="button"
+              className={`staff-gate-type-option ${gateType === 'exit' ? 'active' : ''}`}
+              onClick={() => setGateType('exit')}
+            >
+              <img src={exitGateIcon} alt="" />
+              <span>Exit Gate</span>
+            </button>
+          </div>
+        </div>
+
         <Button 
           type="submit" 
           disabled={!isPinComplete}

@@ -272,6 +272,42 @@ personsRouter.put('/:id', async (request, response) => {
 
 /**
  * DELETE /api/persons/:id
+ * Delete a person (used for rollback when creating an employee fails after person creation).
+ */
+personsRouter.delete('/:id', async (request, response) => {
+  try {
+    const person = await Person.findById(request.params.id);
+
+    if (!person) {
+      return response.status(404).json({
+        success: false,
+        error: {
+          message: 'Person not found',
+          code: 'PERSON_NOT_FOUND'
+        }
+      });
+    }
+
+    await Person.findByIdAndDelete(person._id);
+
+    return response.json({
+      success: true,
+      message: 'Person deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete person error:', error);
+    return response.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to delete person',
+        details: error.message
+      }
+    });
+  }
+});
+
+/**
+ * DELETE /api/persons/:id
  * Delete person (soft delete - set isActive to false)
  */
 personsRouter.delete('/:id', async (request, response) => {

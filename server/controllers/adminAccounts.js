@@ -4,6 +4,27 @@ const Employee = require('../models/employee');
 const { signToken } = require('../utils/auth');
 const middleware = require('../utils/middleware');
 
+const isObjectId = (val) => /^[a-f\d]{24}$/i.test(String(val || '').trim());
+const isEmployeeBusinessId = (val) => /^EMP\d{4}$/i.test(String(val || '').trim());
+
+/**
+ * Accept either an Employee Mongo _id or a business ID (EMP####).
+ * Returns the employee business ID (EMP####) if resolvable, otherwise null.
+ */
+const resolveEmployeeBusinessId = async (employeeIdOrBusinessId) => {
+  const raw = String(employeeIdOrBusinessId || '').trim();
+  if (!raw) return null;
+
+  if (isEmployeeBusinessId(raw)) return raw.toUpperCase();
+
+  if (isObjectId(raw)) {
+    const employee = await Employee.findById(raw, { ID: 1 }).lean();
+    return employee?.ID ? String(employee.ID).toUpperCase() : null;
+  }
+
+  return null;
+};
+
 /**
  * GET /api/admin-accounts
  * Get all admin accounts with filtering and pagination
@@ -147,7 +168,18 @@ adminAccountsRouter.post('/', middleware.authRequired, middleware.adminOnly, asy
     }
 
     // Check if employee exists
-    const employee = await Employee.findById(EmployeeID);
+    const employeeBusinessId = await resolveEmployeeBusinessId(EmployeeID);
+    if (!employeeBusinessId) {
+      return response.status(404).json({
+        success: false,
+        error: {
+          message: 'Employee not found',
+          code: 'EMPLOYEE_NOT_FOUND'
+        }
+      });
+    }
+
+    const employee = await Employee.findOne({ ID: employeeBusinessId });
     if (!employee) {
       return response.status(404).json({
         success: false,
@@ -173,7 +205,7 @@ adminAccountsRouter.post('/', middleware.authRequired, middleware.adminOnly, asy
     }
 
     // Check if employee already has an admin account
-    const existingAccount = await AdminAccount.findOne({ EmployeeID });
+    const existingAccount = await AdminAccount.findOne({ EmployeeID: employeeBusinessId });
     if (existingAccount) {
       return response.status(409).json({
         success: false,
@@ -189,7 +221,7 @@ adminAccountsRouter.post('/', middleware.authRequired, middleware.adminOnly, asy
 
     // Create admin account
     const adminAccount = new AdminAccount({
-      EmployeeID,
+      EmployeeID: employeeBusinessId,
       Username: Username.toLowerCase(),
       PasswordHash,
       Status: Status ? Status.toUpperCase() : 'ACTIVE'
@@ -472,8 +504,10 @@ adminAccountsRouter.post('/login', async (request, response) => {
       type: 'admin',
       adminAccountId: adminAccount._id.toString(),
       username: adminAccount.Username,
-      employeeId: adminAccount.EmployeeID?._id?.toString(),
-      employeeBusinessId: adminAccount.EmployeeID?.ID
+      // Prefer business ID in token payload. Some older code reads employeeId,
+      // so we keep it but now it equals the business ID.
+      employeeId: adminAccount.EmployeeID?.ID || adminAccount.EmployeeID,
+      employeeBusinessId: adminAccount.EmployeeID?.ID || adminAccount.EmployeeID
     })
 
     response.json({

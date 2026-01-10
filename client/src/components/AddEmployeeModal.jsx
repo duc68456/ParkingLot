@@ -93,9 +93,10 @@ export default function AddEmployeeModal({ isOpen, onClose, onSubmit }) {
                     required
                   >
                     <option value="">Select type</option>
+                    <option value="STAFF">Staff</option>
+                    <option value="GATE_STAFF">Gate Staff</option>
                     <option value="ADMIN">Admin</option>
                     <option value="MANAGER">Manager</option>
-                    <option value="GATE_STAFF">Gate Staff</option>
                   </select>
                 </div>
 
