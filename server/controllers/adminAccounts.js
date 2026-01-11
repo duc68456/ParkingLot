@@ -450,16 +450,22 @@ adminAccountsRouter.post('/login', async (request, response) => {
     }
 
     // Find admin account by username
+    // NOTE: EmployeeID was migrated from Mongo ObjectId to business ID (EMP####).
+    // Older documents may still contain legacy ObjectId strings and would fail
+    // validation on save(). We avoid that during login and resolve the employee
+    // business ID defensively.
     const adminAccount = await AdminAccount.findOne({
       Username: Username.toLowerCase()
-    }).populate({
-      path: 'EmployeeID',
-      select: 'ID Status',
-      populate: {
-        path: 'PersonID',
-        select: 'FullName'
-      }
-    });
+    })
+      .populate({
+        // Prefer the new virtual relationship Employee.ID <-> AdminAccount.EmployeeID
+        path: 'employee',
+        select: 'ID Status PersonID',
+        populate: {
+          path: 'person',
+          select: 'FullName'
+        }
+      });
 
     if (!adminAccount) {
       return response.status(401).json({
@@ -496,19 +502,56 @@ adminAccountsRouter.post('/login', async (request, response) => {
       });
     }
 
-    // Update last login time
-    adminAccount.LastLoginAt = new Date();
-    await adminAccount.save();
+    // Update last login time WITHOUT triggering validation (legacy docs may have invalid EmployeeID)
+    const lastLoginAt = new Date();
+    await AdminAccount.updateOne(
+      { _id: adminAccount._id },
+      { $set: { LastLoginAt: lastLoginAt } }
+    );
 
-    const token = signToken({
-      type: 'admin',
-      adminAccountId: adminAccount._id.toString(),
-      username: adminAccount.Username,
-      // Prefer business ID in token payload. Some older code reads employeeId,
-      // so we keep it but now it equals the business ID.
-      employeeId: adminAccount.EmployeeID?.ID || adminAccount.EmployeeID,
-      employeeBusinessId: adminAccount.EmployeeID?.ID || adminAccount.EmployeeID
-    })
+    // Reload so response returns updated time without requiring validation.
+    adminAccount.LastLoginAt = lastLoginAt;
+
+    // Resolve employee business ID for token payload.
+    // - New: adminAccount.EmployeeID is EMP####
+    // - Legacy: adminAccount.EmployeeID is ObjectId string
+    // - Virtual populate: adminAccount.employee?.ID is EMP####
+    const employeeBusinessId =
+      adminAccount?.employee?.ID ||
+      (await resolveEmployeeBusinessId(adminAccount.EmployeeID));
+
+    const adminAccountObjectId = adminAccount?._id ? String(adminAccount._id) : null;
+    if (!adminAccountObjectId) {
+      return response.status(500).json({
+        success: false,
+        error: {
+          message: 'Failed to login',
+          details: 'Admin account record is missing _id'
+        }
+      });
+    }
+
+    let token;
+    try {
+      token = signToken({
+        type: 'admin',
+        adminAccountId: adminAccountObjectId,
+        username: adminAccount.Username,
+        // Prefer business ID in token payload. Some older code reads employeeId,
+        // so we keep it but now it equals the business ID.
+        employeeId: employeeBusinessId,
+        employeeBusinessId
+      });
+    } catch (err) {
+      return response.status(500).json({
+        success: false,
+        error: {
+          message: 'Failed to login',
+          details: err?.message || 'Failed to sign token',
+          code: err?.code
+        }
+      });
+    }
 
     response.json({
       success: true,
@@ -517,12 +560,19 @@ adminAccountsRouter.post('/login', async (request, response) => {
         token,
         ID: adminAccount.ID,
         Username: adminAccount.Username,
+        // Return both the raw stored value and the resolved business id for robustness.
         EmployeeID: adminAccount.EmployeeID,
+        EmployeeBusinessID: employeeBusinessId,
         LastLoginAt: adminAccount.LastLoginAt
       }
     });
   } catch (error) {
-    console.error('Admin login error:', error);
+    console.error('Admin login error:', {
+      message: error?.message,
+      stack: error?.stack,
+      method: request?.method,
+      path: request?.originalUrl || request?.path
+    });
     response.status(500).json({
       success: false,
       error: {

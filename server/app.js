@@ -104,9 +104,9 @@ app.use('/api/return-batches', middleware.authRequired, middleware.adminOnly, re
 app.use('/api/subscriptions', middleware.authRequired, middleware.adminOnly, subscriptionsRouter)
 
 // Phase 8: Entry/Exit Operations Routes
-// Staff should be able to access entry sessions too once staff auth is fully wired.
-// For now we keep it admin-only like other management routes.
-app.use('/api/entry-sessions', middleware.authRequired, middleware.adminOnly, entrySessionsRouter)
+// Note: some endpoints should be available to authenticated staff (gate operations).
+// Route-level access control is handled inside the controller.
+app.use('/api/entry-sessions', middleware.authRequired, entrySessionsRouter)
 
 app.use(middleware.unknownEndpoint)
 app.use(middleware.errorHandler)

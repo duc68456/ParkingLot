@@ -7,6 +7,33 @@ const Employee = require('../models/employee')
 const Subscription = require('../models/subscription')
 const SinglePricingRule = require('../models/singlePricingRule')
 
+const isAdmin = (req) => req?.user?.type === 'admin'
+const isStaff = (req) => req?.user?.type === 'staff'
+
+// Staff can only perform gate operations (query/create entry/process exit).
+// Admin can do everything.
+const requireAdminOrStaff = (req, res) => {
+  if (!isAdmin(req) && !isStaff(req)) {
+    res.status(403).json({
+      success: false,
+      error: { message: 'forbidden', code: 'FORBIDDEN' }
+    })
+    return false
+  }
+  return true
+}
+
+const requireAdmin = (req, res) => {
+  if (!isAdmin(req)) {
+    res.status(403).json({
+      success: false,
+      error: { message: 'forbidden', code: 'FORBIDDEN' }
+    })
+    return false
+  }
+  return true
+}
+
 // Helper function to calculate parking fee
 const calculateParkingFee = async (entryTime, exitTime, cardCategoryId, vehicleTypeId) => {
   try {
@@ -67,9 +94,11 @@ const checkSubscription = async (cardId) => {
   return subscription
 }
 
-// GET all entry sessions with filtering and pagination
+// GET all entry sessions with filtering and pagination (admin only)
 entrySessionsRouter.get('/', async (req, res) => {
   try {
+    if (!requireAdmin(req, res)) return
+
     const {
       vehicleId,
       cardId,
@@ -166,6 +195,89 @@ entrySessionsRouter.get('/', async (req, res) => {
         message: error.message,
         code: 'GET_ENTRY_SESSIONS_ERROR'
       }
+    })
+  }
+})
+
+/**
+ * GET /api/entry-sessions/gate/query
+ * Staff-friendly lookup for gate UI.
+ * Query params:
+ *  - cardId (business CardID)
+ *  - licensePlate
+ * Returns:
+ *  - activeSession (if card has IN_PARKING)
+ *  - card (if found)
+ *  - vehicle (if found by plate)
+ *  - subscriptionActive (boolean)
+ */
+entrySessionsRouter.get('/gate/query', async (req, res) => {
+  try {
+    if (!requireAdminOrStaff(req, res)) return
+
+    const cardId = String(req.query.cardId || '').trim()
+    const licensePlate = String(req.query.licensePlate || '').trim().toUpperCase()
+
+    if (!cardId && !licensePlate) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'cardId or licensePlate is required',
+          code: 'MISSING_REQUIRED_FIELDS'
+        }
+      })
+    }
+
+    const card = cardId
+      ? await Card.findOne({ CardID: cardId }).populate({
+        path: 'CardCategoryID',
+        select: 'ID Name'
+      })
+      : null
+
+    const vehicle = licensePlate
+      ? await Vehicle.findOne({ PlateNumber: licensePlate }).populate({
+        path: 'VehicleTypeID',
+        select: 'VehicleTypeID Name'
+      })
+      : null
+
+    const activeSession = cardId
+      ? await EntrySession.findOne({ CardID: cardId, Status: 'IN_PARKING' })
+        .populate({
+          path: 'VehicleID',
+          select: 'VehicleID PlateNumber',
+          populate: { path: 'VehicleTypeID', select: 'VehicleTypeID Name' }
+        })
+        .populate('VehicleTypeID', 'VehicleTypeID Name')
+        .populate({
+          path: 'CardID',
+          select: 'CardID UID CardCategoryID',
+          populate: { path: 'CardCategoryID', select: 'ID Name' }
+        })
+        .populate({
+          path: 'ProcessedEntryBy',
+          select: 'ID',
+          populate: { path: 'PersonID', select: 'FullName' }
+        })
+        .lean()
+      : null
+
+    const subscriptionActive = cardId ? Boolean(await checkSubscription(cardId)) : false
+
+    return res.json({
+      success: true,
+      data: {
+        activeSession,
+        card,
+        vehicle,
+        subscriptionActive
+      }
+    })
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: { message: error.message, code: 'GATE_QUERY_ERROR' }
     })
   }
 })
@@ -291,6 +403,7 @@ entrySessionsRouter.get('/active/:cardId', async (req, res) => {
 // POST - Create entry session (vehicle entry)
 entrySessionsRouter.post('/entry', async (req, res) => {
   try {
+    if (!requireAdminOrStaff(req, res)) return
     const {
       VehicleID,
       VehicleTypeID,
@@ -366,8 +479,8 @@ entrySessionsRouter.post('/entry', async (req, res) => {
       })
     }
 
-    // Check if Employee exists
-    const employee = await Employee.findOne({ ID: ProcessedEntryBy })
+  // Check if Employee exists
+  const employee = await Employee.findOne({ ID: ProcessedEntryBy })
     if (!employee) {
       return res.status(404).json({
         success: false,
@@ -451,6 +564,7 @@ entrySessionsRouter.post('/entry', async (req, res) => {
 // POST - Process exit (calculate fee and close session)
 entrySessionsRouter.post('/exit/:id', async (req, res) => {
   try {
+    if (!requireAdminOrStaff(req, res)) return
     const { ProcessedExitBy, ManualFee, DiscountReason } = req.body
 
     const session = await EntrySession
@@ -604,6 +718,7 @@ entrySessionsRouter.post('/exit/:id', async (req, res) => {
 // PUT - Update session status (for lost ticket, cancellation)
 entrySessionsRouter.put('/:id', async (req, res) => {
   try {
+    if (!requireAdmin(req, res)) return
     const { Status } = req.body
 
     const session = await EntrySession.findById(req.params.id)
@@ -687,6 +802,7 @@ entrySessionsRouter.put('/:id', async (req, res) => {
 // DELETE - Delete session (only for cancelled sessions)
 entrySessionsRouter.delete('/:id', async (req, res) => {
   try {
+    if (!requireAdmin(req, res)) return
     const session = await EntrySession.findById(req.params.id)
     if (!session) {
       return res.status(404).json({
