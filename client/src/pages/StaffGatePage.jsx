@@ -25,9 +25,15 @@ const newEntryIcon = "http://localhost:3845/assets/d5adc677833421c90551d173e9332
 const queryIcon = "http://localhost:3845/assets/ad0d772f1387199655cef8846f5971750377093c.svg";
 
 const StaffGatePage = () => {
-  const { user, logout, getStaffGateType } = useAuth();
+  const { user, token, authHeaders: ctxAuthHeaders, logout, getStaffGateType } = useAuth();
   const [activeTab, setActiveTab] = useState('entry');
   const [showShiftReport, setShowShiftReport] = useState(false);
+
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+
+  const authHeaders = () => (ctxAuthHeaders || (token ? { Authorization: `Bearer ${token}` } : {}))
+
+  const staffEmployeeId = user?.employeeId
 
   useEffect(() => {
     // Initialize gate type from selection made on the staff login form.
@@ -39,6 +45,46 @@ const StaffGatePage = () => {
     // We only want to run this on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const [vehicleTypes, setVehicleTypes] = useState([])
+
+  const [gate1Busy, setGate1Busy] = useState(false)
+  const [gate2Busy, setGate2Busy] = useState(false)
+  const [gate1Error, setGate1Error] = useState('')
+  const [gate2Error, setGate2Error] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+
+    const run = async () => {
+  if (!token) return
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/vehicle-types?isActive=true&limit=100`, {
+          headers: {
+            ...authHeaders()
+          }
+        })
+
+        const json = await res.json().catch(() => null)
+        if (!res.ok) {
+          throw new Error(json?.error?.message || `Failed to load vehicle types (${res.status})`)
+        }
+
+        const list = json?.data?.vehicleTypes || []
+        if (!cancelled) setVehicleTypes(list)
+      } catch (e) {
+        // Non-fatal: UI can still work with manual input, but vehicle type grid will be empty.
+        console.error(e)
+      }
+    }
+
+    run()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token])
 
   // Per-gate mode: 'idle' (no vehicle) | 'newEntry' (form) | 'processing' (details)
   const [gate1Mode, setGate1Mode] = useState('processing');
@@ -52,16 +98,62 @@ const StaffGatePage = () => {
     cardId: '',
     licensePlate: '',
     queriedPlate: '',
-    vehicleType: ''
+    vehicleType: '',
+    queriedPlateMismatch: false,
+    queriedPlateMode: 'INSTANT'
   });
   const [gate2NewEntry, setGate2NewEntry] = useState({
     cardId: '',
     licensePlate: '',
     queriedPlate: '',
-    vehicleType: ''
+    vehicleType: '',
+    queriedPlateMismatch: false,
+    queriedPlateMode: 'INSTANT'
   });
 
-  // Mock data for gates - Enhanced with license plates and more fields
+  const sessionToGateData = (gateNumber, session) => {
+    if (!session) {
+      return {
+        gateNumber,
+        vehicleType: '',
+        cardId: '',
+        licensePlate: '',
+        plateQueried: '',
+        plateInput: '',
+        entryTime: '',
+        customer: '',
+        exitTime: 'Pending',
+        price: '',
+        hasVehicle: false
+      }
+    }
+
+    const plate = (session?.LicensePlate || session?.VehicleID?.PlateNumber || '').toUpperCase()
+    const vehicleTypeName =
+      session?.VehicleTypeID?.Name ||
+      session?.VehicleID?.VehicleTypeID?.Name ||
+      session?.VehicleTypeID?.VehicleTypeID ||
+      ''
+    const cardId = session?.CardID?.CardID || session?.CardID || ''
+    const customer = session?.CardID?.CustomerID?.PersonID?.FullName || ''
+
+    return {
+      gateNumber,
+      vehicleType: vehicleTypeName,
+      cardId,
+      licensePlate: plate,
+      plateQueried: plate ? plate : 'Instant',
+      plateInput: plate,
+      entryTime: session?.EntryTime ? new Date(session.EntryTime).toLocaleTimeString() : '',
+      customer,
+      exitTime: 'Pending',
+      price: '',
+      hasVehicle: true,
+      sessionId: session?.ID || session?.id
+    }
+  }
+
+  // Gate state (will be hydrated from API; initial values are placeholders)
   const [gate1Data, setGate1Data] = useState({
     gateNumber: 1,
     vehicleType: 'car',
@@ -89,6 +181,55 @@ const StaffGatePage = () => {
     price: '$10.00',
     hasVehicle: true
   });
+
+  useEffect(() => {
+    let cancelled = false
+    const run = async () => {
+      if (!token) return
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/entry-sessions/gate/active-latest`, {
+          headers: { ...authHeaders() }
+        })
+        const json = await res.json().catch(() => null)
+        if (!res.ok) {
+          throw new Error(json?.error?.message || `Failed to load gate state (${res.status})`)
+        }
+
+        const session = json?.data?.session
+
+        if (cancelled) return
+
+        if (session) {
+          // For now: show the latest active session on Gate 2 and keep Gate 1 idle.
+          // When you add a real "gate" identifier on EntrySession, we can map by gate.
+          setGate2Data(sessionToGateData(2, session))
+          setGate2Mode('processing')
+
+          setGate1Data(sessionToGateData(1, null))
+          setGate1Mode('idle')
+        } else {
+          setGate1Data(sessionToGateData(1, null))
+          setGate1Mode('idle')
+          setGate2Data(sessionToGateData(2, null))
+          setGate2Mode('idle')
+        }
+      } catch (e) {
+        console.error(e)
+        // Fail-open to idle so staff can still operate.
+        if (!cancelled) {
+          setGate1Mode('idle')
+          setGate2Mode('idle')
+        }
+      }
+    }
+
+    run()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token])
 
   // Mock parking capacity data
   const parkingCapacity = {
@@ -123,11 +264,13 @@ const StaffGatePage = () => {
     if (gateNumber === 1) {
       setGate1Mode('newEntry');
       setGate1HasQueried(false);
+      setGate1NewEntry({ cardId: '', licensePlate: '', queriedPlate: '', vehicleType: '', queriedPlateMismatch: false, queriedPlateMode: 'INSTANT' })
       return;
     }
     if (gateNumber === 2) {
       setGate2Mode('newEntry');
       setGate2HasQueried(false);
+      setGate2NewEntry({ cardId: '', licensePlate: '', queriedPlate: '', vehicleType: '', queriedPlateMismatch: false, queriedPlateMode: 'INSTANT' })
     }
   };
 
@@ -135,125 +278,162 @@ const StaffGatePage = () => {
     if (gateNumber === 1) {
       setGate1Mode('idle');
       setGate1HasQueried(false);
+      setGate1NewEntry({ cardId: '', licensePlate: '', queriedPlate: '', vehicleType: '', queriedPlateMismatch: false, queriedPlateMode: 'INSTANT' })
       return;
     }
     if (gateNumber === 2) {
       setGate2Mode('idle');
       setGate2HasQueried(false);
+      setGate2NewEntry({ cardId: '', licensePlate: '', queriedPlate: '', vehicleType: '', queriedPlateMismatch: false, queriedPlateMode: 'INSTANT' })
     }
   };
 
   const handleQueryPlate = (gateNumber) => {
-    // Mock behavior per requirements:
-    // - non-round ticket: fills Vehicle Type + Queried Plate
-    // - round ticket: Queried Plate mirrors License Plate, Vehicle Type is user-chosen
-    //
-    // Assumption for now (until ticket type exists in the model):
-    // treat entries with a Card ID as "non-round" (subscription/card scan);
-    // treat empty Card ID as "round" (single ticket).
-    const getTypeFromPlate = (plate) => {
-      const p = (plate || '').toUpperCase();
-      if (!p) return '';
-      if (p.includes('VAN')) return 'van';
-      if (p.includes('TRK') || p.includes('TRUCK')) return 'truck';
-      if (p.includes('MOTO') || p.includes('MC')) return 'motorcycle';
-      return 'van';
-    };
+    const gateState = gateNumber === 1 ? gate1NewEntry : gate2NewEntry
+    const setBusy = gateNumber === 1 ? setGate1Busy : setGate2Busy
+    const setErr = gateNumber === 1 ? setGate1Error : setGate2Error
+    const setHasQueried = gateNumber === 1 ? setGate1HasQueried : setGate2HasQueried
+    const setNewEntry = gateNumber === 1 ? setGate1NewEntry : setGate2NewEntry
 
-    if (gateNumber === 1) {
-      const plate = (gate1NewEntry.licensePlate || '').trim().toUpperCase();
-      const cardId = (gate1NewEntry.cardId || '').trim();
-      const isNonRound = Boolean(cardId);
+    const cardId = (gateState.cardId || '').trim()
+    const licensePlate = (gateState.licensePlate || '').trim().toUpperCase()
 
-      setGate1HasQueried(true);
+    setErr('')
+    setBusy(true)
 
-      if (isNonRound) {
-        setGate1NewEntry((prev) => ({
-          ...prev,
-          queriedPlate: plate,
-          vehicleType: prev.vehicleType || getTypeFromPlate(plate) || 'van'
-        }));
-      } else {
-        setGate1NewEntry((prev) => ({
-          ...prev,
-          queriedPlate: plate
-        }));
+    fetch(`${API_BASE_URL}/api/entry-sessions/gate/query?cardId=${encodeURIComponent(cardId)}&licensePlate=${encodeURIComponent(licensePlate)}`, {
+      headers: {
+        ...authHeaders()
       }
-      return;
-    }
+    })
+      .then(async (res) => {
+        const json = await res.json().catch(() => null)
+        if (!res.ok) {
+          throw new Error(json?.error?.message || `Query failed (${res.status})`)
+        }
 
-    if (gateNumber === 2) {
-      const plate = (gate2NewEntry.licensePlate || '').trim().toUpperCase();
-      const cardId = (gate2NewEntry.cardId || '').trim();
-      const isNonRound = Boolean(cardId);
+        // If staff entered a CardID but the backend didn't find it, treat as an error.
+        if (cardId && !json?.data?.card) {
+          throw new Error('Card not found')
+        }
 
-      setGate2HasQueried(true);
+        const gate = json?.data?.gate || {}
 
-      if (isNonRound) {
-        setGate2NewEntry((prev) => ({
+        // Backend already encodes the rules for queried plate:
+        // - Visitor => Instant
+        // - Non-visitor + ACTIVE subscription => subscription plate
+        // - Non-visitor + no subscription => Instant
+        const queriedPlate = String(gate?.queriedPlate || '').trim() || 'Instant'
+
+        const normalizedQueriedPlate = queriedPlate.toUpperCase()
+        const normalizedInputPlate = String(licensePlate || '').trim().toUpperCase()
+        const mismatch =
+          gate?.queriedPlateMode === 'SUBSCRIPTION' &&
+          Boolean(normalizedQueriedPlate) &&
+          Boolean(normalizedInputPlate) &&
+          normalizedQueriedPlate !== normalizedInputPlate
+
+        // Card type should show vehicle type from subscription when available,
+        // otherwise (Instant) the UI will allow selecting vehicle type.
+        const subscriptionVehicleTypeId =
+          json?.data?.subscriptionVehicleType?.VehicleTypeID ||
+          json?.data?.subscription?.VehicleTypeID ||
+          ''
+
+        setHasQueried(true)
+        setNewEntry((prev) => ({
           ...prev,
-          queriedPlate: plate,
-          vehicleType: prev.vehicleType || getTypeFromPlate(plate) || 'van'
-        }));
-      } else {
-        setGate2NewEntry((prev) => ({
-          ...prev,
-          queriedPlate: plate
-        }));
-      }
-    }
+          queriedPlate: normalizedQueriedPlate,
+          queriedPlateMismatch: mismatch,
+          queriedPlateMode: gate?.queriedPlateMode || (normalizedQueriedPlate === 'INSTANT' ? 'INSTANT' : prev.queriedPlateMode),
+          // Only set vehicleType from subscription when provided.
+          vehicleType: subscriptionVehicleTypeId || prev.vehicleType
+        }))
+      })
+      .catch((e) => {
+        setErr(e.message)
+      })
+      .finally(() => {
+        setBusy(false)
+      })
   };
 
   const handleAddEntry = (gateNumber) => {
-    console.log(`Add entry for Gate ${gateNumber}`);
+    const gateState = gateNumber === 1 ? gate1NewEntry : gate2NewEntry
+    const setBusy = gateNumber === 1 ? setGate1Busy : setGate2Busy
+    const setErr = gateNumber === 1 ? setGate1Error : setGate2Error
+    const setData = gateNumber === 1 ? setGate1Data : setGate2Data
+    const setMode = gateNumber === 1 ? setGate1Mode : setGate2Mode
+    const setHasQueried = gateNumber === 1 ? setGate1HasQueried : setGate2HasQueried
 
-    if (gateNumber === 1) {
-      const nextPlate = (gate1NewEntry.licensePlate || '').trim().toUpperCase();
-      const nextCardId = (gate1NewEntry.cardId || '').trim();
-      const nextVehicleType = (gate1NewEntry.vehicleType || '').trim().toLowerCase();
-      const nextQueriedPlate = (gate1NewEntry.queriedPlate || '').trim().toUpperCase();
+    const CardID = (gateState.cardId || '').trim()
+    const LicensePlate = (gateState.licensePlate || '').trim().toUpperCase()
+    const VehicleTypeID = (gateState.vehicleType || '').trim()
 
-      const isNonRound = Boolean(nextCardId);
+    setErr('')
+    setBusy(true)
 
-      setGate1Data((prev) => ({
-        ...prev,
-        hasVehicle: true,
-        cardId: nextCardId || prev.cardId,
-        vehicleType: isNonRound ? (nextVehicleType || prev.vehicleType || 'van') : (nextVehicleType || prev.vehicleType || 'car'),
-        licensePlate: nextPlate || prev.licensePlate || 'ABC-1234',
-        plateInput: nextPlate || prev.plateInput || 'ABC-1234',
-        plateQueried: nextQueriedPlate || prev.plateQueried || nextPlate || 'Instant'
-      }));
-      setGate1Mode('processing');
-      setGate1HasQueried(false);
-      return;
-    }
+    fetch(`${API_BASE_URL}/api/entry-sessions/gate/entry`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders()
+      },
+      body: JSON.stringify({
+        CardID,
+        VehicleTypeID,
+        LicensePlate,
+        ProcessedEntryBy: staffEmployeeId
+      })
+    })
+      .then(async (res) => {
+        const json = await res.json().catch(() => null)
+        if (!res.ok) {
+          throw new Error(json?.error?.message || `Add entry failed (${res.status})`)
+        }
 
-    if (gateNumber === 2) {
-      const nextPlate = (gate2NewEntry.licensePlate || '').trim().toUpperCase();
-      const nextCardId = (gate2NewEntry.cardId || '').trim();
-      const nextVehicleType = (gate2NewEntry.vehicleType || '').trim().toLowerCase();
-      const nextQueriedPlate = (gate2NewEntry.queriedPlate || '').trim().toUpperCase();
+        const decision = json?.data?.decision
+        if (decision === 'VISITOR_SUBSCRIPTION_MISMATCH') {
+          window.alert(json?.data?.nextAction?.message || 'Subscription mismatch. Please issue Visitor card and re-enter the Visitor Card ID.')
+          // Keep staff on the form to re-input visitor card.
+          return
+        }
 
-      const isNonRound = Boolean(nextCardId);
+        const session = json?.data?.session
+        const displayPlate = (session?.LicensePlate || LicensePlate || '').toUpperCase()
+        const normalizedQueriedPlate = String(gateState?.queriedPlate || '').trim().toUpperCase()
 
-      setGate2Data((prev) => ({
-        ...prev,
-        hasVehicle: true,
-        cardId: nextCardId || prev.cardId,
-        vehicleType: isNonRound ? (nextVehicleType || prev.vehicleType || 'van') : (nextVehicleType || prev.vehicleType || 'car'),
-        licensePlate: nextPlate || prev.licensePlate || 'XYZ-5678',
-        plateInput: nextPlate || prev.plateInput || 'XYZ-5678',
-        plateQueried: nextQueriedPlate || prev.plateQueried || nextPlate || 'Instant'
-      }));
-      setGate2Mode('processing');
-      setGate2HasQueried(false);
-    }
+        const isInstant = !normalizedQueriedPlate || normalizedQueriedPlate === 'INSTANT'
+        const plateQueriedValue = isInstant
+          ? 'Instant'
+          : normalizedQueriedPlate
+
+        setData((prev) => ({
+          ...prev,
+          hasVehicle: true,
+          cardId: CardID,
+          vehicleType: vehicleTypeDisplayLabel(VehicleTypeID) || VehicleTypeID,
+          licensePlate: displayPlate,
+          plateInput: LicensePlate,
+          plateQueried: plateQueriedValue,
+          entryTime: session?.EntryTime ? new Date(session.EntryTime).toLocaleTimeString() : prev.entryTime
+        }))
+        setMode('processing')
+        setHasQueried(false)
+      })
+      .catch((e) => {
+        setErr(e.message)
+      })
+      .finally(() => {
+        setBusy(false)
+      })
   };
 
   const vehicleTypeDisplayLabel = (type) => {
-    if (!type) return '';
-    return type.charAt(0).toUpperCase() + type.slice(1);
+    if (!type) return ''
+    const fromDb = vehicleTypes?.find?.((v) => v?.VehicleTypeID === type)
+    if (fromDb?.Name) return fromDb.Name
+    return String(type).charAt(0).toUpperCase() + String(type).slice(1)
   };
 
   const isGateIdle = (mode, gateData) => mode === 'idle' || !gateData.hasVehicle;
@@ -408,12 +588,14 @@ const StaffGatePage = () => {
                     <span>Query</span>
                   </button>
 
+                  {gate1Error && <p className="new-entry-error">{gate1Error}</p>}
+
                   {gate1HasQueried && (
                     <>
                       <div className="new-entry-field">
                         <label className="new-entry-label">Queried Plate</label>
                         <input
-                          className="new-entry-input new-entry-input-plate"
+                          className={`new-entry-input new-entry-input-plate ${gate1NewEntry.queriedPlateMismatch ? 'new-entry-input-mismatch' : ''}`}
                           inputMode="text"
                           placeholder="--"
                           value={(gate1NewEntry.queriedPlate || '').toUpperCase()}
@@ -421,21 +603,25 @@ const StaffGatePage = () => {
                         />
                       </div>
 
-                      {(gate1NewEntry.cardId || '').trim() ? (
+                      {(gate1NewEntry.queriedPlateMode || 'INSTANT') !== 'INSTANT' && (gate1NewEntry.cardId || '').trim() ? (
                         <div className="new-entry-field">
                           <label className="new-entry-label">Vehicle Type</label>
                           <div className="new-entry-vehicle-auto">
                             <p className="new-entry-vehicle-value">
-                              {vehicleTypeDisplayLabel(gate1NewEntry.vehicleType) || 'Van'}
+                              {vehicleTypeDisplayLabel(gate1NewEntry.vehicleType) || '—'}
                             </p>
-                            <p className="new-entry-vehicle-hint">Auto-selected from database</p>
+                            {gate1NewEntry.vehicleType && (
+                              <p className="new-entry-vehicle-hint">Auto-selected from subscription</p>
+                            )}
                           </div>
                         </div>
                       ) : (
                         <div className="new-entry-field">
                           <label className="new-entry-label">Vehicle Type</label>
                           <div className="new-entry-vehicle-grid" role="group" aria-label="Vehicle Type">
-                            {['car', 'motorcycle', 'truck', 'van'].map((type) => (
+                            {(vehicleTypes?.length ? vehicleTypes : ['car', 'motorcycle', 'truck', 'van']).map((raw) => {
+                              const type = typeof raw === 'string' ? raw : raw.VehicleTypeID
+                              return (
                               <button
                                 key={type}
                                 type="button"
@@ -448,7 +634,8 @@ const StaffGatePage = () => {
                               >
                                 {vehicleTypeDisplayLabel(type)}
                               </button>
-                            ))}
+                              )
+                            })}
                           </div>
                         </div>
                       )}
@@ -610,12 +797,14 @@ const StaffGatePage = () => {
                     <span>Query</span>
                   </button>
 
+                  {gate2Error && <p className="new-entry-error">{gate2Error}</p>}
+
                   {gate2HasQueried && (
                     <>
                       <div className="new-entry-field">
                         <label className="new-entry-label">Queried Plate</label>
                         <input
-                          className="new-entry-input new-entry-input-plate"
+                          className={`new-entry-input new-entry-input-plate ${gate2NewEntry.queriedPlateMismatch ? 'new-entry-input-mismatch' : ''}`}
                           inputMode="text"
                           placeholder="--"
                           value={(gate2NewEntry.queriedPlate || '').toUpperCase()}
@@ -623,21 +812,25 @@ const StaffGatePage = () => {
                         />
                       </div>
 
-                      {(gate2NewEntry.cardId || '').trim() ? (
+                      {(gate2NewEntry.queriedPlateMode || 'INSTANT') !== 'INSTANT' && (gate2NewEntry.cardId || '').trim() ? (
                         <div className="new-entry-field">
                           <label className="new-entry-label">Vehicle Type</label>
                           <div className="new-entry-vehicle-auto">
                             <p className="new-entry-vehicle-value">
-                              {vehicleTypeDisplayLabel(gate2NewEntry.vehicleType) || 'Van'}
+                              {vehicleTypeDisplayLabel(gate2NewEntry.vehicleType) || '—'}
                             </p>
-                            <p className="new-entry-vehicle-hint">Auto-selected from database</p>
+                            {gate2NewEntry.vehicleType && (
+                              <p className="new-entry-vehicle-hint">Auto-selected from subscription</p>
+                            )}
                           </div>
                         </div>
                       ) : (
                         <div className="new-entry-field">
                           <label className="new-entry-label">Vehicle Type</label>
                           <div className="new-entry-vehicle-grid" role="group" aria-label="Vehicle Type">
-                            {['car', 'motorcycle', 'truck', 'van'].map((type) => (
+                            {(vehicleTypes?.length ? vehicleTypes : ['car', 'motorcycle', 'truck', 'van']).map((raw) => {
+                              const type = typeof raw === 'string' ? raw : raw.VehicleTypeID
+                              return (
                               <button
                                 key={type}
                                 type="button"
@@ -650,7 +843,8 @@ const StaffGatePage = () => {
                               >
                                 {vehicleTypeDisplayLabel(type)}
                               </button>
-                            ))}
+                              )
+                            })}
                           </div>
                         </div>
                       )}

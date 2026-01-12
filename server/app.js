@@ -72,7 +72,7 @@ app.use(middleware.tokenExtractor)
 
 // Phase 1: Core Entities Routes
 app.use('/api/persons', middleware.authRequired, middleware.adminOnly, personsRouter)
-app.use('/api/vehicle-types', middleware.authRequired, middleware.adminOnly, vehicleTypesRouter)
+app.use('/api/vehicle-types', middleware.authRequired, vehicleTypesRouter)
 app.use('/api/card-categories', middleware.authRequired, middleware.adminOnly, cardCategoriesRouter)
 
 // Phase 2: User Management Routes

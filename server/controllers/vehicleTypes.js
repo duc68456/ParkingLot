@@ -1,6 +1,22 @@
 const vehicleTypesRouter = require('express').Router();
 const VehicleType = require('../models/vehicleType');
 
+const isAdmin = (request) => request.user?.role === 'admin'
+
+const requireAdmin = (request, response) => {
+  if (!isAdmin(request)) {
+    response.status(403).json({
+      success: false,
+      error: {
+        message: 'Admin access required',
+        code: 'ADMIN_ONLY'
+      }
+    })
+    return false
+  }
+  return true
+}
+
 /**
  * GET /api/vehicle-types
  * Get all vehicle types with filtering and pagination
@@ -107,6 +123,7 @@ vehicleTypesRouter.get('/:id', async (request, response) => {
  */
 vehicleTypesRouter.post('/', async (request, response) => {
   try {
+    if (!requireAdmin(request, response)) return
     const {
       Name,
       IsActive
@@ -195,6 +212,7 @@ vehicleTypesRouter.post('/', async (request, response) => {
  */
 vehicleTypesRouter.put('/:id', async (request, response) => {
   try {
+    if (!requireAdmin(request, response)) return
     const {
       Name,
       IsActive
@@ -274,6 +292,7 @@ vehicleTypesRouter.put('/:id', async (request, response) => {
  */
 vehicleTypesRouter.delete('/:id', async (request, response) => {
   try {
+    if (!requireAdmin(request, response)) return
     const vehicleType = await VehicleType.findById(request.params.id);
 
     if (!vehicleType) {

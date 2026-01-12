@@ -190,6 +190,16 @@
 	box-shadow: 0 0 0 3px rgba(21, 93, 252, 0.15);
 }
 
+.new-entry-input-mismatch {
+	border-color: #e7000b !important;
+	background: rgba(231, 0, 11, 0.06);
+}
+
+.new-entry-input-mismatch:focus {
+	border-color: #e7000b !important;
+	box-shadow: 0 0 0 3px rgba(231, 0, 11, 0.15);
+}
+
 .new-entry-input::placeholder {
 	color: rgba(10, 10, 10, 0.5);
 }
@@ -223,6 +233,17 @@
 
 .new-entry-query:hover {
 	filter: brightness(0.98);
+}
+
+.new-entry-error {
+	margin: 12px 0 0;
+	padding: 10px 12px;
+	border-radius: 10px;
+	border: 1px solid rgba(255, 0, 0, 0.18);
+	background: rgba(255, 0, 0, 0.06);
+	color: #b42318;
+	font-size: 12px;
+	line-height: 18px;
 }
 
 .new-entry-actions {

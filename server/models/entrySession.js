@@ -10,7 +10,7 @@ const entrySessionSchema = new mongoose.Schema({
   },
   VehicleID: {
     type: String,
-    required: true,
+    default: null,
     ref: 'Vehicle'
   },
   VehicleTypeID: {
@@ -22,6 +22,11 @@ const entrySessionSchema = new mongoose.Schema({
     type: String,
     required: true,
     ref: 'Card'
+  },
+  LicensePlate: {
+    type: String,
+    trim: true,
+    default: null
   },
   EntryTime: {
     type: Date,
@@ -73,20 +78,32 @@ entrySessionSchema.index(
   { unique: true }
 )
 
-// Auto-generate ID before saving
-entrySessionSchema.pre('save', async function (next) {
-  if (!this.ID) {
-    const lastSession = await this.constructor.findOne({}, {}, { sort: { 'ID': -1 } })
+// Auto-generate ID before validation so required validation passes.
+entrySessionSchema.pre('validate', async function (next) {
+  try {
+    if (!this.ID) {
+      // Sort by newest document to avoid lexical sort pitfalls on the ID string.
+      const lastSession = await this.constructor.findOne({}).sort({ createdAt: -1 }).select('ID').lean()
 
-    if (lastSession && lastSession.ID) {
-      const lastNumber = parseInt(lastSession.ID.substring(3))
-      const nextNumber = lastNumber + 1
-      this.ID = `ENT${nextNumber.toString().padStart(4, '0')}`
-    } else {
-      this.ID = 'ENT0001'
+      const lastId = String(lastSession?.ID || '').trim()
+      const match = lastId.match(/^ENT(\d{4})$/)
+
+      if (match) {
+        const lastNumber = parseInt(match[1], 10)
+        const nextNumber = lastNumber + 1
+        this.ID = `ENT${String(nextNumber).padStart(4, '0')}`
+      } else {
+        // Fallback: start sequence (or data is in unexpected shape)
+        const count = await this.constructor.estimatedDocumentCount()
+        // Start at 1; count may be >0 but IDs might be malformed, so keep simple.
+        this.ID = `ENT${String(Math.max(1, count + 1)).padStart(4, '0')}`
+      }
     }
+
+    next()
+  } catch (err) {
+    next(err)
   }
-  next()
 })
 
 // Configure toJSON
