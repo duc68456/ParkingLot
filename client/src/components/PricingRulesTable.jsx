@@ -1,6 +1,5 @@
 import '../styles/components/PricingRulesTable.css';
-
-const historyIcon = "/assets/3c622c974067bf8fdbfa9d68558b44e32eb6d202.svg";
+import historyIcon from '../assets/icons/dashboard/pulse.svg';
 
 export default function PricingRulesTable({ pricingRules, onEditRule, onViewHistory }) {
   const formatDate = (value) => {
@@ -51,8 +50,8 @@ export default function PricingRulesTable({ pricingRules, onEditRule, onViewHist
                     aria-label="Edit"
                   >
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path d="M2 11.5V14H4.5L11.8733 6.62667L9.37333 4.12667L2 11.5Z" fill="#45556C"/>
-                      <path d="M13.8067 4.69333L11.3067 2.19333L12.78 0.72C13.0667 0.433333 13.4267 0.293333 13.86 0.3C14.2933 0.306667 14.6533 0.453333 14.94 0.74L15.28 1.08C15.5667 1.36667 15.7067 1.72667 15.7 2.16C15.6933 2.59333 15.5467 2.95333 15.26 3.24L13.8067 4.69333Z" fill="#45556C"/>
+                      <path d="M2 11.5V14H4.5L11.8733 6.62667L9.37333 4.12667L2 11.5Z" fill="#45556C" />
+                      <path d="M13.8067 4.69333L11.3067 2.19333L12.78 0.72C13.0667 0.433333 13.4267 0.293333 13.86 0.3C14.2933 0.306667 14.6533 0.453333 14.94 0.74L15.28 1.08C15.5667 1.36667 15.7067 1.72667 15.7 2.16C15.6933 2.59333 15.5467 2.95333 15.26 3.24L13.8067 4.69333Z" fill="#45556C" />
                     </svg>
                   </button>
 

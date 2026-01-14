@@ -333,8 +333,8 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
       return;
     }
 
-  const selectedCard = cardResults.find(c => c.id === cardId) || cardSelected;
-  const selectedVehicle = vehicleResults.find(v => v.id === vehicleId) || vehicleSelected;
+    const selectedCard = cardResults.find(c => c.id === cardId) || cardSelected;
+    const selectedVehicle = vehicleResults.find(v => v.id === vehicleId) || vehicleSelected;
 
     const newSubscription = {
       id: `SUB${String(Date.now()).slice(-3)}`,
@@ -369,7 +369,9 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
         <div className="register-subscription-modal-header">
           <h3>Register Subscription</h3>
           <button className="register-subscription-modal-close" onClick={onClose}>
-            <img src="/assets/3b1fd7a264c04d18910cf128ec5c8c34e71cbeef.svg" alt="Close" />
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M5 5L15 15M15 5L5 15" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
           </button>
         </div>
 
@@ -537,8 +539,8 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
               <label>
                 Subscription Type <span className="required">*</span>
               </label>
-              <select 
-                value={subscriptionType} 
+              <select
+                value={subscriptionType}
                 onChange={(e) => setSubscriptionType(e.target.value)}
                 className="register-subscription-dropdown"
                 disabled={loading}
@@ -555,9 +557,9 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
             {/* Start Date */}
             <div className="register-subscription-field">
               <label>Start Date</label>
-              <input 
-                type="date" 
-                value={startDate} 
+              <input
+                type="date"
+                value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 className="register-subscription-date-picker"
               />
@@ -567,9 +569,9 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
             {/* End Date */}
             <div className="register-subscription-field">
               <label>End Date</label>
-              <input 
-                type="date" 
-                value={endDate} 
+              <input
+                type="date"
+                value={endDate}
                 readOnly
                 className="register-subscription-date-picker"
               />
@@ -583,9 +585,9 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
               <label>Price</label>
               <div className="register-subscription-price-input">
                 <span className="register-subscription-dollar-sign">$</span>
-                <input 
-                  type="text" 
-                  value={price} 
+                <input
+                  type="text"
+                  value={price}
                   readOnly
                   className="register-subscription-price-field"
                 />

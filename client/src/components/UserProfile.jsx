@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import '../styles/components/UserProfile.css';
 
-const chevronIcon = "/assets/576f3afeb315c88345b0812bf4010526d76b3d5b.svg";
-
 export default function UserProfile({ name, email, initials, onLogout }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -26,7 +24,9 @@ export default function UserProfile({ name, email, initials, onLogout }) {
           <p className="user-name">{name}</p>
           <p className="user-email">{email}</p>
         </div>
-        <img src={chevronIcon} alt="" className="user-chevron" />
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="user-chevron">
+          <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </button>
 
       {isOpen && (

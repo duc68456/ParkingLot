@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import '../styles/components/AddEmployeeModal.css';
-
-const closeIcon = "/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
-const infoIcon = "/assets/84b076413c866695910facc32be718e0755169e2.svg";
+import infoIcon from '../assets/icons/dashboard/alert-info.svg';
 
 export default function AddEmployeeModal({ isOpen, onClose, onSubmit }) {
   const [formData, setFormData] = useState({
@@ -42,7 +40,9 @@ export default function AddEmployeeModal({ isOpen, onClose, onSubmit }) {
           <div className="modal-header">
             <h3 className="modal-title">Add Employee</h3>
             <button className="modal-close-btn" onClick={handleClose}>
-              <img src={closeIcon} alt="Close" />
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M5 5L15 15M15 5L5 15" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
             </button>
           </div>
 

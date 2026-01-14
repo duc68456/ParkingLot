@@ -1,12 +1,8 @@
 import React from 'react';
 import '../styles/components/ShiftReportModal.css';
-
-// Image assets
-const reportIconBlue = "/assets/549f60289de04afce20a48c1c4b57c992dd9ebd2.svg";
-const exportIcon = "/assets/b75d3b7dac220190285a0be2b703239e0104a1b2.svg";
-const closeIcon1 = "/assets/6f199f12f1cb801ba769086e63ec0339157278aa.svg";
-const closeIcon2 = "/assets/f8c94079d0500cde9a69ab439ab2feb4cf028e36.svg";
-const trendIcon = "/assets/c014f945e92ec5a0ec19db6f14015855d4001040.svg";
+import reportIcon from '../assets/icons/reports.svg';
+import exportIcon from '../assets/icons/reports/export/export.svg';
+import trendIcon from '../assets/icons/dashboard/arrow-up.svg';
 
 const ShiftReportModal = ({ isOpen, onClose, gateType = 'entry' }) => {
   if (!isOpen) return null;
@@ -50,7 +46,7 @@ const ShiftReportModal = ({ isOpen, onClose, gateType = 'entry' }) => {
         <div className="shift-report-header">
           <div className="shift-report-title-section">
             <div className="shift-report-icon-wrapper">
-              <img src={reportIconBlue} alt="" />
+              <img src={reportIcon} alt="" />
             </div>
             <div className="shift-report-title-text">
               <h3 className="shift-report-title">Shift Report</h3>
@@ -64,8 +60,9 @@ const ShiftReportModal = ({ isOpen, onClose, gateType = 'entry' }) => {
               <span>Export</span>
             </button>
             <button className="shift-report-close-btn" onClick={onClose}>
-              <img src={closeIcon1} alt="" className="close-icon-1" />
-              <img src={closeIcon2} alt="" className="close-icon-2" />
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
             </button>
           </div>
         </div>

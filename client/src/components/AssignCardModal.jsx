@@ -4,8 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
-const cardIcon = "/assets/016247162025cce483fc4b098b7f2094b688d944.svg";
-
 function AssignCardModal({ card, onClose, onAssign, defaultAssignType = '', defaultPersonId = '' }) {
   const { authHeaders } = useAuth();
   // Figma 241:1604 uses a single dropdown listing both customers and employees.
@@ -148,7 +146,10 @@ function AssignCardModal({ card, onClose, onAssign, defaultAssignType = '', defa
           {card && (
             <div className="assign-card-cardinfo" aria-label="Card information">
               <div className="assign-card-cardinfo-icon" aria-hidden="true">
-                <img src={cardIcon} alt="" />
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <rect x="2" y="6" width="20" height="12" rx="2" stroke="#4169E1" strokeWidth="1.5" />
+                  <path d="M2 10H22" stroke="#4169E1" strokeWidth="1.5" />
+                </svg>
               </div>
               <div className="assign-card-cardinfo-text">
                 <div className="assign-card-carduid" title={card.uid || ''}>{card.uid || card.id}</div>

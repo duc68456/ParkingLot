@@ -5,11 +5,9 @@ import { useAuth } from '../contexts/AuthContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
-const closeIcon = "/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
-const cardIcon = "/assets/923d46cce1e4af18f527473ac71c6e5e36154ca6.svg";
-const vehicleIcon = "/assets/8c8ebc739042e975e5552a2edeb4a45061f5e4ea.svg";
-const plusIcon = "/assets/10fef702e521cd978007cbf6b09f2fa3cf287e8a.svg";
-const listCardIcon = "/assets/037bbde1a147a4d17c55cfd547055d79a35649cb.svg";
+import vehicleIcon from '../assets/icons/vehicles.svg';
+import plusIcon from '../assets/icons/common/actions/add.svg';
+import listCardIcon from '../assets/icons/cards/general/cards-list.svg';
 
 export default function ViewCardsModal({ customer, cards, onClose, loading = false, error = '' }) {
   if (!customer || !Array.isArray(cards)) return null;
@@ -65,7 +63,7 @@ export default function ViewCardsModal({ customer, cards, onClose, loading = fal
         const uidValue = String(payload?.uid || '').trim();
         if (!uidValue) throw new Error('Card UID is required');
 
-  const ownerPersonBusinessId = String(customer?.PersonBusinessId || customer?.personBusinessId || '').trim();
+        const ownerPersonBusinessId = String(customer?.PersonBusinessId || customer?.personBusinessId || '').trim();
         // normalizeEmployee provides personId as Mongo ObjectId, but OwnerID in Card is Person.ID (PER####).
         // So try to use a PER#### field if already present; otherwise we cannot proceed safely.
         const ownerId = /^PER\d{4}$/i.test(ownerPersonBusinessId)
@@ -178,7 +176,9 @@ export default function ViewCardsModal({ customer, cards, onClose, loading = fal
               <div className="view-cards-header">
                 <h3 className="view-cards-title">Cards - {customer.name}</h3>
                 <button className="view-cards-close-btn" onClick={onClose}>
-                  <img src={closeIcon} alt="Close" />
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M5 5L15 15M15 5L5 15" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
                 </button>
               </div>
 
@@ -221,7 +221,10 @@ export default function ViewCardsModal({ customer, cards, onClose, loading = fal
                 ) : localCards.length === 0 ? (
                   <div className={`view-cards-empty ${isEmployeeFlow ? 'view-cards-empty--employee' : ''}`}>
                     <div className="view-cards-empty-icon" aria-hidden="true">
-                      <img src={cardIcon} alt="" />
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
+                        <path d="M2 10H22" stroke="currentColor" strokeWidth="1.5" />
+                      </svg>
                     </div>
                     <p className="view-cards-empty-title">
                       {isEmployeeFlow ? 'No cards found for this employee' : 'No cards found for this customer'}

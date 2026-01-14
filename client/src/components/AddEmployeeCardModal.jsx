@@ -1,8 +1,6 @@
 import { useMemo, useState } from 'react';
 import '../styles/components/AddEmployeeCardModal.css';
 
-const closeIcon = "/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
-
 export default function AddEmployeeCardModal({ employee, onBackToCards, onClose, onCreate }) {
   if (!employee) return null;
 
@@ -39,7 +37,9 @@ export default function AddEmployeeCardModal({ employee, onBackToCards, onClose,
           <div className="add-employee-card-header">
             <h3 className="add-employee-card-title">Add Card for {employee.name}</h3>
             <button className="add-employee-card-close" onClick={onClose}>
-              <img src={closeIcon} alt="Close" />
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M5 5L15 15M15 5L5 15" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
             </button>
           </div>
 

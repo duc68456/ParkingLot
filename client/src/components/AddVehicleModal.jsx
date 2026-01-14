@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import '../styles/components/AddVehicleModal.css';
 
-const closeIcon = "/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
-
 export default function AddVehicleModal({ onClose, onSave, vehicleTypes = [] }) {
   const [plateNumber, setPlateNumber] = useState('');
   const [type, setType] = useState('');
@@ -53,7 +51,9 @@ export default function AddVehicleModal({ onClose, onSave, vehicleTypes = [] }) 
           <div className="add-vehicle-header">
             <h3 className="add-vehicle-title">Add New Vehicle</h3>
             <button className="add-vehicle-close-btn" onClick={onClose} type="button">
-              <img src={closeIcon} alt="Close" />
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M5 5L15 15M15 5L5 15" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
             </button>
           </div>
 

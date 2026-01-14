@@ -1,8 +1,6 @@
 import '../styles/components/ViewVehicleModal.css';
-
-const closeIcon = '/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg';
-const vehicleIcon = '/assets/9fd172c1a47d63bfe66e1eefa448265fdd8f0743.svg';
-const ownerIcon = '/assets/9bddb7d3b5cfd4771d686fa89d8f6c6ee437a2e3.svg';
+import vehicleIcon from '../assets/icons/vehicles.svg';
+import ownerIcon from '../assets/icons/dashboard/users.svg';
 
 export default function ViewVehicleModal({ vehicle, onClose }) {
   if (!vehicle) return null;
@@ -29,7 +27,9 @@ export default function ViewVehicleModal({ vehicle, onClose }) {
               onClick={onClose}
               aria-label="Close"
             >
-              <img src={closeIcon} alt="" />
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M5 5L15 15M15 5L5 15" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
             </button>
           </div>
 

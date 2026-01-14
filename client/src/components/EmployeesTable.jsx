@@ -7,11 +7,10 @@ import EmployeeAccountModal from './EmployeeAccountModal';
 import '../styles/components/EmployeesTable.css';
 
 import { useMemo, useState } from 'react';
-
-const eyeIcon = "/assets/fff43459d23d75a693e463832b4f1a77eebd5c88.svg";
-const editIcon = "/assets/22ed6fed4c4d56385d3b4d40f1a0236ded42a86e.svg";
-const deleteIcon = "/assets/1fdb1f29273b223332a28061a714a4354ee0c9ae.svg";
-const accountIcon = "/assets/f768166c48167d152862bf992a99e2c1e0e48b06.svg";
+import eyeIcon from '../assets/icons/common/actions/view.svg';
+import editIcon from '../assets/icons/common/actions/edit.svg';
+import deleteIcon from '../assets/icons/common/actions/trash.svg';
+import accountIcon from '../assets/icons/dashboard/users.svg';
 
 export default function EmployeesTable({ employees, onEdit, onDelete, onViewCards }) {
   const headers = ['ID', 'Employee', 'Role', 'Status', 'Hired Date', 'Actions'];
@@ -189,9 +188,9 @@ export default function EmployeesTable({ employees, onEdit, onDelete, onViewCard
 
   return (
     <>
-      <DataTable 
-        headers={headers} 
-        rows={rows} 
+      <DataTable
+        headers={headers}
+        rows={rows}
         total={employees.length}
         itemName="results"
       />

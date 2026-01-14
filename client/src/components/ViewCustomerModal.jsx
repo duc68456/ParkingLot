@@ -1,8 +1,6 @@
 import '../styles/components/ViewCustomerModal.css';
-
-const closeIcon = "/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
-const vehicleIcon = "/assets/258b617d0cf978612fcc52378ef9f60f2faafe26.svg";
-const carIcon = "/assets/e0acfd868c31bc907b5d6ba4b8ad7e5d76101ec9.svg";
+import vehicleIcon from '../assets/icons/vehicles.svg';
+import carIcon from '../assets/icons/dashboard/car.svg';
 
 function ViewCustomerModal({ customer, vehicles, onClose }) {
   if (!customer) return null;
@@ -49,7 +47,9 @@ function ViewCustomerModal({ customer, vehicles, onClose }) {
           <div className="modal-header">
             <h3 className="modal-title">Customer Details</h3>
             <button className="modal-close-button" onClick={onClose}>
-              <img src={closeIcon} alt="Close" />
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M5 5L15 15M15 5L5 15" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
             </button>
           </div>
 

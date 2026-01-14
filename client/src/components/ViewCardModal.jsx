@@ -1,8 +1,5 @@
 import '../styles/components/ViewCardModal.css';
 
-const closeIcon = "/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
-const cardIcon = "/assets/2008ec9e3ba7dda5340ecb3da13eded4b691a341.svg";
-
 export default function ViewCardModal({ card, onClose }) {
   if (!card) return null;
 
@@ -30,7 +27,9 @@ export default function ViewCardModal({ card, onClose }) {
         <div className="view-card-modal-header">
           <h3 className="view-card-modal-title">Card Details</h3>
           <button className="view-card-modal-close" onClick={onClose} aria-label="Close">
-            <img src={closeIcon} alt="Close" width="20" height="20" />
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M5 5L15 15M15 5L5 15" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
           </button>
         </div>
 
@@ -39,7 +38,10 @@ export default function ViewCardModal({ card, onClose }) {
           {/* Card Header Section - Icon + Info */}
           <div className="view-card-header-section">
             <div className="view-card-icon-wrapper" style={{ backgroundImage: card.gradient }}>
-              <img src={cardIcon} alt="Card" className="view-card-icon" />
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="view-card-icon">
+                <rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M2 10H22" stroke="currentColor" strokeWidth="1.5" />
+              </svg>
             </div>
             <div className="view-card-info">
               <h3 className="view-card-uid">{card.uid}</h3>

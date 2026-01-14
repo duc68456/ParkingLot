@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import '../styles/components/EditEmployeeModal.css';
-
-const closeIcon = "/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
-const infoIcon = "/assets/75a784162eadb383fb8b7b9265d6f214fe3ead16.svg";
+import infoIcon from '../assets/icons/dashboard/alert-info.svg';
 
 const EMPLOYEE_TYPE_OPTIONS = [
   { value: 'GATE_STAFF', label: 'Gate Staff' },
@@ -66,11 +64,11 @@ export default function EditEmployeeModal({ employee, onClose, onSave }) {
       status: formData.accountStatus,
       initials: formData.fullName
         ? formData.fullName
-            .trim()
-            .split(/\s+/)
-            .slice(0, 2)
-            .map((n) => n[0]?.toUpperCase())
-            .join('')
+          .trim()
+          .split(/\s+/)
+          .slice(0, 2)
+          .map((n) => n[0]?.toUpperCase())
+          .join('')
         : employee?.initials
     };
 
@@ -88,7 +86,9 @@ export default function EditEmployeeModal({ employee, onClose, onSave }) {
           <div className="edit-employee-modal__header">
             <h3 className="edit-employee-modal__title">Edit Employee</h3>
             <button className="edit-employee-modal__close" type="button" onClick={onClose} aria-label="Close">
-              <img src={closeIcon} alt="" />
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M5 5L15 15M15 5L5 15" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
             </button>
           </div>
 
