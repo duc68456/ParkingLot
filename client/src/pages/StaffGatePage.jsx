@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import ShiftReportModal from '../components/ShiftReportModal';
+import WebcamCapture from '../components/WebcamCapture';
+import { recognizePlateOnly, compressImage } from '../utils/lpApi';
 import '../styles/pages/StaffGatePage.css';
 
 // Import real icons from assets
@@ -119,6 +121,20 @@ const StaffGatePage = () => {
     queriedPlateMismatch: false,
     queriedPlateMode: 'INSTANT'
   });
+
+  // Camera & LP Recognition states for Gate 1
+  const [gate1ShowCamera, setGate1ShowCamera] = useState(false);
+  const [gate1CapturedImage, setGate1CapturedImage] = useState(null);
+  const [gate1CroppedImage, setGate1CroppedImage] = useState(null); // Cropped LP image for display
+  const [gate1Recognition, setGate1Recognition] = useState(null);
+  const [gate1RecognitionError, setGate1RecognitionError] = useState(null);
+
+  // Camera & LP Recognition states for Gate 2
+  const [gate2ShowCamera, setGate2ShowCamera] = useState(false);
+  const [gate2CapturedImage, setGate2CapturedImage] = useState(null);
+  const [gate2CroppedImage, setGate2CroppedImage] = useState(null); // Cropped LP image for display
+  const [gate2Recognition, setGate2Recognition] = useState(null);
+  const [gate2RecognitionError, setGate2RecognitionError] = useState(null);
 
   const sessionToGateData = (gateNumber, session) => {
     if (!session) {
@@ -273,13 +289,23 @@ const StaffGatePage = () => {
     if (gateNumber === 1) {
       setGate1Mode('newEntry');
       setGate1HasQueried(false);
-      setGate1NewEntry({ cardId: '', licensePlate: '', queriedPlate: '', vehicleType: '', queriedPlateMismatch: false, queriedPlateMode: 'INSTANT' })
+      setGate1NewEntry({ cardId: '', licensePlate: '', queriedPlate: '', vehicleType: '', queriedPlateMismatch: false, queriedPlateMode: 'INSTANT' });
+      // Reset camera/recognition states
+      setGate1CapturedImage(null);
+      setGate1CroppedImage(null);
+      setGate1Recognition(null);
+      setGate1RecognitionError(null);
       return;
     }
     if (gateNumber === 2) {
       setGate2Mode('newEntry');
       setGate2HasQueried(false);
-      setGate2NewEntry({ cardId: '', licensePlate: '', queriedPlate: '', vehicleType: '', queriedPlateMismatch: false, queriedPlateMode: 'INSTANT' })
+      setGate2NewEntry({ cardId: '', licensePlate: '', queriedPlate: '', vehicleType: '', queriedPlateMismatch: false, queriedPlateMode: 'INSTANT' });
+      // Reset camera/recognition states
+      setGate2CapturedImage(null);
+      setGate2CroppedImage(null);
+      setGate2Recognition(null);
+      setGate2RecognitionError(null);
     }
   };
 
@@ -287,13 +313,23 @@ const StaffGatePage = () => {
     if (gateNumber === 1) {
       setGate1Mode('idle');
       setGate1HasQueried(false);
-      setGate1NewEntry({ cardId: '', licensePlate: '', queriedPlate: '', vehicleType: '', queriedPlateMismatch: false, queriedPlateMode: 'INSTANT' })
+      setGate1NewEntry({ cardId: '', licensePlate: '', queriedPlate: '', vehicleType: '', queriedPlateMismatch: false, queriedPlateMode: 'INSTANT' });
+      // Reset camera/recognition states
+      setGate1CapturedImage(null);
+      setGate1CroppedImage(null);
+      setGate1Recognition(null);
+      setGate1RecognitionError(null);
       return;
     }
     if (gateNumber === 2) {
       setGate2Mode('idle');
       setGate2HasQueried(false);
-      setGate2NewEntry({ cardId: '', licensePlate: '', queriedPlate: '', vehicleType: '', queriedPlateMismatch: false, queriedPlateMode: 'INSTANT' })
+      setGate2NewEntry({ cardId: '', licensePlate: '', queriedPlate: '', vehicleType: '', queriedPlateMismatch: false, queriedPlateMode: 'INSTANT' });
+      // Reset camera/recognition states
+      setGate2CapturedImage(null);
+      setGate2CroppedImage(null);
+      setGate2Recognition(null);
+      setGate2RecognitionError(null);
     }
   };
 
@@ -365,6 +401,73 @@ const StaffGatePage = () => {
       .finally(() => {
         setBusy(false)
       })
+  };
+
+  const handleCaptureClick = (gateNumber) => {
+    if (gateNumber === 1) {
+      setGate1ShowCamera(true);
+      setGate1Recognition(null);
+      setGate1RecognitionError(null);
+      setGate1CroppedImage(null);
+    } else {
+      setGate2ShowCamera(true);
+      setGate2Recognition(null);
+      setGate2RecognitionError(null);
+      setGate2CroppedImage(null);
+    }
+  };
+
+  const handleCaptureComplete = async (gateNumber, imageData) => {
+    const setShowCamera = gateNumber === 1 ? setGate1ShowCamera : setGate2ShowCamera;
+    const setCapturedImage = gateNumber === 1 ? setGate1CapturedImage : setGate2CapturedImage;
+    const setCroppedImage = gateNumber === 1 ? setGate1CroppedImage : setGate2CroppedImage;
+    const setRecognition = gateNumber === 1 ? setGate1Recognition : setGate2Recognition;
+    const setRecognitionError = gateNumber === 1 ? setGate1RecognitionError : setGate2RecognitionError;
+    const setNewEntry = gateNumber === 1 ? setGate1NewEntry : setGate2NewEntry;
+    const setBusy = gateNumber === 1 ? setGate1Busy : setGate2Busy;
+    const setErr = gateNumber === 1 ? setGate1Error : setGate2Error;
+
+    setShowCamera(false);
+    setCapturedImage(imageData);
+
+    // Call recognition API
+    try {
+      setBusy(true);
+      setErr('');
+
+      // Compress image before sending
+      const compressedImage = await compressImage(imageData, 1024, 0.75);
+
+      const response = await recognizePlateOnly({ imageBase64: compressedImage }, token);
+
+      if (response.success) {
+        setRecognition(response.recognition);
+        setRecognitionError(null);
+
+        // Store cropped image for display
+        const croppedImg = response.recognition?.croppedImage || null;
+        setCroppedImage(croppedImg);
+
+        // Auto-fill license plate
+        if (response.recognition?.licensePlate) {
+          setNewEntry((prev) => ({
+            ...prev,
+            licensePlate: response.recognition.licensePlate
+          }));
+        }
+
+        console.log(`Gate ${gateNumber} recognition success:`, response.recognition);
+      } else {
+        setRecognitionError(response.error || 'Recognition failed');
+        setErr(response.error || 'Không thể nhận diện biển số');
+      }
+    } catch (err) {
+      console.error(`Gate ${gateNumber} recognition error:`, err);
+      setRecognitionError(err.message);
+      setErr(err.message || 'Lỗi nhận diện biển số');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleAddEntry = (gateNumber) => {
@@ -577,20 +680,45 @@ const StaffGatePage = () => {
 
                   <div className="new-entry-field">
                     <label className="new-entry-label">License Plate</label>
-                    <input
-                      className="new-entry-input new-entry-input-plate"
-                      inputMode="text"
-                      placeholder="e.g., ABC-1234"
-                      value={gate1NewEntry.licensePlate}
-                      onChange={(e) => {
-                        setGate1HasQueried(false);
-                        setGate1NewEntry((prev) => ({
-                          ...prev,
-                          licensePlate: e.target.value
-                        }));
-                      }}
-                    />
+                    <div className="new-entry-plate-wrapper">
+                      <input
+                        className="new-entry-input new-entry-input-plate"
+                        inputMode="text"
+                        placeholder="e.g., ABC-1234"
+                        value={gate1NewEntry.licensePlate}
+                        onChange={(e) => {
+                          setGate1HasQueried(false);
+                          setGate1NewEntry((prev) => ({
+                            ...prev,
+                            licensePlate: e.target.value
+                          }));
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="capture-plate-btn"
+                        onClick={() => handleCaptureClick(1)}
+                        title="Capture license plate with camera"
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+                          <path d="M3 9V7C3 5.89543 3.89543 5 5 5H7L9 3H15L17 5H19C20.1046 5 21 5.89543 21 7V9M3 15V17C3 18.1046 3.89543 19 5 19H7M17 19H19C20.1046 19 21 18.1046 21 17V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                        Capture
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Cropped LP Image Preview - Gate 1 */}
+                  {gate1CroppedImage && (
+                    <div className="lp-preview-container">
+                      <img
+                        src={gate1CroppedImage}
+                        alt="Biển số đã nhận diện"
+                        className="lp-preview-image"
+                      />
+                    </div>
+                  )}
 
                   <button className="new-entry-query" type="button" onClick={() => handleQueryPlate(1)}>
                     <img src={queryIcon} alt="" />
@@ -785,20 +913,45 @@ const StaffGatePage = () => {
 
                   <div className="new-entry-field">
                     <label className="new-entry-label">License Plate</label>
-                    <input
-                      className="new-entry-input new-entry-input-plate"
-                      inputMode="text"
-                      placeholder="e.g., ABC-1234"
-                      value={gate2NewEntry.licensePlate}
-                      onChange={(e) => {
-                        setGate2HasQueried(false);
-                        setGate2NewEntry((prev) => ({
-                          ...prev,
-                          licensePlate: e.target.value
-                        }));
-                      }}
-                    />
+                    <div className="new-entry-plate-wrapper">
+                      <input
+                        className="new-entry-input new-entry-input-plate"
+                        inputMode="text"
+                        placeholder="e.g., ABC-1234"
+                        value={gate2NewEntry.licensePlate}
+                        onChange={(e) => {
+                          setGate2HasQueried(false);
+                          setGate2NewEntry((prev) => ({
+                            ...prev,
+                            licensePlate: e.target.value
+                          }));
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="capture-plate-btn"
+                        onClick={() => handleCaptureClick(2)}
+                        title="Capture license plate with camera"
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+                          <path d="M3 9V7C3 5.89543 3.89543 5 5 5H7L9 3H15L17 5H19C20.1046 5 21 5.89543 21 7V9M3 15V17C3 18.1046 3.89543 19 5 19H7M17 19H19C20.1046 19 21 18.1046 21 17V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                        Capture
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Cropped LP Image Preview - Gate 2 */}
+                  {gate2CroppedImage && (
+                    <div className="lp-preview-container">
+                      <img
+                        src={gate2CroppedImage}
+                        alt="Biển số đã nhận diện"
+                        className="lp-preview-image"
+                      />
+                    </div>
+                  )}
 
                   <button className="new-entry-query" type="button" onClick={() => handleQueryPlate(2)}>
                     <img src={queryIcon} alt="" />
@@ -977,6 +1130,23 @@ const StaffGatePage = () => {
         isOpen={showShiftReport}
         onClose={() => setShowShiftReport(false)}
         gateType={activeTab}
+      />
+
+      {/* Webcam Modals */}
+      <WebcamCapture
+        isOpen={gate1ShowCamera}
+        onClose={() => setGate1ShowCamera(false)}
+        onCapture={(imageData) => handleCaptureComplete(1, imageData)}
+        title={`Capture ${activeTab === 'entry' ? 'Entry' : 'Exit'} License Plate - Gate 1`}
+        mode={activeTab}
+      />
+
+      <WebcamCapture
+        isOpen={gate2ShowCamera}
+        onClose={() => setGate2ShowCamera(false)}
+        onCapture={(imageData) => handleCaptureComplete(2, imageData)}
+        title={`Capture ${activeTab === 'entry' ? 'Entry' : 'Exit'} License Plate - Gate 2`}
+        mode={activeTab}
       />
     </div>
   );

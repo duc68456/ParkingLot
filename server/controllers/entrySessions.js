@@ -1247,6 +1247,87 @@ entrySessionsRouter.delete('/:id', async (req, res) => {
 })
 
 /**
+ * POST /api/entry-sessions/gate/recognize-only
+ * Recognition ONLY - No session creation
+ * Use this to recognize a license plate before filling in other fields
+ * 
+ * Body (JSON):
+ *  - image (base64 with data URL prefix)
+ * 
+ * Response:
+ *  - licensePlate: Recognized plate text
+ *  - confidence: Recognition confidence 0-1
+ *  - croppedImage: Base64 cropped plate image
+ *  - timestamp: Recognition timestamp
+ */
+entrySessionsRouter.post('/gate/recognize-only', async (req, res) => {
+  try {
+    if (!requireAdminOrStaff(req, res)) return
+
+    // Initialize LP client
+    const lpClient = getLPClient(config.LP_SERVICE_URL)
+
+    // Check LP service health
+    const isHealthy = await lpClient.healthCheck()
+    if (!isHealthy) {
+      return res.status(503).json({
+        success: false,
+        error: {
+          message: 'License Plate Recognition service is unavailable',
+          code: 'LP_SERVICE_UNAVAILABLE'
+        }
+      })
+    }
+
+    // Recognize license plate from image
+    let recognitionResult = null
+    if (req.body.image) {
+      // Base64 image from JSON body
+      recognitionResult = await lpClient.recognizeFromBase64(req.body.image)
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Image is required (provide image field as base64)',
+          code: 'IMAGE_REQUIRED'
+        }
+      })
+    }
+
+    if (!recognitionResult.success) {
+      return res.status(422).json({
+        success: false,
+        error: {
+          message: `License plate recognition failed: ${recognitionResult.error}`,
+          code: 'LP_RECOGNITION_FAILED'
+        }
+      })
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        licensePlate: recognitionResult.licensePlate,
+        confidence: recognitionResult.confidence,
+        croppedImage: recognitionResult.croppedImage || null,
+        timestamp: new Date().toISOString()
+      },
+      message: 'License plate recognized successfully'
+    })
+
+  } catch (error) {
+    console.error('Recognize only error:', error)
+    return res.status(500).json({
+      success: false,
+      error: {
+        message: error.message,
+        code: 'RECOGNIZE_ONLY_ERROR'
+      }
+    })
+  }
+})
+
+/**
  * POST /api/entry-sessions/gate/entry-with-plate
  * Entry workflow with License Plate Recognition
  * 
@@ -1440,7 +1521,8 @@ entrySessionsRouter.post('/gate/entry-with-plate', async (req, res) => {
         recognition: {
           licensePlate: recognitionResult.licensePlate,
           confidence: recognitionResult.confidence,
-          hasImage: Boolean(recognitionResult.croppedImage)
+          croppedImage: recognitionResult.croppedImage || null, // Return cropped image for frontend display
+          timestamp: new Date().toISOString()
         }
       },
       message: 'Entry recorded successfully with license plate recognition'
@@ -1677,10 +1759,11 @@ entrySessionsRouter.post('/gate/exit-with-plate', async (req, res) => {
         recognition: {
           licensePlate: recognitionResult.licensePlate,
           confidence: recognitionResult.confidence,
-          hasImage: Boolean(recognitionResult.croppedImage)
+          croppedImage: recognitionResult.croppedImage || null, // Return cropped image for frontend display
+          timestamp: new Date().toISOString()
         },
         validation: {
-          plateMatch,
+          match: plateMatch,
           entryPlate: entryPlate || null,
           exitPlate: exitPlate || null,
           warning: plateMatch === false ? 'License plates do not match' : null

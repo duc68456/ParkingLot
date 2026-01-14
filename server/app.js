@@ -66,7 +66,9 @@ app.use(
     credentials: true
   })
 )
-app.use(express.json())
+// Increase payload size limit for base64 images (50MB)
+app.use(express.json({ limit: '50mb' }))
+app.use(express.urlencoded({ limit: '50mb', extended: true }))
 app.use(middleware.requestLogger)
 app.use(middleware.tokenExtractor)
 
