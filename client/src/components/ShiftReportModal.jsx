@@ -2,11 +2,11 @@ import React from 'react';
 import '../styles/components/ShiftReportModal.css';
 
 // Image assets
-const reportIconBlue = "http://localhost:3845/assets/549f60289de04afce20a48c1c4b57c992dd9ebd2.svg";
-const exportIcon = "http://localhost:3845/assets/b75d3b7dac220190285a0be2b703239e0104a1b2.svg";
-const closeIcon1 = "http://localhost:3845/assets/6f199f12f1cb801ba769086e63ec0339157278aa.svg";
-const closeIcon2 = "http://localhost:3845/assets/f8c94079d0500cde9a69ab439ab2feb4cf028e36.svg";
-const trendIcon = "http://localhost:3845/assets/c014f945e92ec5a0ec19db6f14015855d4001040.svg";
+const reportIconBlue = "/assets/549f60289de04afce20a48c1c4b57c992dd9ebd2.svg";
+const exportIcon = "/assets/b75d3b7dac220190285a0be2b703239e0104a1b2.svg";
+const closeIcon1 = "/assets/6f199f12f1cb801ba769086e63ec0339157278aa.svg";
+const closeIcon2 = "/assets/f8c94079d0500cde9a69ab439ab2feb4cf028e36.svg";
+const trendIcon = "/assets/c014f945e92ec5a0ec19db6f14015855d4001040.svg";
 
 const ShiftReportModal = ({ isOpen, onClose, gateType = 'entry' }) => {
   if (!isOpen) return null;

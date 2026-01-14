@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import '../styles/components/EditCustomerModal.css';
 
-const closeIcon = "http://localhost:3845/assets/f3b68ee63c00f3b4ed26718b9bc9abea1cd47155.svg";
-const userIcon = "http://localhost:3845/assets/ce6e1b5cac3f3258bc604e23da6816baa66e4602.svg";
+const closeIcon = "/assets/f3b68ee63c00f3b4ed26718b9bc9abea1cd47155.svg";
+const userIcon = "/assets/ce6e1b5cac3f3258bc604e23da6816baa66e4602.svg";
 
 const EditCustomerModal = ({ customer, onClose, onSave }) => {
   const [formData, setFormData] = useState({

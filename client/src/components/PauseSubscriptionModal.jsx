@@ -28,7 +28,7 @@ function PauseSubscriptionModal({ subscription, onClose, onPause }) {
         <div className="pause-subscription-modal-header">
           <h3>Suspend Subscription</h3>
           <button className="pause-subscription-modal-close" onClick={onClose}>
-            <img src="http://localhost:3845/assets/3b1fd7a264c04d18910cf128ec5c8c34e71cbeef.svg" alt="Close" />
+            <img src="/assets/3b1fd7a264c04d18910cf128ec5c8c34e71cbeef.svg" alt="Close" />
           </button>
         </div>
 

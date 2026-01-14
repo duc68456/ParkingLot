@@ -9,4 +9,12 @@ const MONGODB_URI =
 const JWT_SECRET = process.env.JWT_SECRET
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1d'
 
-module.exports = { MONGODB_URI, PORT, JWT_SECRET, JWT_EXPIRES_IN }
+const LP_SERVICE_URL = process.env.LP_SERVICE_URL || 'http://localhost:5001'
+
+module.exports = {
+  MONGODB_URI,
+  PORT,
+  JWT_SECRET,
+  JWT_EXPIRES_IN,
+  LP_SERVICE_URL
+}

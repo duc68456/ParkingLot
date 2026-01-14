@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import '../styles/components/SearchBar.css';
 
-const searchIcon = "http://localhost:3845/assets/38e660c2c89b4d9e1fe6e4909c5ddaa96ff8b7d8.svg";
+const searchIcon = "/assets/38e660c2c89b4d9e1fe6e4909c5ddaa96ff8b7d8.svg";
 
 export default function SearchBar({ placeholder = 'Search...' }) {
   const [searchQuery, setSearchQuery] = useState('');

@@ -5,11 +5,11 @@ import { useAuth } from '../contexts/AuthContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
-const closeIcon = "http://localhost:3845/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
-const cardIcon = "http://localhost:3845/assets/923d46cce1e4af18f527473ac71c6e5e36154ca6.svg";
-const vehicleIcon = "http://localhost:3845/assets/8c8ebc739042e975e5552a2edeb4a45061f5e4ea.svg";
-const plusIcon = "http://localhost:3845/assets/10fef702e521cd978007cbf6b09f2fa3cf287e8a.svg";
-const listCardIcon = "http://localhost:3845/assets/037bbde1a147a4d17c55cfd547055d79a35649cb.svg";
+const closeIcon = "/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
+const cardIcon = "/assets/923d46cce1e4af18f527473ac71c6e5e36154ca6.svg";
+const vehicleIcon = "/assets/8c8ebc739042e975e5552a2edeb4a45061f5e4ea.svg";
+const plusIcon = "/assets/10fef702e521cd978007cbf6b09f2fa3cf287e8a.svg";
+const listCardIcon = "/assets/037bbde1a147a4d17c55cfd547055d79a35649cb.svg";
 
 export default function ViewCardsModal({ customer, cards, onClose, loading = false, error = '' }) {
   if (!customer || !Array.isArray(cards)) return null;

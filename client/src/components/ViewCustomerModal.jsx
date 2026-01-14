@@ -1,8 +1,8 @@
 import '../styles/components/ViewCustomerModal.css';
 
-const closeIcon = "http://localhost:3845/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
-const vehicleIcon = "http://localhost:3845/assets/258b617d0cf978612fcc52378ef9f60f2faafe26.svg";
-const carIcon = "http://localhost:3845/assets/e0acfd868c31bc907b5d6ba4b8ad7e5d76101ec9.svg";
+const closeIcon = "/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
+const vehicleIcon = "/assets/258b617d0cf978612fcc52378ef9f60f2faafe26.svg";
+const carIcon = "/assets/e0acfd868c31bc907b5d6ba4b8ad7e5d76101ec9.svg";
 
 function ViewCustomerModal({ customer, vehicles, onClose }) {
   if (!customer) return null;

@@ -1,6 +1,6 @@
 import '../styles/components/ViewEntrySessionModal.css';
 
-const closeIcon = "http://localhost:3845/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
+const closeIcon = "/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
 
 export default function ViewEntrySessionModal({ session, onClose }) {
   if (!session) return null;

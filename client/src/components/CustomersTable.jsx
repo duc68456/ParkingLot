@@ -1,10 +1,10 @@
 import DataTable from './DataTable';
 import '../styles/components/CustomersTable.css';
 
-const eyeIcon = "http://localhost:3845/assets/53e9d9d39e1a2cac7185a1002c83bcb708fdd3b2.svg";
-const editIcon = "http://localhost:3845/assets/fff43459d23d75a693e463832b4f1a77eebd5c88.svg";
-const cardIcon = "http://localhost:3845/assets/22ed6fed4c4d56385d3b4d40f1a0236ded42a86e.svg";
-const deleteIcon = "http://localhost:3845/assets/1fdb1f29273b223332a28061a714a4354ee0c9ae.svg";
+const eyeIcon = "/assets/53e9d9d39e1a2cac7185a1002c83bcb708fdd3b2.svg";
+const editIcon = "/assets/fff43459d23d75a693e463832b4f1a77eebd5c88.svg";
+const cardIcon = "/assets/22ed6fed4c4d56385d3b4d40f1a0236ded42a86e.svg";
+const deleteIcon = "/assets/1fdb1f29273b223332a28061a714a4354ee0c9ae.svg";
 
 export default function CustomersTable({ customers, phoneIcon, onView, onViewCards, onEdit, onDelete }) {
   const headers = ['ID', 'Customer', 'Contact', 'Status', 'Registered', 'Actions'];

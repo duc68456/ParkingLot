@@ -28,6 +28,14 @@ const entrySessionSchema = new mongoose.Schema({
     trim: true,
     default: null
   },
+  EntryImageData: {
+    type: String,
+    default: null
+  },
+  ExitImageData: {
+    type: String,
+    default: null
+  },
   EntryTime: {
     type: Date,
     required: true,

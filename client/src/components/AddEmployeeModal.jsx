@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import '../styles/components/AddEmployeeModal.css';
 
-const closeIcon = "http://localhost:3845/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
-const infoIcon = "http://localhost:3845/assets/84b076413c866695910facc32be718e0755169e2.svg";
+const closeIcon = "/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
+const infoIcon = "/assets/84b076413c866695910facc32be718e0755169e2.svg";
 
 export default function AddEmployeeModal({ isOpen, onClose, onSubmit }) {
   const [formData, setFormData] = useState({

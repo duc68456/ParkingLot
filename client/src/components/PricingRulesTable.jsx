@@ -1,6 +1,6 @@
 import '../styles/components/PricingRulesTable.css';
 
-const historyIcon = "http://localhost:3845/assets/3c622c974067bf8fdbfa9d68558b44e32eb6d202.svg";
+const historyIcon = "/assets/3c622c974067bf8fdbfa9d68558b44e32eb6d202.svg";
 
 export default function PricingRulesTable({ pricingRules, onEditRule, onViewHistory }) {
   const formatDate = (value) => {

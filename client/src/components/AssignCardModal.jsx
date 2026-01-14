@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
-const cardIcon = "http://localhost:3845/assets/016247162025cce483fc4b098b7f2094b688d944.svg";
+const cardIcon = "/assets/016247162025cce483fc4b098b7f2094b688d944.svg";
 
 function AssignCardModal({ card, onClose, onAssign, defaultAssignType = '', defaultPersonId = '' }) {
   const { authHeaders } = useAuth();

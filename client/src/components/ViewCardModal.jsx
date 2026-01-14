@@ -1,7 +1,7 @@
 import '../styles/components/ViewCardModal.css';
 
-const closeIcon = "http://localhost:3845/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
-const cardIcon = "http://localhost:3845/assets/2008ec9e3ba7dda5340ecb3da13eded4b691a341.svg";
+const closeIcon = "/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
+const cardIcon = "/assets/2008ec9e3ba7dda5340ecb3da13eded4b691a341.svg";
 
 export default function ViewCardModal({ card, onClose }) {
   if (!card) return null;

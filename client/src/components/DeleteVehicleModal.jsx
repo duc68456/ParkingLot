@@ -2,8 +2,8 @@ import { useEffect } from 'react';
 import '../styles/components/DeleteVehicleModal.css';
 
 // Figma-exported assets (served from the same local dev server pattern used in other tables/components)
-const warningIconUrl = 'http://localhost:3845/assets/6efc644be7d589ce3b3a946c4d53d23688c9e8fe.svg';
-const closeIconUrl = 'http://localhost:3845/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg';
+const warningIconUrl = '/assets/6efc644be7d589ce3b3a946c4d53d23688c9e8fe.svg';
+const closeIconUrl = '/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg';
 
 export default function DeleteVehicleModal({ vehicle, onClose, onConfirm }) {
   useEffect(() => {

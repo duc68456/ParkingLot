@@ -1,6 +1,6 @@
 import '../styles/components/NotificationButton.css';
 
-const notificationIcon = "http://localhost:3845/assets/4511833fd8ad1f29228a8f5d1f986b1bf0dcd809.svg";
+const notificationIcon = "/assets/4511833fd8ad1f29228a8f5d1f986b1bf0dcd809.svg";
 
 export default function NotificationButton({ notificationCount = 0, onClick }) {
   return (

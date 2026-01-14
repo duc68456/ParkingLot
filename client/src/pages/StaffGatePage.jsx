@@ -3,26 +3,35 @@ import { useAuth } from '../contexts/AuthContext';
 import ShiftReportModal from '../components/ShiftReportModal';
 import '../styles/pages/StaffGatePage.css';
 
-// Image assets
-const avatarIcon = "http://localhost:3845/assets/9bddb7d3b5cfd4771d686fa89d8f6c6ee437a2e3.svg";
-const entryIcon = "http://localhost:3845/assets/8ee6b442d525b28d4a107672a3efc208c8d5b28c.svg";
-const exitIcon = "http://localhost:3845/assets/40b6efd51b3d35c2be0b0b2f307ef67ab9118b5a.svg";
-const logoutIcon = "http://localhost:3845/assets/902105cd8549440941d486cd0ccb50c5a0c7c3e2.svg";
-const reportIcon = "http://localhost:3845/assets/2cd94cd69e5a78911979055e1ac2572aef27c1ae.svg";
-const carIcon = "http://localhost:3845/assets/878d7752e239ba114ca716ee37fc3e74eb6b3742.svg";
-const motorcycleIcon = "http://localhost:3845/assets/52051ee00a1dc5ee32879d95bc1062291ce30e6c.svg";
-const bikeIcon = "http://localhost:3845/assets/66f1f8c2b7844cffcea04e705ac2b03b96fc6ff9.svg";
-const vanIcon = "http://localhost:3845/assets/f4914feb3bfbebb6a428b63471152a4faf6aea6a.svg";
-const carLargeIcon = "http://localhost:3845/assets/40da8ed0c07b951d664ec087ff587c1797e9fa58.svg";
-const motorcycleLargeIcon = "http://localhost:3845/assets/3f18c6e8ca4d37dcaa592d3004793dd06527b481.svg";
-const checkIcon = "http://localhost:3845/assets/ed160eb609969c05d3ce53b626616345c19f90cc.svg";
+// Import real icons from assets
+import avatarIconSvg from '../assets/icons/dashboard/users.svg';
+import entryIconSvg from '../assets/icons/dashboard/activity-entry.svg';
+import exitIconSvg from '../assets/icons/dashboard/activity-exit.svg';
+import reportIconSvg from '../assets/icons/reports.svg';
+import carIconSvg from '../assets/icons/dashboard/car.svg';
+import motorcycleIconSvg from '../assets/icons/reports/detailed/motorbike.svg';
+import vanIconSvg from '../assets/icons/reports/detailed/van.svg';
+import carLargeIconSvg from '../assets/icons/dashboard/capacity-cars.svg';
+import motorcycleLargeIconSvg from '../assets/icons/dashboard/capacity-motorcycles.svg';
+import checkIconSvg from '../assets/icons/dashboard/alert-info.svg';
+import queryIconSvg from '../assets/icons/common/actions/search.svg';
 
-// Figma empty-state assets (node 333:2)
-const noVehicleIcon = "http://localhost:3845/assets/277df36082306b76567e432487f7e01f6fd978eb.svg";
-const newEntryIcon = "http://localhost:3845/assets/d5adc677833421c90551d173e93323a33412b09b.svg";
-
-// Figma New Entry Form assets (node 335:235)
-const queryIcon = "http://localhost:3845/assets/ad0d772f1387199655cef8846f5971750377093c.svg";
+// Convert imports to usable paths
+const avatarIcon = avatarIconSvg;
+const entryIcon = entryIconSvg;
+const exitIcon = exitIconSvg;
+const logoutIcon = exitIconSvg; // Reuse exit icon for logout
+const reportIcon = reportIconSvg;
+const carIcon = carIconSvg;
+const motorcycleIcon = motorcycleIconSvg;
+const bikeIcon = motorcycleIconSvg; // Reuse motorcycle for bike
+const vanIcon = vanIconSvg;
+const carLargeIcon = carLargeIconSvg;
+const motorcycleLargeIcon = motorcycleLargeIconSvg;
+const checkIcon = checkIconSvg;
+const noVehicleIcon = carIconSvg; // Placeholder
+const newEntryIcon = entryIconSvg; // Reuse entry icon
+const queryIcon = queryIconSvg;
 
 const StaffGatePage = () => {
   const { user, token, authHeaders: ctxAuthHeaders, logout, getStaffGateType } = useAuth();
@@ -57,7 +66,7 @@ const StaffGatePage = () => {
     let cancelled = false
 
     const run = async () => {
-  if (!token) return
+      if (!token) return
 
       try {
         const res = await fetch(`${API_BASE_URL}/api/vehicle-types?isActive=true&limit=100`, {
@@ -527,8 +536,8 @@ const StaffGatePage = () => {
               {/* Progress Bar */}
               <div className="capacity-progress-wrapper">
                 <div className="capacity-progress-bar">
-                  <div 
-                    className="capacity-progress-fill" 
+                  <div
+                    className="capacity-progress-fill"
                     style={{ width: `${capacityPercentage}%` }}
                   />
                 </div>
@@ -622,18 +631,17 @@ const StaffGatePage = () => {
                             {(vehicleTypes?.length ? vehicleTypes : ['car', 'motorcycle', 'truck', 'van']).map((raw) => {
                               const type = typeof raw === 'string' ? raw : raw.VehicleTypeID
                               return (
-                              <button
-                                key={type}
-                                type="button"
-                                className={`new-entry-vehicle-option ${
-                                  gate1NewEntry.vehicleType === type ? 'active' : ''
-                                }`}
-                                onClick={() =>
-                                  setGate1NewEntry((prev) => ({ ...prev, vehicleType: type }))
-                                }
-                              >
-                                {vehicleTypeDisplayLabel(type)}
-                              </button>
+                                <button
+                                  key={type}
+                                  type="button"
+                                  className={`new-entry-vehicle-option ${gate1NewEntry.vehicleType === type ? 'active' : ''
+                                    }`}
+                                  onClick={() =>
+                                    setGate1NewEntry((prev) => ({ ...prev, vehicleType: type }))
+                                  }
+                                >
+                                  {vehicleTypeDisplayLabel(type)}
+                                </button>
                               )
                             })}
                           </div>
@@ -831,18 +839,17 @@ const StaffGatePage = () => {
                             {(vehicleTypes?.length ? vehicleTypes : ['car', 'motorcycle', 'truck', 'van']).map((raw) => {
                               const type = typeof raw === 'string' ? raw : raw.VehicleTypeID
                               return (
-                              <button
-                                key={type}
-                                type="button"
-                                className={`new-entry-vehicle-option ${
-                                  gate2NewEntry.vehicleType === type ? 'active' : ''
-                                }`}
-                                onClick={() =>
-                                  setGate2NewEntry((prev) => ({ ...prev, vehicleType: type }))
-                                }
-                              >
-                                {vehicleTypeDisplayLabel(type)}
-                              </button>
+                                <button
+                                  key={type}
+                                  type="button"
+                                  className={`new-entry-vehicle-option ${gate2NewEntry.vehicleType === type ? 'active' : ''
+                                    }`}
+                                  onClick={() =>
+                                    setGate2NewEntry((prev) => ({ ...prev, vehicleType: type }))
+                                  }
+                                >
+                                  {vehicleTypeDisplayLabel(type)}
+                                </button>
                               )
                             })}
                           </div>
@@ -915,9 +922,8 @@ const StaffGatePage = () => {
                     <div className="info-card">
                       <p className="info-card-label">Plate Queried</p>
                       <p
-                        className={`info-card-value-text ${
-                          gate2Data.plateQueried === 'Instant' ? 'instant-text' : 'plate-text'
-                        }`}
+                        className={`info-card-value-text ${gate2Data.plateQueried === 'Instant' ? 'instant-text' : 'plate-text'
+                          }`}
                       >
                         {gate2Data.plateQueried}
                       </p>
@@ -967,8 +973,8 @@ const StaffGatePage = () => {
       </main>
 
       {/* Shift Report Modal */}
-      <ShiftReportModal 
-        isOpen={showShiftReport} 
+      <ShiftReportModal
+        isOpen={showShiftReport}
         onClose={() => setShowShiftReport(false)}
         gateType={activeTab}
       />

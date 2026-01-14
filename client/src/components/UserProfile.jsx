@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import '../styles/components/UserProfile.css';
 
-const chevronIcon = "http://localhost:3845/assets/576f3afeb315c88345b0812bf4010526d76b3d5b.svg";
+const chevronIcon = "/assets/576f3afeb315c88345b0812bf4010526d76b3d5b.svg";
 
 export default function UserProfile({ name, email, initials, onLogout }) {
   const [isOpen, setIsOpen] = useState(false);

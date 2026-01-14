@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import '../styles/components/VehiclesTable.css';
 
-const carIcon = "http://localhost:3845/assets/451b0bfafe1bd8b45066c5669f5ee7eb4a897814.svg";
-const motorcycleIcon = "http://localhost:3845/assets/bfa7ae87c1c00827dc55252c29f9b7e463310eac.svg";
-const viewIcon = "http://localhost:3845/assets/fff43459d23d75a693e463832b4f1a77eebd5c88.svg";
-const editIcon = "http://localhost:3845/assets/22ed6fed4c4d56385d3b4d40f1a0236ded42a86e.svg";
-const deleteIcon = "http://localhost:3845/assets/1fdb1f29273b223332a28061a714a4354ee0c9ae.svg";
+const carIcon = "/assets/451b0bfafe1bd8b45066c5669f5ee7eb4a897814.svg";
+const motorcycleIcon = "/assets/bfa7ae87c1c00827dc55252c29f9b7e463310eac.svg";
+const viewIcon = "/assets/fff43459d23d75a693e463832b4f1a77eebd5c88.svg";
+const editIcon = "/assets/22ed6fed4c4d56385d3b4d40f1a0236ded42a86e.svg";
+const deleteIcon = "/assets/1fdb1f29273b223332a28061a714a4354ee0c9ae.svg";
 
 export default function VehiclesTable({ vehicles, onViewVehicle, onEditVehicle, onDeleteVehicle }) {
   const [currentPage, setCurrentPage] = useState(1);

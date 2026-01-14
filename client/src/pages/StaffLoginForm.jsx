@@ -7,9 +7,9 @@ import '../styles/pages/StaffLoginForm.css';
 
 import staffIcon from '../assets/staff-icon.svg';
 
-// Figma assets (node 337:826)
-const entryGateIcon = 'http://localhost:3845/assets/beb5a1a16adfb23e18fb5285dd5344c818657bee.svg';
-const exitGateIcon = 'http://localhost:3845/assets/9e9b9b383ff7de62888fc1987f82f0b64ea02338.svg';
+// Import real icons from assets
+import entryGateIcon from '../assets/icons/dashboard/activity-entry.svg';
+import exitGateIcon from '../assets/icons/dashboard/activity-exit.svg';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
 
@@ -24,7 +24,7 @@ export default function StaffLoginForm({ type }) {
     e.preventDefault();
     const pinCode = pin.join('');
 
-    ;(async () => {
+    ; (async () => {
       try {
         // Staff verify endpoint supports PIN-only login
         const res = await fetch(`${API_BASE_URL}/api/staff-accounts/verify-pin`, {
@@ -47,11 +47,11 @@ export default function StaffLoginForm({ type }) {
         const fullName = data?.EmployeeID?.PersonID?.FullName || 'Staff'
         const initials = fullName
           ? fullName
-              .trim()
-              .split(/\s+/)
-              .slice(0, 2)
-              .map((n) => n[0]?.toUpperCase())
-              .join('')
+            .trim()
+            .split(/\s+/)
+            .slice(0, 2)
+            .map((n) => n[0]?.toUpperCase())
+            .join('')
           : 'ST'
 
         // Persist selected gate type so staff view can default to it.
@@ -79,13 +79,13 @@ export default function StaffLoginForm({ type }) {
 
   return (
     <div className="staff-login-form">
-      <FormHeader 
+      <FormHeader
         title="Login"
         subtitle="Enter your 6-digit PIN code"
         iconSrc={staffIcon}
       />
       <form onSubmit={handleSubmit} className="staff-form-content">
-        <PinInput 
+        <PinInput
           length={6}
           value={pin}
           onChange={setPin}
@@ -113,8 +113,8 @@ export default function StaffLoginForm({ type }) {
           </div>
         </div>
 
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           disabled={!isPinComplete}
           variant={isPinComplete ? 'primary' : 'disabled'}
         >

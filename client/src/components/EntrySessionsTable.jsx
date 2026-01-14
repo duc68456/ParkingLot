@@ -1,6 +1,6 @@
 import '../styles/components/EntrySessionsTable.css';
 
-const eyeIcon = "http://localhost:3845/assets/fff43459d23d75a693e463832b4f1a77eebd5c88.svg";
+const eyeIcon = "/assets/fff43459d23d75a693e463832b4f1a77eebd5c88.svg";
 
 export default function EntrySessionsTable({ sessions, onViewSession }) {
   const getStatusClass = (status) => {

@@ -7,6 +7,8 @@ const CardCategory = require('../models/cardCategory')
 const Employee = require('../models/employee')
 const Subscription = require('../models/subscription')
 const SinglePricingRule = require('../models/singlePricingRule')
+const { getLPClient } = require('../utils/lpClient')
+const config = require('../utils/config')
 
 const isAdmin = (req) => req?.user?.type === 'admin'
 const isStaff = (req) => req?.user?.type === 'staff'
@@ -880,8 +882,8 @@ entrySessionsRouter.post('/entry', async (req, res) => {
       })
     }
 
-  // Check if Employee exists
-  const employee = await Employee.findOne({ ID: ProcessedEntryBy })
+    // Check if Employee exists
+    const employee = await Employee.findOne({ ID: ProcessedEntryBy })
     if (!employee) {
       return res.status(404).json({
         success: false,
@@ -1239,6 +1241,507 @@ entrySessionsRouter.delete('/:id', async (req, res) => {
       error: {
         message: error.message,
         code: 'DELETE_ENTRY_SESSION_ERROR'
+      }
+    })
+  }
+})
+
+/**
+ * POST /api/entry-sessions/gate/entry-with-plate
+ * Entry workflow with License Plate Recognition
+ * 
+ * Body (multipart/form-data or JSON):
+ *  - CardID (required)
+ *  - VehicleTypeID (optional, inferred from subscription if not provided)
+ *  - ProcessedEntryBy (optional if staff token present)
+ *  - image (file upload or base64)
+ * 
+ * Response includes:
+ *  - session: Created entry session
+ *  - recognition: { licensePlate, confidence, croppedImage }
+ */
+entrySessionsRouter.post('/gate/entry-with-plate', async (req, res) => {
+  try {
+    if (!requireAdminOrStaff(req, res)) return
+
+    const CardID = String(req.body.CardID || '').trim()
+    let VehicleTypeID = String(req.body.VehicleTypeID || '').trim()
+    let ProcessedEntryBy = String(req.body.ProcessedEntryBy || '').trim()
+
+    // Auto-fill from staff token
+    if (!ProcessedEntryBy) {
+      ProcessedEntryBy = String(req?.user?.employeeBusinessId || req?.user?.employeeId || '').trim()
+    }
+
+    if (!CardID || !ProcessedEntryBy) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'CardID and ProcessedEntryBy are required',
+          code: 'MISSING_REQUIRED_FIELDS'
+        }
+      })
+    }
+
+    // Initialize LP client
+    const lpClient = getLPClient(config.LP_SERVICE_URL)
+
+    // Check LP service health
+    const isHealthy = await lpClient.healthCheck()
+    if (!isHealthy) {
+      return res.status(503).json({
+        success: false,
+        error: {
+          message: 'License Plate Recognition service is unavailable',
+          code: 'LP_SERVICE_UNAVAILABLE'
+        }
+      })
+    }
+
+    // Recognize license plate from image
+    let recognitionResult = null
+    if (req.body.image) {
+      // Base64 image from JSON body
+      recognitionResult = await lpClient.recognizeFromBase64(req.body.image)
+    } else if (req.file) {
+      // File upload from multipart form
+      recognitionResult = await lpClient.recognizeFromFile(req.file.path)
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Image is required (provide image field or file upload)',
+          code: 'IMAGE_REQUIRED'
+        }
+      })
+    }
+
+    if (!recognitionResult.success) {
+      return res.status(422).json({
+        success: false,
+        error: {
+          message: `License plate recognition failed: ${recognitionResult.error}`,
+          code: 'LP_RECOGNITION_FAILED'
+        }
+      })
+    }
+
+    const LicensePlate = recognitionResult.licensePlate
+
+    // Validate employee
+    const employee = await Employee.findOne({ ID: ProcessedEntryBy })
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        error: { message: 'Employee not found', code: 'EMPLOYEE_NOT_FOUND' }
+      })
+    }
+
+    // Check for active session
+    const existingSession = await EntrySession.findOne({ CardID, Status: 'IN_PARKING' })
+    if (existingSession) {
+      return res.status(409).json({
+        success: false,
+        error: { message: 'Card already has an active parking session', code: 'ACTIVE_SESSION_EXISTS' }
+      })
+    }
+
+    // Validate card
+    const card = await resolveCardByBusinessId(CardID)
+    if (!card) {
+      return res.status(404).json({
+        success: false,
+        error: { message: 'Card not found', code: 'CARD_NOT_FOUND' }
+      })
+    }
+
+    if (card.Status && card.Status !== 'ACTIVE') {
+      return res.status(403).json({
+        success: false,
+        error: { message: 'Card is not active', code: 'CARD_INACTIVE' }
+      })
+    }
+
+    if (card.ExpireDay && new Date(card.ExpireDay) < new Date()) {
+      return res.status(403).json({
+        success: false,
+        error: { message: 'Card has expired', code: 'CARD_EXPIRED' }
+      })
+    }
+
+    // Check subscription to infer VehicleTypeID
+    const subscription = await checkSubscription(CardID)
+    if (!VehicleTypeID && subscription?.VehicleTypeID) {
+      VehicleTypeID = String(subscription.VehicleTypeID).trim()
+    }
+
+    if (!VehicleTypeID) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'VehicleTypeID is required (cannot infer from subscription)',
+          code: 'VEHICLE_TYPE_REQUIRED'
+        }
+      })
+    }
+
+    // Validate vehicle type
+    const vehicleType = await VehicleType.findOne({ VehicleTypeID }).lean()
+    if (!vehicleType) {
+      return res.status(404).json({
+        success: false,
+        error: { message: 'VehicleType not found', code: 'VEHICLE_TYPE_NOT_FOUND' }
+      })
+    }
+
+    // Check if vehicle exists by plate
+    let vehicle = LicensePlate
+      ? await Vehicle.findOne({ PlateNumber: LicensePlate }).lean()
+      : null
+
+    // Create entry session with LP recognition data
+    const session = new EntrySession({
+      VehicleID: vehicle?.VehicleID || null,
+      VehicleTypeID,
+      CardID,
+      LicensePlate: LicensePlate || null,
+      EntryImageData: recognitionResult.croppedImage || null, // Save cropped image
+      ProcessedEntryBy,
+      EntryTime: new Date(),
+      Status: 'IN_PARKING'
+    })
+
+    const saved = await session.save()
+
+    // Populate for response
+    const enriched = await EntrySession.findById(saved._id)
+      .populate('VehicleTypeID', 'VehicleTypeID Name')
+      .populate({
+        path: 'VehicleID',
+        select: 'VehicleID PlateNumber',
+        populate: { path: 'VehicleTypeID', select: 'VehicleTypeID Name' }
+      })
+      .populate({
+        path: 'ProcessedEntryBy',
+        select: 'ID EmployeeType',
+        populate: { path: 'PersonID', select: 'ID FullName' }
+      })
+      .lean()
+
+    if (enriched?.CardID) {
+      const cardData = await resolveCardByBusinessId(enriched.CardID)
+      if (cardData) enriched.CardID = cardData
+    }
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        session: enriched || saved,
+        recognition: {
+          licensePlate: recognitionResult.licensePlate,
+          confidence: recognitionResult.confidence,
+          hasImage: Boolean(recognitionResult.croppedImage)
+        }
+      },
+      message: 'Entry recorded successfully with license plate recognition'
+    })
+
+  } catch (error) {
+    console.error('Entry with plate error:', error)
+    return res.status(500).json({
+      success: false,
+      error: {
+        message: error.message,
+        code: 'ENTRY_WITH_PLATE_ERROR'
+      }
+    })
+  }
+})
+
+/**
+ * POST /api/entry-sessions/gate/exit-with-plate
+ * Exit workflow with License Plate Recognition & Validation
+ * 
+ * Body (multipart/form-data or JSON):
+ *  - sessionId or CardID (required) - to identify the session
+ *  - ProcessedExitBy (optional if staff token present)
+ *  - image (file upload or base64)
+ *  - ManualFee (optional)
+ *  - DiscountReason (optional)
+ * 
+ * Response includes:
+ *  - session: Updated exit session with fee
+ *  - recognition: { licensePlate, confidence, croppedImage }
+ *  - validation: { match, entryPlate, exitPlate }
+ */
+entrySessionsRouter.post('/gate/exit-with-plate', async (req, res) => {
+  try {
+    if (!requireAdminOrStaff(req, res)) return
+
+    const sessionId = req.body.sessionId || req.body.id
+    const CardID = req.body.CardID
+    let ProcessedExitBy = String(req.body.ProcessedExitBy || '').trim()
+    const ManualFee = req.body.ManualFee
+    const DiscountReason = req.body.DiscountReason
+
+    // Auto-fill from staff token
+    if (!ProcessedExitBy) {
+      ProcessedExitBy = String(req?.user?.employeeBusinessId || req?.user?.employeeId || '').trim()
+    }
+
+    if (!ProcessedExitBy) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'ProcessedExitBy is required',
+          code: 'MISSING_PROCESSED_EXIT_BY'
+        }
+      })
+    }
+
+    // Find active session
+    let session = null
+    if (sessionId) {
+      session = await EntrySession.findById(sessionId)
+        .populate({
+          path: 'CardID',
+          select: 'CardID UID CardCategoryID',
+          populate: { path: 'CardCategoryID', select: 'ID Name' }
+        })
+    } else if (CardID) {
+      session = await EntrySession.findOne({ CardID, Status: 'IN_PARKING' })
+        .populate({
+          path: 'CardID',
+          select: 'CardID UID CardCategoryID',
+          populate: { path: 'CardCategoryID', select: 'ID Name' }
+        })
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'sessionId or CardID is required',
+          code: 'MISSING_SESSION_IDENTIFIER'
+        }
+      })
+    }
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: { message: 'Entry session not found', code: 'SESSION_NOT_FOUND' }
+      })
+    }
+
+    if (session.Status !== 'IN_PARKING') {
+      return res.status(409).json({
+        success: false,
+        error: {
+          message: 'Session is not in parking status',
+          code: 'SESSION_NOT_IN_PARKING',
+          details: `Current status: ${session.Status}`
+        }
+      })
+    }
+
+    // Validate employee
+    const employee = await Employee.findOne({ ID: ProcessedExitBy })
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        error: { message: 'Employee not found', code: 'EMPLOYEE_NOT_FOUND' }
+      })
+    }
+
+    // Initialize LP client
+    const lpClient = getLPClient(config.LP_SERVICE_URL)
+
+    // Check LP service health
+    const isHealthy = await lpClient.healthCheck()
+    if (!isHealthy) {
+      return res.status(503).json({
+        success: false,
+        error: {
+          message: 'License Plate Recognition service is unavailable',
+          code: 'LP_SERVICE_UNAVAILABLE'
+        }
+      })
+    }
+
+    // Recognize license plate from image
+    let recognitionResult = null
+    if (req.body.image) {
+      recognitionResult = await lpClient.recognizeFromBase64(req.body.image)
+    } else if (req.file) {
+      recognitionResult = await lpClient.recognizeFromFile(req.file.path)
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Image is required (provide image field or file upload)',
+          code: 'IMAGE_REQUIRED'
+        }
+      })
+    }
+
+    if (!recognitionResult.success) {
+      return res.status(422).json({
+        success: false,
+        error: {
+          message: `License plate recognition failed: ${recognitionResult.error}`,
+          code: 'LP_RECOGNITION_FAILED'
+        }
+      })
+    }
+
+    const exitPlate = recognitionResult.licensePlate
+    const entryPlate = session.LicensePlate
+
+    // Validate plate match (warning only, not blocking)
+    const plateMatch = entryPlate && exitPlate
+      ? String(entryPlate).trim().toUpperCase() === String(exitPlate).trim().toUpperCase()
+      : null
+
+    const exitTime = new Date()
+
+    // Check for valid subscription
+    const subscription = await checkSubscription(session.CardID)
+
+    let calculatedFee = 0
+    let finalFee = 0
+    let discountReason = null
+
+    if (subscription) {
+      // Has valid subscription - free parking
+      calculatedFee = 0
+      finalFee = 0
+      discountReason = 'SUBSCRIPTION'
+    } else {
+      // Calculate fee based on pricing rules
+      calculatedFee = await calculateParkingFee(
+        session.EntryTime,
+        exitTime,
+        session.CardID.CardCategoryID.ID || session.CardID.CardCategoryID,
+        session.VehicleTypeID
+      )
+
+      // Apply manual fee or discount if provided
+      if (ManualFee !== undefined) {
+        finalFee = ManualFee
+        discountReason = DiscountReason || 'MANUAL_OVERRIDE'
+      } else {
+        finalFee = calculatedFee
+        discountReason = DiscountReason || null
+      }
+    }
+
+    // Update session with exit data
+    session.ExitTime = exitTime
+    session.ProcessedExitBy = ProcessedExitBy
+    session.Status = 'EXITED'
+    session.CalculatedFee = calculatedFee
+    session.FinalFee = finalFee
+    session.DiscountReason = discountReason
+    session.ExitImageData = recognitionResult.croppedImage || null // Save cropped exit image
+
+    const updated = await session.save()
+
+    // Populate for response
+    const enriched = await EntrySession.findById(updated._id)
+      .populate('VehicleTypeID', 'VehicleTypeID Name')
+      .populate({
+        path: 'VehicleID',
+        select: 'VehicleID PlateNumber',
+        populate: { path: 'VehicleTypeID', select: 'VehicleTypeID Name' }
+      })
+      .populate({
+        path: 'ProcessedEntryBy',
+        select: 'ID EmployeeType',
+        populate: { path: 'PersonID', select: 'ID FullName' }
+      })
+      .populate({
+        path: 'ProcessedExitBy',
+        select: 'ID EmployeeType',
+        populate: { path: 'PersonID', select: 'ID FullName' }
+      })
+      .lean()
+
+    if (enriched?.CardID) {
+      const cardData = await resolveCardByBusinessId(enriched.CardID)
+      if (cardData) enriched.CardID = cardData
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        session: enriched || updated,
+        recognition: {
+          licensePlate: recognitionResult.licensePlate,
+          confidence: recognitionResult.confidence,
+          hasImage: Boolean(recognitionResult.croppedImage)
+        },
+        validation: {
+          plateMatch,
+          entryPlate: entryPlate || null,
+          exitPlate: exitPlate || null,
+          warning: plateMatch === false ? 'License plates do not match' : null
+        }
+      },
+      message: 'Exit processed successfully with license plate recognition'
+    })
+
+  } catch (error) {
+    console.error('Exit with plate error:', error)
+    return res.status(500).json({
+      success: false,
+      error: {
+        message: error.message,
+        code: 'EXIT_WITH_PLATE_ERROR'
+      }
+    })
+  }
+})
+
+/**
+ * GET /api/entry-sessions/:id/images
+ * Get entry and exit images for a session
+ * 
+ * Response:
+ *  - entryImage: base64 data URL or null
+ *  - exitImage: base64 data URL or null
+ */
+entrySessionsRouter.get('/:id/images', async (req, res) => {
+  try {
+    if (!requireAdminOrStaff(req, res)) return
+
+    const session = await EntrySession.findById(req.params.id)
+      .select('ID EntryImageData ExitImageData LicensePlate EntryTime ExitTime')
+      .lean()
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: { message: 'Entry session not found', code: 'SESSION_NOT_FOUND' }
+      })
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        sessionId: session.ID,
+        licensePlate: session.LicensePlate,
+        entryImage: session.EntryImageData || null,
+        exitImage: session.ExitImageData || null,
+        entryTime: session.EntryTime,
+        exitTime: session.ExitTime
+      }
+    })
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: {
+        message: error.message,
+        code: 'GET_IMAGES_ERROR'
       }
     })
   }

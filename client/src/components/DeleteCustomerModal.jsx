@@ -2,8 +2,8 @@ import { useEffect } from 'react';
 import '../styles/components/DeleteCustomerModal.css';
 
 // Using the existing dev-server SVGs to match the Figma export style used elsewhere in this repo.
-const warningIconUrl = 'http://localhost:3845/assets/6efc644be7d589ce3b3a946c4d53d23688c9e8fe.svg';
-const closeIconUrl = 'http://localhost:3845/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg';
+const warningIconUrl = '/assets/6efc644be7d589ce3b3a946c4d53d23688c9e8fe.svg';
+const closeIconUrl = '/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg';
 
 export default function DeleteCustomerModal({ customer, onClose, onConfirm }) {
   useEffect(() => {

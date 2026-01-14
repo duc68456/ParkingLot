@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import '../styles/components/EditEmployeeModal.css';
 
-const closeIcon = "http://localhost:3845/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
-const infoIcon = "http://localhost:3845/assets/75a784162eadb383fb8b7b9265d6f214fe3ead16.svg";
+const closeIcon = "/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
+const infoIcon = "/assets/75a784162eadb383fb8b7b9265d6f214fe3ead16.svg";
 
 const EMPLOYEE_TYPE_OPTIONS = [
   { value: 'GATE_STAFF', label: 'Gate Staff' },

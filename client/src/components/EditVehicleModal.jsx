@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import '../styles/components/EditVehicleModal.css';
 
-const closeIcon = "http://localhost:3845/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
+const closeIcon = "/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg";
 
 export default function EditVehicleModal({ vehicle, onClose, onSave }) {
   const [plateNumber, setPlateNumber] = useState(vehicle?.licensePlate || '');
