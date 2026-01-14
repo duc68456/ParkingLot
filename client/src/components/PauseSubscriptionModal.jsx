@@ -28,7 +28,9 @@ function PauseSubscriptionModal({ subscription, onClose, onPause }) {
         <div className="pause-subscription-modal-header">
           <h3>Suspend Subscription</h3>
           <button className="pause-subscription-modal-close" onClick={onClose}>
-            <img src="/assets/3b1fd7a264c04d18910cf128ec5c8c34e71cbeef.svg" alt="Close" />
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M5 5L15 15M15 5L5 15" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
           </button>
         </div>
 
@@ -48,7 +50,7 @@ function PauseSubscriptionModal({ subscription, onClose, onPause }) {
           {/* Reason field */}
           <div className="pause-subscription-field">
             <label>Reason</label>
-            <textarea 
+            <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Enter reason for suspension..."

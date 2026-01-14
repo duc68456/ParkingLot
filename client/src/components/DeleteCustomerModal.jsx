@@ -1,9 +1,6 @@
 import { useEffect } from 'react';
 import '../styles/components/DeleteCustomerModal.css';
-
-// Using the existing dev-server SVGs to match the Figma export style used elsewhere in this repo.
-const warningIconUrl = '/assets/6efc644be7d589ce3b3a946c4d53d23688c9e8fe.svg';
-const closeIconUrl = '/assets/ea632bee3622f9ce524687f090e3e13c86ed0717.svg';
+import warningIcon from '../assets/icons/dashboard/alert-warning.svg';
 
 export default function DeleteCustomerModal({ customer, onClose, onConfirm }) {
   useEffect(() => {
@@ -25,11 +22,13 @@ export default function DeleteCustomerModal({ customer, onClose, onConfirm }) {
     <div className="delete-customer-modal-overlay" onClick={handleOverlayClick}>
       <div className="delete-customer-modal">
         <button className="delete-customer-modal-close" type="button" onClick={onClose} aria-label="Close">
-          <img src={closeIconUrl} alt="" />
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M5 5L15 15M15 5L5 15" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
         </button>
 
         <div className="delete-customer-modal-icon">
-          <img src={warningIconUrl} alt="" />
+          <img src={warningIcon} alt="" />
         </div>
 
         <div className="delete-customer-modal-title">Delete Customer</div>

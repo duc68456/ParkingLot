@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import '../styles/components/EditCustomerModal.css';
-
-const closeIcon = "/assets/f3b68ee63c00f3b4ed26718b9bc9abea1cd47155.svg";
-const userIcon = "/assets/ce6e1b5cac3f3258bc604e23da6816baa66e4602.svg";
+import userIcon from '../assets/icons/dashboard/users.svg';
 
 const EditCustomerModal = ({ customer, onClose, onSave }) => {
   const [formData, setFormData] = useState({
@@ -40,7 +38,9 @@ const EditCustomerModal = ({ customer, onClose, onSave }) => {
           <div className="edit-modal-header">
             <h3 className="modal-title">Edit Customer</h3>
             <button className="modal-close-btn" onClick={onClose}>
-              <img src={closeIcon} alt="Close" />
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M5 5L15 15M15 5L5 15" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
             </button>
           </div>
 

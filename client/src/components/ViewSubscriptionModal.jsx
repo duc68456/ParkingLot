@@ -17,7 +17,9 @@ function ViewSubscriptionModal({ subscription, onClose }) {
         <div className="view-subscription-modal-header">
           <h3>Subscription Details</h3>
           <button className="view-subscription-modal-close" onClick={onClose}>
-            <img src="/assets/3b1fd7a264c04d18910cf128ec5c8c34e71cbeef.svg" alt="Close" />
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M5 5L15 15M15 5L5 15" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
           </button>
         </div>
 
