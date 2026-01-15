@@ -31,7 +31,8 @@ export default function StaffLoginForm({ type }) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            PINCode: pinCode
+            PINCode: pinCode,
+            Gate: gateType
           })
         })
 

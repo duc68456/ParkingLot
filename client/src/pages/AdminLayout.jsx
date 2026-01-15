@@ -11,6 +11,7 @@ import EntrySessionsPage from "./EntrySessionsPage";
 import PricingPage from "./PricingPage";
 import Dashboard from "./Dashboard";
 import ReportsPage from "./ReportsPage";
+import ShiftsPage from "./ShiftsPage";
 import "../styles/pages/AdminLayout.css";
 import { useSearchParams } from "react-router-dom";
 
@@ -59,6 +60,8 @@ export default function AdminLayout({ children }) {
         return <EntrySessionsPage />;
       case "Pricing":
         return <PricingPage />;
+      case "Shifts":
+        return <ShiftsPage />;
       case "Reports":
         return <ReportsPage />;
       case "Dashboard":

@@ -40,6 +40,9 @@ const subscriptionsRouter = require('./controllers/subscriptions')
 // Phase 8: Entry/Exit Operations
 const entrySessionsRouter = require('./controllers/entrySessions')
 
+// Phase 9: Shift Management
+const shiftsRouter = require('./controllers/shifts')
+
 const app = express()
 
 logger.info('connecting to', config.MONGODB_URI)
@@ -109,6 +112,9 @@ app.use('/api/subscriptions', middleware.authRequired, middleware.adminOnly, sub
 // Note: some endpoints should be available to authenticated staff (gate operations).
 // Route-level access control is handled inside the controller.
 app.use('/api/entry-sessions', middleware.authRequired, entrySessionsRouter)
+
+// Phase 9: Shift Management Routes
+app.use('/api/shifts', middleware.authRequired, middleware.adminOnly, shiftsRouter)
 
 app.use(middleware.unknownEndpoint)
 app.use(middleware.errorHandler)

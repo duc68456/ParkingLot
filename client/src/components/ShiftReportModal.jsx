@@ -1,36 +1,106 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import '../styles/components/ShiftReportModal.css';
 import reportIcon from '../assets/icons/reports.svg';
 import exportIcon from '../assets/icons/reports/export/export.svg';
 import trendIcon from '../assets/icons/dashboard/arrow-up.svg';
 
-const ShiftReportModal = ({ isOpen, onClose, gateType = 'entry' }) => {
+const DEFAULT_REPORT = {
+  date: null,
+  gateTypeLabel: 'Exit Gate',
+  stats: {
+    total: 0,
+    cars: 0,
+    motorcycles: 0,
+    trucks: 0,
+    vans: 0
+  },
+  sessions: []
+}
+
+const formatReportDate = (dateLike) => {
+  if (!dateLike) return ''
+  try {
+    const d = dateLike instanceof Date ? dateLike : new Date(dateLike)
+
+    // Match Figma copy: "January 14,\n2026" (wrap) via CSS allowing line-break.
+    return d.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  } catch {
+    return String(dateLike)
+  }
+}
+
+const normalizeMoney = (value) => {
+  if (value == null || value === '') return ''
+  if (typeof value === 'number') return `$${value.toFixed(2)}`
+  const str = String(value)
+  return str.startsWith('$') ? str : `$${str}`
+}
+
+const escapeCsvCell = (value) => {
+  const raw = value == null ? '' : String(value)
+  if (/["\n,]/.test(raw)) return `"${raw.replace(/"/g, '""')}"`
+  return raw
+}
+
+const ShiftReportModal = ({ isOpen, onClose, gateType = 'entry', report }) => {
   if (!isOpen) return null;
 
-  // Mock data - replace with actual data
-  const reportData = {
-    date: 'December 29, 2025',
-    gateType: gateType === 'entry' ? 'Entry Gate' : 'Exit Gate',
-    stats: {
-      total: 7,
-      cars: 3,
-      motorcycles: 2,
-      trucks: 1,
-      vans: 1
-    },
-    sessions: [
-      { entryTime: '10:12:59 AM', licensePlate: 'MNO-1111', cardId: 'UID-111222', vehicleType: 'car' },
-      { entryTime: '09:12:59 AM', licensePlate: 'PQR-2222', cardId: 'UID-222333', vehicleType: 'motorcycle' },
-      { entryTime: '07:12:59 AM', licensePlate: 'STU-3333', cardId: 'UID-333444', vehicleType: 'van' },
-      { entryTime: '08:12:59 AM', licensePlate: 'VWX-4444', cardId: 'UID-444555', vehicleType: 'car' },
-      { entryTime: '05:12:59 AM', licensePlate: 'YZA-5555', cardId: 'UID-555666', vehicleType: 'truck' },
-      { entryTime: '11:12:59 AM', licensePlate: 'BCD-6666', cardId: 'UID-666777', vehicleType: 'car' },
-      { entryTime: '06:12:59 AM', licensePlate: 'EFG-7777', cardId: 'UID-777888', vehicleType: 'motorcycle' }
-    ]
-  };
+  const reportData = useMemo(() => {
+    const base = {
+      ...DEFAULT_REPORT,
+      gateTypeLabel: gateType === 'entry' ? 'Entry Gate' : 'Exit Gate'
+    }
+    if (!report) return base
+    return {
+      ...base,
+      ...report,
+      stats: {
+        ...base.stats,
+        ...(report.stats || {})
+      },
+      sessions: Array.isArray(report.sessions) ? report.sessions : base.sessions
+    }
+  }, [gateType, report])
+
+  const subtitleText = `${reportData.gateTypeLabel} - ${formatReportDate(reportData.date)}`
 
   const handleExport = () => {
-    console.log('Export shift report');
+    const rows = (reportData.sessions || []).map((s) => ({
+      entryTime: s.entryTime || '',
+      exitTime: s.exitTime || '',
+      licensePlate: (s.licensePlate || '').toUpperCase(),
+      cardId: s.cardId || '',
+      vehicleType: s.vehicleType || '',
+      duration: s.duration || '',
+      price: normalizeMoney(s.price)
+    }))
+
+    const header = ['Entry Time', 'Exit Time', 'License Plate', 'Card ID', 'Vehicle Type', 'Duration', 'Price']
+    const lines = [
+      header.map(escapeCsvCell).join(','),
+      ...rows.map((r) =>
+        [r.entryTime, r.exitTime, r.licensePlate, r.cardId, r.vehicleType, r.duration, r.price]
+          .map(escapeCsvCell)
+          .join(',')
+      )
+    ]
+
+    const csv = lines.join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    const safeGate = (reportData.gateTypeLabel || 'Gate').replace(/\s+/g, '-')
+    const safeDate = (formatReportDate(reportData.date) || '').replace(/[^0-9A-Za-z-]+/g, '-')
+    a.href = url
+    a.download = `shift-report-${safeGate}-${safeDate || 'today'}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
   };
 
   const handleOverlayClick = (e) => {
@@ -50,7 +120,7 @@ const ShiftReportModal = ({ isOpen, onClose, gateType = 'entry' }) => {
             </div>
             <div className="shift-report-title-text">
               <h3 className="shift-report-title">Shift Report</h3>
-              <p className="shift-report-subtitle">{reportData.gateType} - {reportData.date}</p>
+              <p className="shift-report-subtitle">{subtitleText}</p>
             </div>
           </div>
 
@@ -108,18 +178,24 @@ const ShiftReportModal = ({ isOpen, onClose, gateType = 'entry' }) => {
                 <thead className="shift-table-header">
                   <tr>
                     <th>Entry Time</th>
+                      <th>Exit Time</th>
                     <th>License Plate</th>
                     <th>Card ID</th>
                     <th>Vehicle Type</th>
+                      <th>Duration</th>
+                      <th>Price</th>
                   </tr>
                 </thead>
                 <tbody className="shift-table-body">
                   {reportData.sessions.map((session, index) => (
                     <tr key={index}>
                       <td>{session.entryTime}</td>
+                        <td>{session.exitTime || '-'}</td>
                       <td className="shift-license-plate">{session.licensePlate}</td>
                       <td>{session.cardId}</td>
                       <td className="shift-vehicle-type">{session.vehicleType}</td>
+                        <td>{session.duration || '-'}</td>
+                        <td className="shift-price">{normalizeMoney(session.price) || '-'}</td>
                     </tr>
                   ))}
                 </tbody>

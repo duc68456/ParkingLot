@@ -1,6 +1,7 @@
 const staffAccountsRouter = require('express').Router();
 const StaffAccount = require('../models/staffAccount');
 const Employee = require('../models/employee');
+const Shift = require('../models/shift');
 const { signToken } = require('../utils/auth');
 const middleware = require('../utils/middleware');
 
@@ -506,7 +507,7 @@ staffAccountsRouter.delete('/:id', middleware.authRequired, middleware.adminOnly
 staffAccountsRouter.post('/verify-pin', async (request, response) => {
   try {
     // Staff login is PIN-only.
-    const { PINCode } = request.body;
+    const { PINCode, Gate } = request.body;
 
     if (!PINCode) {
       return response.status(400).json({
@@ -584,6 +585,39 @@ staffAccountsRouter.post('/verify-pin', async (request, response) => {
       { $set: { LastLoginAt: new Date() } }
     );
 
+    // Create (or reuse) today's shift for this staff.
+    // NOTE: ShiftDate is the day staff logs in (date-only semantics).
+    // The shift schema enforces uniqueness on (EmployeeID, ShiftDate).
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const gate = String(Gate || '').trim();
+
+      let shift = await Shift.findOne({ EmployeeID: staffAccount.EmployeeID, ShiftDate: today });
+
+      // If a shift exists but is completed, start a new one.
+      // Because of the unique(EmployeeID, ShiftDate) constraint, we “re-open” by creating only when none exists,
+      // otherwise we leave the completed shift as-is.
+      if (!shift) {
+        shift = new Shift({
+          EmployeeID: staffAccount.EmployeeID,
+          ShiftDate: today,
+          CheckInTime: new Date(),
+          Status: 'IN_PROGRESS',
+          Gate: gate || null
+        });
+        await shift.save();
+      } else if (!shift.Gate && gate) {
+        // Backfill gate if missing.
+        shift.Gate = gate;
+        await shift.save();
+      }
+    } catch (e) {
+      // Best-effort: login should still succeed even if shift creation fails.
+      console.error('Shift create on staff login failed:', e);
+    }
+
     // StaffAccount.EmployeeID is an employee business ID string (EMP####).
     const token = signToken({
       type: 'staff',
@@ -625,5 +659,54 @@ staffAccountsRouter.post('/verify-pin', async (request, response) => {
     });
   }
 });
+
+/**
+ * POST /api/staff-accounts/logout
+ * Staff-only: end the current IN_PROGRESS shift for today.
+ * This is used by the client logout button so shifts are tracked correctly.
+ */
+staffAccountsRouter.post('/logout', middleware.authRequired, async (request, response) => {
+  try {
+    if (request?.user?.type !== 'staff') {
+      return response.status(403).json({
+        success: false,
+        error: { message: 'forbidden', code: 'FORBIDDEN' }
+      })
+    }
+
+    const employeeId = String(request?.user?.employeeBusinessId || request?.user?.employeeId || '').trim().toUpperCase()
+    if (!employeeId) {
+      return response.status(400).json({
+        success: false,
+        error: { message: 'Missing employee id', code: 'MISSING_REQUIRED_FIELDS' }
+      })
+    }
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const shift = await Shift.findOne({
+      EmployeeID: employeeId,
+      ShiftDate: today,
+      Status: { $in: ['IN_PROGRESS', 'ACTIVE'] }
+    })
+
+    if (!shift) {
+      return response.json({ success: true, data: { ended: false } })
+    }
+
+    shift.CheckOutTime = new Date()
+    shift.Status = 'COMPLETED'
+    await shift.save()
+
+    return response.json({ success: true, data: { ended: true, shift: shift.toJSON ? shift.toJSON() : shift } })
+  } catch (error) {
+    console.error('Staff logout error:', error)
+    return response.status(500).json({
+      success: false,
+      error: { message: 'Failed to logout', details: error.message }
+    })
+  }
+})
 
 module.exports = staffAccountsRouter;

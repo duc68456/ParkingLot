@@ -556,7 +556,23 @@ const StaffGatePage = () => {
   };
 
   const handleLogout = () => {
-    logout();
+    ;(async () => {
+      try {
+        // Best-effort: tell server to end the current shift before clearing auth.
+        // Even if it fails, we still logout locally.
+        await fetch(`${API_BASE_URL}/api/staff-accounts/logout`, {
+          method: 'POST',
+          headers: {
+            ...authHeaders(),
+            'Content-Type': 'application/json'
+          }
+        })
+      } catch (e) {
+        console.error('Failed to end shift on logout:', e)
+      } finally {
+        logout();
+      }
+    })()
   };
 
   const staffDisplayName = user?.name || 'Staff Member';

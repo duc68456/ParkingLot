@@ -33,6 +33,16 @@ const shiftSchema = new mongoose.Schema({
     type: Number,
     default: null
   },
+  TotalVehicles: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  TotalRevenue: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   Gate: {
     type: String,
     maxLength: 20,

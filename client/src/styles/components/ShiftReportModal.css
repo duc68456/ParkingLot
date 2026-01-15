@@ -81,7 +81,7 @@
   font-size: 14px;
   line-height: 20px;
   color: #62748e;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .shift-report-actions {
@@ -218,7 +218,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  height: 394.4px;
+  height: 484px;
 }
 
 .shift-sessions-title {
@@ -234,7 +234,7 @@
 .shift-report-table-container {
   border: 0.8px solid #e2e8f0;
   border-radius: 10px;
-  height: 358.4px;
+  height: 448px;
   overflow: hidden;
 }
 
@@ -257,6 +257,35 @@
   text-align: left;
   padding: 10.8px 16px;
   white-space: nowrap;
+}
+
+.shift-table-body td {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #314158;
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 0.8px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.shift-table-body tr:last-child td {
+  border-bottom: none;
+}
+
+.shift-license-plate {
+  text-transform: uppercase;
+  color: #1d293d;
+}
+
+.shift-vehicle-type {
+  text-transform: capitalize;
+}
+
+.shift-price {
+  color: #008236;
 }
 
 .shift-table-body tr {
