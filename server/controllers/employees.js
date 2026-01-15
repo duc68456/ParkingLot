@@ -1,14 +1,19 @@
-const employeesRouter = require('express').Router();
-const Employee = require('../models/employee');
-const Person = require('../models/person');
+const employeesRouter = require("express").Router();
+const Employee = require("../models/employee");
+const Person = require("../models/person");
 
-const ALLOWED_EMPLOYEE_TYPES = ['STAFF', 'GATE_STAFF', 'MANAGER', 'ADMIN'];
-const ALLOWED_EMPLOYEE_STATUSES = ['ACTIVE', 'INACTIVE', 'ON_LEAVE', 'TERMINATED'];
+const ALLOWED_EMPLOYEE_TYPES = ["STAFF", "GATE_STAFF", "MANAGER", "ADMIN"];
+const ALLOWED_EMPLOYEE_STATUSES = [
+  "ACTIVE",
+  "INACTIVE",
+  "ON_LEAVE",
+  "TERMINATED",
+];
 
 /**
  * GET /api/employees
  * Get all employees with filtering and pagination
- * 
+ *
  * Query parameters:
  * - status: string - Filter by status
  * - employeeType: string - Filter by employee type
@@ -16,14 +21,14 @@ const ALLOWED_EMPLOYEE_STATUSES = ['ACTIVE', 'INACTIVE', 'ON_LEAVE', 'TERMINATED
  * - page: number - Page number for pagination
  * - limit: number - Items per page
  */
-employeesRouter.get('/', async (request, response) => {
+employeesRouter.get("/", async (request, response) => {
   try {
     const {
       status,
       employeeType,
       search,
       page = 1,
-      limit = 20
+      limit = 20,
     } = request.query;
 
     // Build filter object
@@ -41,11 +46,11 @@ employeesRouter.get('/', async (request, response) => {
     if (search) {
       const persons = await Person.find({
         $or: [
-          { FullName: new RegExp(search, 'i') },
-          { Phone: new RegExp(search, 'i') }
-        ]
-      }).select('ID');
-      const personIds = persons.map(p => p.ID).filter(Boolean);
+          { FullName: new RegExp(search, "i") },
+          { Phone: new RegExp(search, "i") },
+        ],
+      }).select("ID");
+      const personIds = persons.map((p) => p.ID).filter(Boolean);
       filter.PersonID = { $in: personIds };
     }
 
@@ -54,7 +59,7 @@ employeesRouter.get('/', async (request, response) => {
 
     // Build query with person population (PersonID is a business ID string)
     const employees = await Employee.find(filter)
-      .populate('person', 'ID FullName Phone Gender IsActive')
+      .populate("person", "ID FullName Phone Gender IsActive")
       .skip(skip)
       .limit(parseInt(limit))
       .sort({ createdAt: -1 });
@@ -70,18 +75,18 @@ employeesRouter.get('/', async (request, response) => {
           page: parseInt(page),
           limit: parseInt(limit),
           total,
-          pages: Math.ceil(total / parseInt(limit))
-        }
-      }
+          pages: Math.ceil(total / parseInt(limit)),
+        },
+      },
     });
   } catch (error) {
-    console.error('Get employees error:', error);
+    console.error("Get employees error:", error);
     response.status(500).json({
       success: false,
       error: {
-        message: 'Failed to get employees',
-        details: error.message
-      }
+        message: "Failed to get employees",
+        details: error.message,
+      },
     });
   }
 });
@@ -90,33 +95,35 @@ employeesRouter.get('/', async (request, response) => {
  * GET /api/employees/:id
  * Get single employee by ID with person details
  */
-employeesRouter.get('/:id', async (request, response) => {
+employeesRouter.get("/:id", async (request, response) => {
   try {
-    const employee = await Employee.findById(request.params.id)
-      .populate('person', 'ID FullName Phone Gender IsActive');
+    const employee = await Employee.findById(request.params.id).populate(
+      "person",
+      "ID FullName Phone Gender IsActive"
+    );
 
     if (!employee) {
       return response.status(404).json({
         success: false,
         error: {
-          message: 'Employee not found',
-          code: 'EMPLOYEE_NOT_FOUND'
-        }
+          message: "Employee not found",
+          code: "EMPLOYEE_NOT_FOUND",
+        },
       });
     }
 
     response.json({
       success: true,
-      data: employee
+      data: employee,
     });
   } catch (error) {
-    console.error('Get employee by ID error:', error);
+    console.error("Get employee by ID error:", error);
     response.status(500).json({
       success: false,
       error: {
-        message: 'Failed to get employee',
-        details: error.message
-      }
+        message: "Failed to get employee",
+        details: error.message,
+      },
     });
   }
 });
@@ -126,25 +133,31 @@ employeesRouter.get('/:id', async (request, response) => {
  * Preflight validation used by the UI before creating a Person record.
  * This endpoint MUST NOT create any documents.
  */
-employeesRouter.post('/validate', async (request, response) => {
+employeesRouter.post("/validate", async (request, response) => {
   try {
     const { EmployeeType, FullName, Phone, Gender } = request.body || {};
 
-    const normalizedType = String(EmployeeType || '').trim().toUpperCase();
+    const normalizedType = String(EmployeeType || "")
+      .trim()
+      .toUpperCase();
     if (!normalizedType) {
       return response.status(400).json({
         success: false,
-        error: { message: 'Validation error', code: 'VALIDATION_ERROR', details: 'EmployeeType is required' }
+        error: {
+          message: "Validation error",
+          code: "VALIDATION_ERROR",
+          details: "EmployeeType is required",
+        },
       });
     }
     if (!ALLOWED_EMPLOYEE_TYPES.includes(normalizedType)) {
       return response.status(400).json({
         success: false,
         error: {
-          message: 'Validation error',
-          code: 'VALIDATION_ERROR',
-          details: `EmployeeType: ${normalizedType} is not a valid employee type`
-        }
+          message: "Validation error",
+          code: "VALIDATION_ERROR",
+          details: `EmployeeType: ${normalizedType} is not a valid employee type`,
+        },
       });
     }
 
@@ -153,28 +166,36 @@ employeesRouter.post('/validate', async (request, response) => {
       return response.status(400).json({
         success: false,
         error: {
-          message: 'Missing required fields',
-          code: 'MISSING_REQUIRED_FIELDS',
-          details: 'FullName, Phone, and Gender are required'
-        }
+          message: "Missing required fields",
+          code: "MISSING_REQUIRED_FIELDS",
+          details: "FullName, Phone, and Gender are required",
+        },
       });
     }
 
     // Block if phone is already taken (would fail person create anyway)
-    const existingPerson = await Person.findOne({ Phone: String(Phone).trim() }).select('ID');
+    const existingPerson = await Person.findOne({
+      Phone: String(Phone).trim(),
+    }).select("ID");
     if (existingPerson) {
       return response.status(409).json({
         success: false,
-        error: { message: 'Phone number already exists', code: 'DUPLICATE_PHONE' }
+        error: {
+          message: "Phone number already exists",
+          code: "DUPLICATE_PHONE",
+        },
       });
     }
 
     return response.json({ success: true, data: { ok: true } });
   } catch (error) {
-    console.error('Validate employee payload error:', error);
+    console.error("Validate employee payload error:", error);
     return response.status(500).json({
       success: false,
-      error: { message: 'Failed to validate employee payload', details: error.message }
+      error: {
+        message: "Failed to validate employee payload",
+        details: error.message,
+      },
     });
   }
 });
@@ -183,56 +204,59 @@ employeesRouter.post('/validate', async (request, response) => {
  * POST /api/employees
  * Create new employee (requires existing person)
  */
-employeesRouter.post('/', async (request, response) => {
+employeesRouter.post("/", async (request, response) => {
   try {
-    const {
-      PersonID,
-      EmployeeType,
-      HiredDate,
-      Status
-    } = request.body;
+    const { PersonID, EmployeeType, HiredDate, Status } = request.body;
 
-  const allowedEmployeeTypes = ALLOWED_EMPLOYEE_TYPES;
-  const allowedStatuses = ALLOWED_EMPLOYEE_STATUSES;
+    const allowedEmployeeTypes = ALLOWED_EMPLOYEE_TYPES;
+    const allowedStatuses = ALLOWED_EMPLOYEE_STATUSES;
 
     // Validation
     if (!PersonID) {
       return response.status(400).json({
         success: false,
         error: {
-          message: 'Missing required fields',
-          code: 'MISSING_REQUIRED_FIELDS',
-          details: 'PersonID is required'
-        }
+          message: "Missing required fields",
+          code: "MISSING_REQUIRED_FIELDS",
+          details: "PersonID is required",
+        },
       });
     }
 
     // Validate EmployeeType early (before any writes)
-    if (EmployeeType !== undefined && EmployeeType !== null && String(EmployeeType).trim() !== '') {
+    if (
+      EmployeeType !== undefined &&
+      EmployeeType !== null &&
+      String(EmployeeType).trim() !== ""
+    ) {
       const normalizedType = String(EmployeeType).trim().toUpperCase();
       if (!allowedEmployeeTypes.includes(normalizedType)) {
         return response.status(400).json({
           success: false,
           error: {
-            message: 'Validation error',
-            code: 'VALIDATION_ERROR',
-            details: `EmployeeType: ${normalizedType} is not a valid employee type`
-          }
+            message: "Validation error",
+            code: "VALIDATION_ERROR",
+            details: `EmployeeType: ${normalizedType} is not a valid employee type`,
+          },
         });
       }
     }
 
     // Validate Status early
-    if (Status !== undefined && Status !== null && String(Status).trim() !== '') {
+    if (
+      Status !== undefined &&
+      Status !== null &&
+      String(Status).trim() !== ""
+    ) {
       const normalizedStatus = String(Status).trim().toUpperCase();
       if (!allowedStatuses.includes(normalizedStatus)) {
         return response.status(400).json({
           success: false,
           error: {
-            message: 'Validation error',
-            code: 'VALIDATION_ERROR',
-            details: `Status: ${normalizedStatus} is not a valid status`
-          }
+            message: "Validation error",
+            code: "VALIDATION_ERROR",
+            details: `Status: ${normalizedStatus} is not a valid status`,
+          },
         });
       }
     }
@@ -240,17 +264,17 @@ employeesRouter.post('/', async (request, response) => {
     // Check if person exists (accept either PER#### or Mongo _id)
     let person = null;
     if (/^PER\d{4}$/i.test(String(PersonID))) {
-      person = await Person.findOne({ ID: String(PersonID).toUpperCase() })
+      person = await Person.findOne({ ID: String(PersonID).toUpperCase() });
     } else {
-      person = await Person.findById(PersonID)
+      person = await Person.findById(PersonID);
     }
     if (!person) {
       return response.status(404).json({
         success: false,
         error: {
-          message: 'Person not found',
-          code: 'PERSON_NOT_FOUND'
-        }
+          message: "Person not found",
+          code: "PERSON_NOT_FOUND",
+        },
       });
     }
 
@@ -260,10 +284,10 @@ employeesRouter.post('/', async (request, response) => {
       return response.status(400).json({
         success: false,
         error: {
-          message: 'Validation error',
-          code: 'VALIDATION_ERROR',
-          details: 'Person is inactive and cannot be assigned as an employee'
-        }
+          message: "Validation error",
+          code: "VALIDATION_ERROR",
+          details: "Person is inactive and cannot be assigned as an employee",
+        },
       });
     }
 
@@ -273,51 +297,51 @@ employeesRouter.post('/', async (request, response) => {
       return response.status(409).json({
         success: false,
         error: {
-          message: 'Person is already an employee',
-          code: 'DUPLICATE_EMPLOYEE'
-        }
+          message: "Person is already an employee",
+          code: "DUPLICATE_EMPLOYEE",
+        },
       });
     }
 
     // Create employee
     const employee = new Employee({
       PersonID: person.ID,
-      EmployeeType: EmployeeType ? String(EmployeeType).toUpperCase() : 'STAFF',
+      EmployeeType: EmployeeType ? String(EmployeeType).toUpperCase() : "STAFF",
       HiredDate: HiredDate || new Date(),
-      Status: Status ? String(Status).toUpperCase() : 'ACTIVE'
+      Status: Status ? String(Status).toUpperCase() : "ACTIVE",
     });
 
     const savedEmployee = await employee.save();
 
-  // Populate person details before returning
-  await savedEmployee.populate('person', 'ID FullName Phone Gender IsActive');
+    // Populate person details before returning
+    await savedEmployee.populate("person", "ID FullName Phone Gender IsActive");
 
     response.status(201).json({
       success: true,
       data: savedEmployee,
-      message: 'Employee created successfully'
+      message: "Employee created successfully",
     });
   } catch (error) {
-    console.error('Create employee error:', error);
+    console.error("Create employee error:", error);
 
     // Handle validation errors
-    if (error.name === 'ValidationError') {
+    if (error.name === "ValidationError") {
       return response.status(400).json({
         success: false,
         error: {
-          message: 'Validation error',
-          code: 'VALIDATION_ERROR',
-          details: error.message
-        }
+          message: "Validation error",
+          code: "VALIDATION_ERROR",
+          details: error.message,
+        },
       });
     }
 
     response.status(500).json({
       success: false,
       error: {
-        message: 'Failed to create employee',
-        details: error.message
-      }
+        message: "Failed to create employee",
+        details: error.message,
+      },
     });
   }
 });
@@ -326,13 +350,9 @@ employeesRouter.post('/', async (request, response) => {
  * PUT /api/employees/:id
  * Update employee
  */
-employeesRouter.put('/:id', async (request, response) => {
+employeesRouter.put("/:id", async (request, response) => {
   try {
-    const {
-      EmployeeType,
-      HiredDate,
-      Status
-    } = request.body;
+    const { EmployeeType, HiredDate, Status } = request.body;
 
     // Find employee
     const employee = await Employee.findById(request.params.id);
@@ -341,46 +361,50 @@ employeesRouter.put('/:id', async (request, response) => {
       return response.status(404).json({
         success: false,
         error: {
-          message: 'Employee not found',
-          code: 'EMPLOYEE_NOT_FOUND'
-        }
+          message: "Employee not found",
+          code: "EMPLOYEE_NOT_FOUND",
+        },
       });
     }
 
     // Update fields (PersonID cannot be changed)
-    if (EmployeeType !== undefined) employee.EmployeeType = EmployeeType.toUpperCase();
+    if (EmployeeType !== undefined)
+      employee.EmployeeType = EmployeeType.toUpperCase();
     if (HiredDate !== undefined) employee.HiredDate = HiredDate;
     if (Status !== undefined) employee.Status = Status.toUpperCase();
 
     const updatedEmployee = await employee.save();
-  await updatedEmployee.populate('person', 'ID FullName Phone Gender IsActive');
+    await updatedEmployee.populate(
+      "person",
+      "ID FullName Phone Gender IsActive"
+    );
 
     response.json({
       success: true,
       data: updatedEmployee,
-      message: 'Employee updated successfully'
+      message: "Employee updated successfully",
     });
   } catch (error) {
-    console.error('Update employee error:', error);
+    console.error("Update employee error:", error);
 
     // Handle validation errors
-    if (error.name === 'ValidationError') {
+    if (error.name === "ValidationError") {
       return response.status(400).json({
         success: false,
         error: {
-          message: 'Validation error',
-          code: 'VALIDATION_ERROR',
-          details: error.message
-        }
+          message: "Validation error",
+          code: "VALIDATION_ERROR",
+          details: error.message,
+        },
       });
     }
 
     response.status(500).json({
       success: false,
       error: {
-        message: 'Failed to update employee',
-        details: error.message
-      }
+        message: "Failed to update employee",
+        details: error.message,
+      },
     });
   }
 });
@@ -389,42 +413,44 @@ employeesRouter.put('/:id', async (request, response) => {
  * DELETE /api/employees/:id
  * Delete employee (soft delete - set status to TERMINATED)
  */
-employeesRouter.delete('/:id', async (request, response) => {
+employeesRouter.delete("/:id", async (request, response) => {
   try {
-    const employee = await Employee.findById(request.params.id)
-      .populate('person', 'ID FullName');
+    const employee = await Employee.findById(request.params.id).populate(
+      "person",
+      "ID FullName"
+    );
 
     if (!employee) {
       return response.status(404).json({
         success: false,
         error: {
-          message: 'Employee not found',
-          code: 'EMPLOYEE_NOT_FOUND'
-        }
+          message: "Employee not found",
+          code: "EMPLOYEE_NOT_FOUND",
+        },
       });
     }
 
     // Soft delete - set status to TERMINATED
-    employee.Status = 'TERMINATED';
+    employee.Status = "INACTIVE";
     await employee.save();
 
     response.json({
       success: true,
-      message: 'Employee terminated successfully',
+      message: "Employee terminated successfully",
       data: {
         id: employee._id,
         ID: employee.ID,
-        PersonID: employee.PersonID
-      }
+        PersonID: employee.PersonID,
+      },
     });
   } catch (error) {
-    console.error('Delete employee error:', error);
+    console.error("Delete employee error:", error);
     response.status(500).json({
       success: false,
       error: {
-        message: 'Failed to delete employee',
-        details: error.message
-      }
+        message: "Failed to delete employee",
+        details: error.message,
+      },
     });
   }
 });
