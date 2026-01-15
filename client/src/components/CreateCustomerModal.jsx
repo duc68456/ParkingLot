@@ -1,26 +1,26 @@
-import { useState } from 'react';
-import '../styles/components/CreateCustomerModal.css';
+import { useState } from "react";
+import "../styles/components/CreateCustomerModal.css";
 
 const CreateCustomerModal = ({ onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
-    fullName: '',
-    phone: '',
-    gender: ''
+    fullName: "",
+    phone: "",
+    gender: "",
   });
 
   const [errors, setErrors] = useState({});
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ''
+        [name]: "",
       }));
     }
   };
@@ -29,15 +29,15 @@ const CreateCustomerModal = ({ onClose, onSubmit }) => {
     const newErrors = {};
 
     if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Full name is required';
+      newErrors.fullName = "Full name is required";
     }
 
     if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone is required';
+      newErrors.phone = "Phone is required";
     }
 
     if (!formData.gender) {
-      newErrors.gender = 'Gender is required';
+      newErrors.gender = "Gender is required";
     }
 
     setErrors(newErrors);
@@ -53,12 +53,17 @@ const CreateCustomerModal = ({ onClose, onSubmit }) => {
 
   return (
     <div className="create-customer-overlay" onClick={onClose}>
-      <div className="create-customer-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="create-customer-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
         <form onSubmit={handleSubmit} className="create-customer-form">
           {/* Header */}
           <div className="create-customer-header">
             <h2 className="create-customer-title">Create New Customer</h2>
-            <p className="create-customer-subtitle">Fill in the customer information to proceed</p>
+            <p className="create-customer-subtitle">
+              Fill in the customer information to proceed
+            </p>
           </div>
 
           {/* Form Fields */}
@@ -75,44 +80,58 @@ const CreateCustomerModal = ({ onClose, onSubmit }) => {
                   value={formData.fullName}
                   onChange={handleChange}
                   placeholder="John Doe"
-                  className={`create-customer-input ${errors.fullName ? 'error' : ''}`}
+                  className={`create-customer-input ${
+                    errors.fullName ? "error" : ""
+                  }`}
                 />
-                {errors.fullName && <span className="create-customer-error">{errors.fullName}</span>}
+                {errors.fullName && (
+                  <span className="create-customer-error">
+                    {errors.fullName}
+                  </span>
+                )}
               </div>
 
               <div className="create-customer-field">
                 <label className="create-customer-label">
-                  Phone<span className="create-customer-required">*</span>
+                  Gender<span className="create-customer-required">*</span>
                 </label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
+                <select
+                  name="gender"
+                  value={formData.gender}
                   onChange={handleChange}
-                  placeholder="+1234567890"
-                  className={`create-customer-input ${errors.phone ? 'error' : ''}`}
-                />
-                {errors.phone && <span className="create-customer-error">{errors.phone}</span>}
+                  className={`create-customer-select ${
+                    errors.gender ? "error" : ""
+                  }`}
+                >
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+                {errors.gender && (
+                  <span className="create-customer-error">{errors.gender}</span>
+                )}
               </div>
             </div>
 
             {/* Row 2: Gender */}
             <div className="create-customer-field create-customer-field-full">
               <label className="create-customer-label">
-                Gender<span className="create-customer-required">*</span>
+                Phone<span className="create-customer-required">*</span>
               </label>
-              <select
-                name="gender"
-                value={formData.gender}
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
                 onChange={handleChange}
-                className={`create-customer-select ${errors.gender ? 'error' : ''}`}
-              >
-                <option value="">Select Gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-              {errors.gender && <span className="create-customer-error">{errors.gender}</span>}
+                placeholder="+1234567890"
+                className={`create-customer-input ${
+                  errors.phone ? "error" : ""
+                }`}
+              />
+              {errors.phone && (
+                <span className="create-customer-error">{errors.phone}</span>
+              )}
             </div>
           </div>
 
@@ -123,15 +142,39 @@ const CreateCustomerModal = ({ onClose, onSubmit }) => {
               onClick={onClose}
               className="create-customer-back-btn"
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M10 12L6 8L10 4"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
               Back
             </button>
             <button type="submit" className="create-customer-submit-btn">
               Continue to Purchase Cards
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M6 12L10 8L6 4"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </button>
           </div>
