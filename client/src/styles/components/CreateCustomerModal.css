@@ -14,8 +14,7 @@
   background: white;
   border-radius: 10px;
   border: 0.8px solid #e2e8f0;
-  width: 100%;
-  max-width: 991.2px;
+  width: 50vw;
   max-height: 90vh;
   overflow-y: auto;
   z-index: 1001;
@@ -24,16 +23,18 @@
 
 /* Form */
 .create-customer-form {
-  padding: 24.8px 111.6px;
+  padding: 0px 0px;
 }
 
 /* Header */
 .create-customer-header {
-  margin-bottom: 24px;
+  /* margin-bottom: 24px; */
+  padding: 20px 30px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .create-customer-title {
-  font-family: 'Arimo', sans-serif;
+  font-family: "Arimo", sans-serif;
   font-size: 20px;
   font-weight: 400;
   line-height: 28px;
@@ -42,7 +43,7 @@
 }
 
 .create-customer-subtitle {
-  font-family: 'Arimo', sans-serif;
+  font-family: "Arimo", sans-serif;
   font-size: 14px;
   font-weight: 400;
   line-height: 20px;
@@ -56,6 +57,8 @@
   flex-direction: column;
   gap: 24px;
   margin-bottom: 24px;
+
+  padding: 20px 30px;
 }
 
 .create-customer-row {
@@ -66,15 +69,12 @@
 
 /* Match Figma field widths (376px columns) */
 .create-customer-field {
-  max-width: 376px;
 }
 
 .create-customer-row .create-customer-field {
-  width: 376px;
 }
 
 .create-customer-field-full {
-  width: 376px;
 }
 
 .create-customer-field {
@@ -88,7 +88,7 @@
 }
 
 .create-customer-label {
-  font-family: 'Arimo', sans-serif;
+  font-family: "Arimo", sans-serif;
   font-size: 14px;
   font-weight: 400;
   line-height: 20px;
@@ -103,7 +103,7 @@
 
 .create-customer-input,
 .create-customer-select {
-  font-family: 'Arimo', sans-serif;
+  font-family: "Arimo", sans-serif;
   font-size: 14px;
   padding: 10px 16px;
   border: 0.8px solid #cad5e2;
@@ -134,7 +134,7 @@
 }
 
 .create-customer-error {
-  font-family: 'Arimo', sans-serif;
+  font-family: "Arimo", sans-serif;
   font-size: 12px;
   color: #fb2c36;
   margin-top: 4px;
@@ -156,6 +156,8 @@
   align-items: center;
   padding-top: 24px;
   border-top: 0.8px solid #e2e8f0;
+  padding: 20px 30px;
+  background: #f8fafc;
 }
 
 .create-customer-back-btn {
@@ -166,7 +168,7 @@
   background: white;
   border: 0.8px solid #cad5e2;
   border-radius: 10px;
-  font-family: 'Arimo', sans-serif;
+  font-family: "Arimo", sans-serif;
   font-size: 16px;
   font-weight: 400;
   color: #314158;
@@ -194,14 +196,15 @@
   background: #155dfc;
   border: none;
   border-radius: 10px;
-  font-family: 'Arimo', sans-serif;
+  font-family: "Arimo", sans-serif;
   font-size: 16px;
   font-weight: 400;
   color: white;
   cursor: pointer;
   transition: all 0.2s;
   height: 44px;
-  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1),
+    0px 1px 2px -1px rgba(0, 0, 0, 0.1);
 }
 
 .create-customer-submit-btn:hover {
