@@ -763,7 +763,7 @@ export default function PeoplePage() {
     })();
   };
 
-  const handleConfirmDeleteCustomer = (customerToDelete) => {
+  const handleConfirmDeleteCustomer = (customerToDelete, newStatus) => {
     if (!customerToDelete) return;
 
     (async () => {
@@ -784,11 +784,11 @@ export default function PeoplePage() {
         }
 
         // Backend soft-deletes by setting Status=INACTIVE; reflect in UI
-        // Trigger a refetch of customers to get the updated data and potentially new pagination info
-        // The useEffect for customers will trigger a refetch
+        // Use the status from the modal selection
+        const statusToSet = newStatus || "Inactive";
         setCustomers((prev) =>
           prev.map((c) =>
-            c._id === customerToDelete._id ? { ...c, status: "Inactive" } : c
+            c._id === customerToDelete._id ? { ...c, status: statusToSet } : c
           )
         );
         handleCloseDeleteCustomerModal();

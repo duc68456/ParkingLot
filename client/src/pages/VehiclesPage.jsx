@@ -327,7 +327,7 @@ export default function VehiclesPage() {
     })();
   };
 
-  const handleConfirmDeleteVehicle = (vehicleToDelete) => {
+  const handleConfirmDeleteVehicle = (vehicleToDelete, newStatus) => {
     (async () => {
       if (!vehicleToDelete) return;
       const id = vehicleToDelete?._id ?? vehicleToDelete?.id;
@@ -347,10 +347,13 @@ export default function VehiclesPage() {
         }
 
         // Backend does soft-delete (IsActive=false). Reflect that in UI.
+        // Use the status from the modal selection
+        const isActive = newStatus === 'Active';
+        const statusToSet = newStatus || 'Inactive';
         setVehicles((prev) =>
           prev.map((v) =>
             v.id === vehicleToDelete.id
-              ? { ...v, status: 'Inactive', IsActive: false }
+              ? { ...v, status: statusToSet, IsActive: isActive }
               : v
           )
         );

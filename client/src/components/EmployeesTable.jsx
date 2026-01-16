@@ -4,6 +4,7 @@ import ViewCardsModal from './ViewCardsModal';
 import ViewEmployeeModal from './ViewEmployeeModal';
 import EditEmployeeModal from './EditEmployeeModal';
 import EmployeeAccountModal from './EmployeeAccountModal';
+import DeleteEmployeeModal from './DeleteEmployeeModal';
 import '../styles/components/EmployeesTable.css';
 
 import { useMemo, useState } from 'react';
@@ -38,6 +39,8 @@ export default function EmployeesTable({ employees, onEdit, onDelete, onViewCard
   const [showEditEmployeeModal, setShowEditEmployeeModal] = useState(false);
 
   const [showEmployeeAccountModal, setShowEmployeeAccountModal] = useState(false);
+
+  const [showDeleteEmployeeModal, setShowDeleteEmployeeModal] = useState(false);
 
   // Cards are loaded by PeoplePage and passed into ViewCardsModal via the `cards` prop.
   // Keep a safe fallback to an empty list.
@@ -128,12 +131,21 @@ export default function EmployeesTable({ employees, onEdit, onDelete, onViewCard
   };
 
   const handleDelete = (employee) => {
-    if (onDelete) {
-      onDelete(employee)
-      return
-    }
+    setSelectedEmployee(employee);
+    setShowDeleteEmployeeModal(true);
+  };
 
-    console.log('Delete employee:', employee);
+  const handleCloseDeleteEmployeeModal = () => {
+    setShowDeleteEmployeeModal(false);
+    setSelectedEmployee(null);
+  };
+
+  const handleConfirmDelete = async (employee, newStatus) => {
+    if (onDelete) {
+      await onDelete(employee, newStatus);
+    } else {
+      console.log('Update employee status:', employee, newStatus);
+    }
   };
 
   const getRoleColor = (role) => {
@@ -219,6 +231,14 @@ export default function EmployeesTable({ employees, onEdit, onDelete, onViewCard
           onAssign={handleAssignCard}
           defaultAssignType="employee"
           defaultPersonId={selectedEmployee?.id}
+        />
+      )}
+
+      {showDeleteEmployeeModal && selectedEmployee && (
+        <DeleteEmployeeModal
+          employee={selectedEmployee}
+          onClose={handleCloseDeleteEmployeeModal}
+          onConfirm={handleConfirmDelete}
         />
       )}
 

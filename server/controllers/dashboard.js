@@ -127,7 +127,7 @@ dashboardRouter.get('/recent-activity', async (request, response, next) => {
     const recentSessions = await EntrySession.find({})
       .sort({ createdAt: -1 })
       .limit(limit * 2) // Get more to filter
-      .select('ID LicensePlate EntryTime ExitTime Status FinalFee CardID')
+      .select('ID LicensePlate EntryTime ExitTime Status FinalFee CardID VehicleTypeID DiscountReason')
       .lean()
 
     // Build activity list
@@ -136,22 +136,48 @@ dashboardRouter.get('/recent-activity', async (request, response, next) => {
     for (const session of recentSessions) {
       if (activities.length >= limit) break
 
+      // Get vehicle type info
+      const vehicleType = await VehicleType.findOne({ VehicleTypeID: session.VehicleTypeID }).select('Name').lean()
+      const vehicleTypeName = vehicleType?.Name || 'Unknown'
+
       // For each session, we might have entry and/or exit
-      const card = await Card.findOne({ ID: session.CardID }).select('CustomerID EmployeeID').lean()
+      const card = await Card.findOne({ CardID: session.CardID }).select('CardID CustomerID EmployeeID').lean()
+
+      console.log(`[Dashboard Activity] Session ${session.ID}:`, {
+        CardID: session.CardID,
+        CardFound: !!card,
+        CustomerID: card?.CustomerID,
+        EmployeeID: card?.EmployeeID,
+        DiscountReason: session.DiscountReason
+      })
 
       let personName = 'Unknown'
+      let personType = 'guest'
+
+      // Check if this is a subscription-based session
+      const hasSubscription = session.DiscountReason === 'SUBSCRIPTION'
+
       if (card?.CustomerID) {
         const customer = await Customer.findOne({ ID: card.CustomerID }).select('PersonID').lean()
+        console.log(`  Customer found:`, !!customer, customer?.PersonID)
         if (customer?.PersonID) {
           const person = await Person.findOne({ ID: customer.PersonID }).select('FullName').lean()
+          console.log(`  Person found:`, !!person, person?.FullName)
           personName = person?.FullName || 'Unknown Customer'
+          personType = 'customer'
         }
       } else if (card?.EmployeeID) {
         const employee = await Employee.findOne({ ID: card.EmployeeID }).select('PersonID').lean()
+        console.log(`  Employee found:`, !!employee, employee?.PersonID)
         if (employee?.PersonID) {
           const person = await Person.findOne({ ID: employee.PersonID }).select('FullName').lean()
+          console.log(`  Person found:`, !!person, person?.FullName)
           personName = person?.FullName || 'Unknown Staff'
+          personType = 'staff'
         }
+      } else if (!card) {
+        personName = 'Guest'
+        personType = 'guest'
       }
 
       // Add exit activity if exists
@@ -160,7 +186,10 @@ dashboardRouter.get('/recent-activity', async (request, response, next) => {
           id: `${session.ID}-exit`,
           type: 'EXIT',
           plate: session.LicensePlate || 'N/A',
+          vehicleType: vehicleTypeName,
           personName,
+          personType,
+          hasSubscription,
           timestamp: session.ExitTime,
           amount: session.FinalFee || 0
         })
@@ -172,7 +201,10 @@ dashboardRouter.get('/recent-activity', async (request, response, next) => {
           id: `${session.ID}-entry`,
           type: 'ENTRY',
           plate: session.LicensePlate || 'N/A',
+          vehicleType: vehicleTypeName,
           personName,
+          personType,
+          hasSubscription,
           timestamp: session.EntryTime,
           amount: null
         })
@@ -221,20 +253,20 @@ dashboardRouter.get('/capacity', async (request, response, next) => {
 
     // Build capacity response
     const capacityData = vehicleTypes.map(vt => {
-      const current = countByType[vt.ID] || 0
-      const max = capacityConfig[vt.TypeName] || 100
+      const current = countByType[vt.VehicleTypeID] || 0
+      const max = capacityConfig[vt.Name] || 100
       const percent = max > 0 ? Math.round((current / max) * 100) : 0
 
       return {
-        id: vt.ID,
-        name: vt.TypeName,
+        id: vt.VehicleTypeID,
+        name: vt.Name,
         current,
         max,
         percent,
         // Map to tone for frontend
-        tone: vt.TypeName === 'Ô tô' ? 'blue'
-          : vt.TypeName === 'Xe máy' ? 'purple'
-            : vt.TypeName === 'Xe tải' ? 'orange'
+        tone: vt.Name === 'Ô tô' ? 'blue'
+          : vt.Name === 'Xe máy' ? 'purple'
+            : vt.Name === 'Xe tải' ? 'orange'
               : 'green'
       }
     })
@@ -277,22 +309,22 @@ dashboardRouter.get('/alerts', async (request, response, next) => {
 
     // Generate capacity alerts
     for (const vt of vehicleTypes) {
-      const current = countByType[vt.ID] || 0
-      const max = capacityConfig[vt.TypeName] || 100
+      const current = countByType[vt.VehicleTypeID] || 0
+      const max = capacityConfig[vt.Name] || 100
       const percent = max > 0 ? Math.round((current / max) * 100) : 0
 
       if (percent >= 90) {
         alerts.push({
-          id: `capacity-${vt.ID}`,
+          id: `capacity-${vt.VehicleTypeID}`,
           tone: 'danger',
-          title: `${vt.TypeName} parking ${percent}% full (${current}/${max})`,
+          title: `${vt.Name} parking ${percent}% full (${current}/${max})`,
           timestamp: now
         })
       } else if (percent >= 80) {
         alerts.push({
-          id: `capacity-${vt.ID}`,
+          id: `capacity-${vt.VehicleTypeID}`,
           tone: 'warning',
-          title: `${vt.TypeName} parking ${percent}% full (${current}/${max})`,
+          title: `${vt.Name} parking ${percent}% full (${current}/${max})`,
           timestamp: now
         })
       }
@@ -321,6 +353,68 @@ dashboardRouter.get('/alerts', async (request, response, next) => {
     response.json({
       success: true,
       data: alerts.slice(0, 5) // Return top 5 alerts
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+/**
+ * GET /api/dashboard/revenue-trend
+ * Returns hourly revenue data for today (last 6 hours)
+ */
+dashboardRouter.get('/revenue-trend', async (request, response, next) => {
+  try {
+    const now = new Date()
+    const hoursAgo = parseInt(request.query.hours) || 6
+    const startTime = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000)
+
+    // Get all exited sessions in the time range
+    const exitedSessions = await EntrySession.find({
+      Status: 'EXITED',
+      ExitTime: { $gte: startTime, $lte: now }
+    }).select('ExitTime FinalFee').lean()
+
+    // Get all invoices in the time range
+    const invoices = await CardPurchaseInvoice.find({
+      InvoiceDate: { $gte: startTime, $lte: now },
+      Status: 'COMPLETED'
+    }).select('InvoiceDate TotalAmount').lean()
+
+    // Group by hour
+    const revenueByHour = {}
+
+    // Initialize all hours with 0
+    for (let i = 0; i <= hoursAgo; i++) {
+      const hourTime = new Date(startTime.getTime() + i * 60 * 60 * 1000)
+      const hourKey = hourTime.getHours()
+      revenueByHour[hourKey] = 0
+    }
+
+    // Add session revenue
+    exitedSessions.forEach(session => {
+      const hour = new Date(session.ExitTime).getHours()
+      revenueByHour[hour] = (revenueByHour[hour] || 0) + (session.FinalFee || 0)
+    })
+
+    // Add invoice revenue
+    invoices.forEach(invoice => {
+      const hour = new Date(invoice.InvoiceDate).getHours()
+      revenueByHour[hour] = (revenueByHour[hour] || 0) + (invoice.TotalAmount || 0)
+    })
+
+    // Convert to array format for charts
+    const trendData = Object.keys(revenueByHour)
+      .sort((a, b) => a - b)
+      .map(hour => ({
+        hour: parseInt(hour),
+        hourLabel: `${hour.toString().padStart(2, '0')}:00`,
+        revenue: revenueByHour[hour]
+      }))
+
+    response.json({
+      success: true,
+      data: trendData
     })
   } catch (error) {
     next(error)

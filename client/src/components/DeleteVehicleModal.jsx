@@ -1,58 +1,117 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import '../styles/components/DeleteVehicleModal.css';
-import warningIcon from '../assets/icons/dashboard/alert-warning.svg';
 
 export default function DeleteVehicleModal({ vehicle, onClose, onConfirm }) {
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState('Inactive');
+
   useEffect(() => {
     const onKeyDown = (e) => {
-      if (e.key === 'Escape') onClose?.();
+      if (e.key === 'Escape' && !isDeleting) onClose?.();
     };
-
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [onClose]);
+  }, [onClose, isDeleting]);
 
   const plateNumber = vehicle?.licensePlate || vehicle?.plateNumber || vehicle?.id || 'this vehicle';
+  const vehicleId = vehicle?.VehicleID || vehicle?.id || '—';
+  const currentStatus = vehicle?.IsActive !== false ? 'Active' : 'Inactive';
 
   const handleOverlayClick = (e) => {
-    if (e.target === e.currentTarget) onClose?.();
+    if (e.target === e.currentTarget && !isDeleting) onClose?.();
+  };
+
+  const handleConfirm = async () => {
+    setIsDeleting(true);
+    try {
+      await onConfirm?.(vehicle, selectedStatus);
+      onClose?.();
+    } catch (error) {
+      console.error('Update vehicle status error:', error);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
     <div className="delete-vehicle-modal-overlay" onClick={handleOverlayClick}>
-      <div className="delete-vehicle-modal" role="dialog" aria-modal="true" aria-label="Delete Vehicle">
-        <button className="delete-vehicle-modal-close" type="button" onClick={onClose} aria-label="Close">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M5 5L15 15M15 5L5 15" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-        </button>
-
-        <div className="delete-vehicle-modal-icon">
-          <img src={warningIcon} alt="" />
+      <div className="delete-vehicle-modal" role="dialog" aria-modal="true" aria-labelledby="delete-vehicle-title">
+        <div className="delete-vehicle-modal-header">
+          <div className="delete-vehicle-modal-title" id="delete-vehicle-title">
+            Deactivate Vehicle
+          </div>
+          <button
+            className="delete-vehicle-modal-close"
+            onClick={onClose}
+            disabled={isDeleting}
+            aria-label="Close"
+          >
+            ×
+          </button>
         </div>
 
-        <div className="delete-vehicle-modal-title">Delete Vehicle</div>
-        <div className="delete-vehicle-modal-subtitle">
-          Are you sure you want to delete this vehicle? This action cannot be undone.
-        </div>
+        <div className="delete-vehicle-modal-body">
+          <div className="delete-vehicle-modal-subtitle">
+            Update status for <strong>{plateNumber}</strong>
+          </div>
 
-        <div className="delete-vehicle-modal-item">
-          <span className="delete-vehicle-modal-item-label">Item:</span>
-          <span className="delete-vehicle-modal-item-value">{plateNumber}</span>
-        </div>
+          <div className="delete-vehicle-modal-item">
+            <span className="delete-vehicle-modal-item-label">ID:</span>
+            <span className="delete-vehicle-modal-item-value">{vehicleId}</span>
+          </div>
 
-        <div className="delete-vehicle-modal-footnote">This action cannot be undone.</div>
+          <div className="delete-vehicle-modal-item">
+            <span className="delete-vehicle-modal-item-label">Current Status:</span>
+            <span className="delete-vehicle-modal-item-value">{currentStatus}</span>
+          </div>
+
+          <div className="delete-vehicle-modal-status-selection">
+            <label className="delete-vehicle-modal-status-label">
+              Select New Status:
+            </label>
+            <div className="delete-vehicle-modal-status-options">
+              <label className="delete-vehicle-modal-radio-option">
+                <input
+                  type="radio"
+                  name="status"
+                  value="Active"
+                  checked={selectedStatus === 'Active'}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  disabled={isDeleting}
+                />
+                <span className="delete-vehicle-modal-radio-text">Active</span>
+              </label>
+              <label className="delete-vehicle-modal-radio-option">
+                <input
+                  type="radio"
+                  name="status"
+                  value="Inactive"
+                  checked={selectedStatus === 'Inactive'}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  disabled={isDeleting}
+                />
+                <span className="delete-vehicle-modal-radio-text">Inactive</span>
+              </label>
+            </div>
+          </div>
+        </div>
 
         <div className="delete-vehicle-modal-actions">
-          <button className="delete-vehicle-modal-btn cancel" type="button" onClick={onClose}>
+          <button
+            className="delete-vehicle-modal-btn cancel"
+            type="button"
+            onClick={onClose}
+            disabled={isDeleting}
+          >
             Cancel
           </button>
           <button
             className="delete-vehicle-modal-btn delete"
             type="button"
-            onClick={() => onConfirm?.(vehicle)}
+            onClick={handleConfirm}
+            disabled={isDeleting}
           >
-            Delete
+            {isDeleting ? 'Updating...' : 'Update Status'}
           </button>
         </div>
       </div>

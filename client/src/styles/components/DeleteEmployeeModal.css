@@ -1,4 +1,4 @@
-.delete-vehicle-modal-overlay {
+.delete-employee-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -12,7 +12,7 @@
   padding: 1rem;
 }
 
-.delete-vehicle-modal {
+.delete-employee-modal {
   background: white;
   border-radius: 8px;
   width: 100%;
@@ -33,7 +33,7 @@
   }
 }
 
-.delete-vehicle-modal-header {
+.delete-employee-modal__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -41,14 +41,14 @@
   border-bottom: 1px solid #e5e7eb;
 }
 
-.delete-vehicle-modal-title {
+.delete-employee-modal__title {
   font-size: 18px;
   font-weight: 600;
   color: #111827;
   margin: 0;
 }
 
-.delete-vehicle-modal-close {
+.delete-employee-modal__close {
   background: none;
   border: none;
   font-size: 20px;
@@ -64,55 +64,55 @@
   transition: all 0.15s;
 }
 
-.delete-vehicle-modal-close:hover:not(:disabled) {
+.delete-employee-modal__close:hover:not(:disabled) {
   background-color: #f3f4f6;
   color: #111827;
 }
 
-.delete-vehicle-modal-close:disabled {
+.delete-employee-modal__close:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.delete-vehicle-modal-body {
+.delete-employee-modal__body {
   padding: 20px;
 }
 
-.delete-vehicle-modal-subtitle {
+.delete-employee-modal__message {
   font-size: 15px;
   color: #374151;
   margin-bottom: 16px;
 }
 
-.delete-vehicle-modal-subtitle strong {
+.delete-employee-modal__message strong {
   color: #111827;
   font-weight: 600;
 }
 
-.delete-vehicle-modal-item {
+.delete-employee-modal__item {
   display: flex;
   gap: 8px;
   font-size: 14px;
   margin-bottom: 8px;
 }
 
-.delete-vehicle-modal-item-label {
+.delete-employee-modal__item-label {
   color: #6b7280;
   font-weight: 500;
   min-width: 100px;
 }
 
-.delete-vehicle-modal-item-value {
+.delete-employee-modal__item-value {
   color: #111827;
 }
 
-.delete-vehicle-modal-status-selection {
+.delete-employee-modal__status-selection {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid #e5e7eb;
 }
 
-.delete-vehicle-modal-status-label {
+.delete-employee-modal__status-label {
   display: block;
   font-size: 14px;
   font-weight: 500;
@@ -120,12 +120,12 @@
   margin-bottom: 10px;
 }
 
-.delete-vehicle-modal-status-options {
+.delete-employee-modal__status-options {
   display: flex;
   gap: 12px;
 }
 
-.delete-vehicle-modal-radio-option {
+.delete-employee-modal__radio-option {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -137,40 +137,40 @@
   flex: 1;
 }
 
-.delete-vehicle-modal-radio-option:hover {
+.delete-employee-modal__radio-option:hover {
   border-color: #9ca3af;
   background-color: #f9fafb;
 }
 
-.delete-vehicle-modal-radio-option:has(input:checked) {
+.delete-employee-modal__radio-option:has(input:checked) {
   border-color: #3b82f6;
   background-color: #eff6ff;
 }
 
-.delete-vehicle-modal-radio-option input[type="radio"] {
+.delete-employee-modal__radio-option input[type="radio"] {
   width: 16px;
   height: 16px;
   cursor: pointer;
 }
 
-.delete-vehicle-modal-radio-option input[type="radio"]:checked {
+.delete-employee-modal__radio-option input[type="radio"]:checked {
   accent-color: #3b82f6;
 }
 
-.delete-vehicle-modal-radio-text {
+.delete-employee-modal__radio-text {
   font-size: 14px;
   color: #374151;
 }
 
-.delete-vehicle-modal-actions {
+.delete-employee-modal__footer {
   display: flex;
   gap: 12px;
   padding: 16px 20px;
   border-top: 1px solid #e5e7eb;
-  margin: 0;
 }
 
-.delete-vehicle-modal-btn {
+.delete-employee-modal__cancel,
+.delete-employee-modal__confirm {
   flex: 1;
   padding: 10px 16px;
   border-radius: 6px;
@@ -181,25 +181,26 @@
   border: none;
 }
 
-.delete-vehicle-modal-btn.cancel {
+.delete-employee-modal__cancel {
   background-color: #f3f4f6;
   color: #374151;
 }
 
-.delete-vehicle-modal-btn.cancel:hover:not(:disabled) {
+.delete-employee-modal__cancel:hover:not(:disabled) {
   background-color: #e5e7eb;
 }
 
-.delete-vehicle-modal-btn.delete {
+.delete-employee-modal__confirm {
   background-color: #3b82f6;
   color: white;
 }
 
-.delete-vehicle-modal-btn.delete:hover:not(:disabled) {
+.delete-employee-modal__confirm:hover:not(:disabled) {
   background-color: #2563eb;
 }
 
-.delete-vehicle-modal-btn:disabled {
+.delete-employee-modal__cancel:disabled,
+.delete-employee-modal__confirm:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
