@@ -51,7 +51,7 @@ export default function VehiclesTable({ vehicles, onViewVehicle, onEditVehicle, 
           <tbody>
             {vehicles.map((vehicle) => (
               <tr key={vehicle.id} className="table-row">
-                <td className="table-cell">{vehicle.id}</td>
+                <td className="table-cell">{vehicle.VehicleID || vehicle.id}</td>
                 <td className="table-cell">
                   <div className="vehicle-info">
                     <div className="vehicle-icon-container">

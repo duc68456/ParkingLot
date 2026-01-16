@@ -1,6 +1,42 @@
 const vehiclesRouter = require('express').Router()
 const Vehicle = require('../models/vehicle')
 const VehicleType = require('../models/vehicleType')
+const Subscription = require('../models/subscription')
+const Customer = require('../models/customer')
+const Person = require('../models/person')
+
+const getOwnerFromSubscription = async (vehicleId) => {
+  if (!vehicleId) return null
+
+  const now = new Date()
+  const subscription = await Subscription.findOne({
+    VehicleID: vehicleId,
+    IsSuspended: false,
+    StartDate: { $lte: now },
+    EndDate: { $gte: now }
+  }).lean()
+
+  console.log(`[getOwnerFromSubscription] VehicleID: ${vehicleId}, Found subscription:`, subscription)
+
+  if (!subscription || !subscription.CustomerID) return null
+
+  const customer = await Customer.findOne({ ID: subscription.CustomerID }).lean()
+  console.log(`[getOwnerFromSubscription] CustomerID: ${subscription.CustomerID}, Found customer:`, customer)
+
+  if (!customer || !customer.PersonID) return null
+
+  const person = await Person.findOne({ ID: customer.PersonID }).lean()
+  console.log(`[getOwnerFromSubscription] PersonID: ${customer.PersonID}, Found person:`, person)
+
+  if (!person) return null
+
+  return {
+    ownerId: customer.ID,
+    ownerName: person.FullName,
+    ownerType: 'Customer',
+    ownerPhone: person.Phone
+  }
+}
 
 const attachVehicleType = async (vehicleDoc) => {
   if (!vehicleDoc) return vehicleDoc
@@ -86,10 +122,21 @@ vehiclesRouter.get('/', async (req, res) => {
 
     const vehiclesWithTypes = await attachVehicleTypes(vehicles)
 
+    // Add owner info for each vehicle
+    const vehiclesWithOwners = await Promise.all(
+      vehiclesWithTypes.map(async (v) => {
+        const ownerInfo = await getOwnerFromSubscription(v.VehicleID)
+        return {
+          ...v,
+          ...ownerInfo
+        }
+      })
+    )
+
     res.json({
       success: true,
       data: {
-        items: vehiclesWithTypes,
+        items: vehiclesWithOwners,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -126,10 +173,14 @@ vehiclesRouter.get('/:id', async (req, res) => {
     }
 
     const vehicleWithType = await attachVehicleType(vehicle)
+    const ownerInfo = await getOwnerFromSubscription(vehicleWithType.VehicleID)
 
     res.json({
       success: true,
-      data: vehicleWithType
+      data: {
+        ...vehicleWithType,
+        ...ownerInfo
+      }
     })
   } catch (error) {
     res.status(500).json({
