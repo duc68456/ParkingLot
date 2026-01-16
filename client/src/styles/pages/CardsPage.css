@@ -207,15 +207,22 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  color: #64748b;
+  padding: 0;
+  flex-shrink: 0;
 }
 
 .invoice-actionBtn:hover {
   background: #f1f5f9;
+  color: #334155;
 }
 
 .invoice-actionBtn svg {
   width: 16px;
   height: 16px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
 }
 
 .invoices-footer {
@@ -1113,12 +1120,12 @@
 }
 
 .inventory-actionBtn:active {
-	background: #f1f5f9;
+  background: #f1f5f9;
 }
 
 .inventory-actionBtn:focus-visible {
-	outline: 2px solid rgba(21, 93, 252, 0.35);
-	outline-offset: 2px;
+  outline: 2px solid rgba(21, 93, 252, 0.35);
+  outline-offset: 2px;
 }
 
 .inventory-actionBtn svg {

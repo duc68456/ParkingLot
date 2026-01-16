@@ -59,8 +59,8 @@ const formatDate = (value) => {
 const normalizeCard = (c) => {
   const categoryName = c?.CardCategoryID?.Name || c?.CardCategoryID?.ID || c?.CardCategoryID;
   const ownerName = c?.OwnerID?.FullName || c?.OwnerID?.ID || c?.OwnerID;
-  const vehiclePlate = '';
-  const vehicleType = '';
+  const vehiclePlate = c?.VehicleInfo?.PlateNumber || '-';
+  const vehicleType = c?.VehicleInfo?.VehicleTypeName || '-';
   const status = (c?.Status || '').toUpperCase() || 'ACTIVE';
 
   return {
@@ -110,6 +110,13 @@ function CardsPage() {
   const [invoiceDetailLoading, setInvoiceDetailLoading] = useState(false);
   const [invoiceDetailError, setInvoiceDetailError] = useState('');
   const [invoiceDetail, setInvoiceDetail] = useState(null);
+
+  // Pagination states
+  const [inventoryPage, setInventoryPage] = useState(1);
+  const [assignPage, setAssignPage] = useState(1);
+  const [categoriesPage, setCategoriesPage] = useState(1);
+  const [invoicesPage, setInvoicesPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Load cards when visiting inventory/assign tab
   useEffect(() => {
@@ -222,29 +229,6 @@ function CardsPage() {
 
     return () => controller.abort();
   }, [activeTab, authHeaders]);
-
-  const stats = [
-    {
-      label: 'Total Cards',
-      value: '6',
-      gradient: 'linear-gradient(135deg, rgb(43, 127, 255) 0%, rgb(21, 93, 252) 100%)'
-    },
-    {
-      label: 'Unassigned',
-      value: '1',
-      gradient: 'linear-gradient(135deg, rgb(240, 177, 0) 0%, rgb(208, 135, 0) 100%)'
-    },
-    {
-      label: 'Active Cards',
-      value: '3',
-      gradient: 'linear-gradient(135deg, rgb(0, 201, 80) 0%, rgb(0, 166, 62) 100%)'
-    },
-    {
-      label: 'Categories',
-      value: '4',
-      gradient: 'linear-gradient(135deg, rgb(173, 70, 255) 0%, rgb(152, 16, 250) 100%)'
-    }
-  ];
 
   const tabs = [
     { id: 'inventory', label: 'Card Inventory' },
@@ -591,6 +575,79 @@ function CardsPage() {
 
   const categoriesStatsValue = useMemo(() => String(categories.length), [categories.length]);
 
+  // Calculate real-time stats from actual data
+  const totalCardsCount = useMemo(() => String(cards.length), [cards.length]);
+  const unassignedCardsCount = useMemo(() => {
+    const count = cards.filter(c => String(c?.rawStatus || '').toUpperCase() === 'UNASSIGNED').length;
+    return String(count);
+  }, [cards]);
+  const activeCardsCount = useMemo(() => {
+    const count = cards.filter(c => String(c?.rawStatus || '').toUpperCase() === 'ACTIVE').length;
+    return String(count);
+  }, [cards]);
+
+  const stats = useMemo(() => [
+    {
+      label: 'Total Cards',
+      value: totalCardsCount,
+      gradient: 'linear-gradient(135deg, rgb(43, 127, 255) 0%, rgb(21, 93, 252) 100%)'
+    },
+    {
+      label: 'Unassigned',
+      value: unassignedCardsCount,
+      gradient: 'linear-gradient(135deg, rgb(240, 177, 0) 0%, rgb(208, 135, 0) 100%)'
+    },
+    {
+      label: 'Active Cards',
+      value: activeCardsCount,
+      gradient: 'linear-gradient(135deg, rgb(0, 201, 80) 0%, rgb(0, 166, 62) 100%)'
+    },
+    {
+      label: 'Categories',
+      value: categoriesStatsValue,
+      gradient: 'linear-gradient(135deg, rgb(173, 70, 255) 0%, rgb(152, 16, 250) 100%)'
+    }
+  ], [totalCardsCount, unassignedCardsCount, activeCardsCount, categoriesStatsValue]);
+
+  // Pagination helpers
+  const paginateData = (data, page) => {
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return data.slice(startIndex, endIndex);
+  };
+
+  const getTotalPages = (dataLength) => Math.ceil(dataLength / itemsPerPage);
+
+  // Paginated data
+  const paginatedInventoryCards = useMemo(() =>
+    paginateData(filteredCards, inventoryPage),
+    [filteredCards, inventoryPage]
+  );
+
+  const paginatedAssignCards = useMemo(() =>
+    paginateData(unassignedCards, assignPage),
+    [unassignedCards, assignPage]
+  );
+
+  const paginatedCategories = useMemo(() =>
+    paginateData(categories, categoriesPage),
+    [categories, categoriesPage]
+  );
+
+  const paginatedInvoices = useMemo(() =>
+    paginateData(purchaseInvoices, invoicesPage),
+    [purchaseInvoices, invoicesPage]
+  );
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setInventoryPage(1);
+  }, [searchQuery, typeFilter, statusFilter, expiryFilter]);
+
+  useEffect(() => {
+    setInvoicesPage(1);
+  }, [invoiceSearchQuery]);
+
   return (
     <div className="cards-page">
       {/* Page Header */}
@@ -613,7 +670,7 @@ function CardsPage() {
             </div>
             <div className="stat-content">
               <p className="stat-label">{stat.label}</p>
-              <p className="stat-value">{stat.label === 'Categories' ? categoriesStatsValue : stat.value}</p>
+              <p className="stat-value">{stat.value}</p>
             </div>
           </div>
         ))}
@@ -717,7 +774,7 @@ function CardsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredCards.map((card) => (
+                {paginatedInventoryCards.map((card) => (
                   <tr key={card.id}>
                     <td className="table-cell col-id">{card.id}</td>
                     <td className="table-cell col-card">
@@ -777,11 +834,23 @@ function CardsPage() {
             {/* Pagination */}
             <div className="table-footer">
               <p className="results-text">
-                Showing <span className="results-count">{filteredCards.length}</span> results
+                Showing <span className="results-count">{paginatedInventoryCards.length}</span> of {filteredCards.length} results (Page {inventoryPage} of {getTotalPages(filteredCards.length)})
               </p>
               <div className="pagination-buttons">
-                <button className="pagination-btn">Previous</button>
-                <button className="pagination-btn">Next</button>
+                <button
+                  className="pagination-btn"
+                  onClick={() => setInventoryPage(p => Math.max(1, p - 1))}
+                  disabled={inventoryPage === 1}
+                >
+                  Previous
+                </button>
+                <button
+                  className="pagination-btn"
+                  onClick={() => setInventoryPage(p => Math.min(getTotalPages(filteredCards.length), p + 1))}
+                  disabled={inventoryPage >= getTotalPages(filteredCards.length)}
+                >
+                  Next
+                </button>
               </div>
             </div>
           </div>
@@ -813,7 +882,7 @@ function CardsPage() {
                 </tr>
               </thead>
               <tbody>
-                {unassignedCards.map((card) => (
+                {paginatedAssignCards.map((card) => (
                   <tr key={card.id}>
                     <td className="card-id-cell">{card.id}</td>
                     <td>
@@ -863,11 +932,23 @@ function CardsPage() {
             {/* Pagination */}
             <div className="table-footer">
               <p className="results-text">
-                Showing <span className="results-count">{unassignedCards.length}</span> results
+                Showing <span className="results-count">{paginatedAssignCards.length}</span> of {unassignedCards.length} results (Page {assignPage} of {getTotalPages(unassignedCards.length)})
               </p>
               <div className="pagination-buttons">
-                <button className="pagination-btn">Previous</button>
-                <button className="pagination-btn">Next</button>
+                <button
+                  className="pagination-btn"
+                  onClick={() => setAssignPage(p => Math.max(1, p - 1))}
+                  disabled={assignPage === 1}
+                >
+                  Previous
+                </button>
+                <button
+                  className="pagination-btn"
+                  onClick={() => setAssignPage(p => Math.min(getTotalPages(unassignedCards.length), p + 1))}
+                  disabled={assignPage >= getTotalPages(unassignedCards.length)}
+                >
+                  Next
+                </button>
               </div>
             </div>
           </div>
@@ -899,7 +980,7 @@ function CardsPage() {
                 </tr>
               </thead>
               <tbody>
-                {categories.map((category) => (
+                {paginatedCategories.map((category) => (
                   <tr key={category.id}>
                     <td className="category-id-cell">{category.CategoryID || category.id}</td>
                     <td className="category-name-cell">{category.name}</td>
@@ -934,11 +1015,23 @@ function CardsPage() {
             {/* Pagination */}
             <div className="table-footer">
               <p className="results-text">
-                Showing <span className="results-count">{categories.length}</span> results
+                Showing <span className="results-count">{paginatedCategories.length}</span> of {categories.length} results (Page {categoriesPage} of {getTotalPages(categories.length)})
               </p>
               <div className="pagination-buttons">
-                <button className="pagination-btn">Previous</button>
-                <button className="pagination-btn">Next</button>
+                <button
+                  className="pagination-btn"
+                  onClick={() => setCategoriesPage(p => Math.max(1, p - 1))}
+                  disabled={categoriesPage === 1}
+                >
+                  Previous
+                </button>
+                <button
+                  className="pagination-btn"
+                  onClick={() => setCategoriesPage(p => Math.min(getTotalPages(categories.length), p + 1))}
+                  disabled={categoriesPage >= getTotalPages(categories.length)}
+                >
+                  Next
+                </button>
               </div>
             </div>
           </div>
@@ -990,7 +1083,7 @@ function CardsPage() {
                     </tr>
                   ) : (() => {
                     const query = invoiceSearchQuery.trim().toLowerCase();
-                    const list = Array.isArray(purchaseInvoices) ? purchaseInvoices : [];
+                    const list = Array.isArray(paginatedInvoices) ? paginatedInvoices : [];
                     const filtered = !query
                       ? list
                       : list.filter((inv) => {
@@ -1052,7 +1145,10 @@ function CardsPage() {
                                 type="button"
                                 onClick={() => handleViewInvoice(id)}
                               >
-                                <CardsActionViewIcon aria-hidden="true" />
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M2.2 8C3.5 5.2 5.7 3.8 8 3.8C10.3 3.8 12.5 5.2 13.8 8C12.5 10.8 10.3 12.2 8 12.2C5.7 12.2 3.5 10.8 2.2 8Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                  <path d="M8 10C9.10457 10 10 9.10457 10 8C10 6.89543 9.10457 6 8 6C6.89543 6 6 6.89543 6 8C6 9.10457 6.89543 10 8 10Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
                               </button>
                             </div>
                           </td>
@@ -1066,11 +1162,23 @@ function CardsPage() {
 
             <div className="table-footer invoices-footer">
               <p className="results-text">
-                Showing <span className="results-count">{purchaseInvoices.length}</span> results
+                Showing <span className="results-count">{paginatedInvoices.length}</span> of {purchaseInvoices.length} results (Page {invoicesPage} of {getTotalPages(purchaseInvoices.length)})
               </p>
               <div className="pagination-buttons">
-                <button className="pagination-btn">Previous</button>
-                <button className="pagination-btn">Next</button>
+                <button
+                  className="pagination-btn"
+                  onClick={() => setInvoicesPage(p => Math.max(1, p - 1))}
+                  disabled={invoicesPage === 1}
+                >
+                  Previous
+                </button>
+                <button
+                  className="pagination-btn"
+                  onClick={() => setInvoicesPage(p => Math.min(getTotalPages(purchaseInvoices.length), p + 1))}
+                  disabled={invoicesPage >= getTotalPages(purchaseInvoices.length)}
+                >
+                  Next
+                </button>
               </div>
             </div>
           </div>

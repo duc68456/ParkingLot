@@ -4,6 +4,36 @@ const CardCategory = require('../models/cardCategory')
 const Person = require('../models/person')
 const Employee = require('../models/employee')
 const Customer = require('../models/customer')
+const Subscription = require('../models/subscription')
+const Vehicle = require('../models/vehicle')
+const VehicleType = require('../models/vehicleType')
+
+// Helper: Get vehicle info from active subscription
+const getVehicleFromSubscription = async (cardId) => {
+  if (!cardId) return null
+
+  const now = new Date()
+  const subscription = await Subscription.findOne({
+    CardID: cardId,
+    IsSuspended: false,
+    StartDate: { $lte: now },
+    EndDate: { $gte: now }
+  }).lean()
+
+  if (!subscription || !subscription.VehicleID) return null
+
+  const vehicle = await Vehicle.findOne({ VehicleID: subscription.VehicleID }).lean()
+  if (!vehicle) return null
+
+  const vehicleType = subscription.VehicleTypeID
+    ? await VehicleType.findOne({ VehicleTypeID: subscription.VehicleTypeID }).lean()
+    : null
+
+  return {
+    PlateNumber: vehicle.PlateNumber,
+    VehicleTypeName: vehicleType?.Name || null
+  }
+}
 
 // GET next UID in sequence (for auto-generation)
 cardsRouter.get('/next-uid', async (req, res) => {
@@ -136,10 +166,15 @@ cardsRouter.get('/', async (req, res) => {
     const categoryById = new Map(categories.map(cat => [cat.ID, cat]))
     const ownerById = new Map(owners.map(p => [p.ID, p]))
 
-    const hydratedCards = cards.map(card => ({
-      ...card.toJSON(),
-      CardCategoryID: categoryById.get(card.CardCategoryID) || card.CardCategoryID,
-      OwnerID: ownerById.get(card.OwnerID) || card.OwnerID
+    // Get vehicle info from active subscriptions
+    const hydratedCards = await Promise.all(cards.map(async (card) => {
+      const vehicleInfo = await getVehicleFromSubscription(card.CardID)
+      return {
+        ...card.toJSON(),
+        CardCategoryID: categoryById.get(card.CardCategoryID) || card.CardCategoryID,
+        OwnerID: ownerById.get(card.OwnerID) || card.OwnerID,
+        VehicleInfo: vehicleInfo
+      }
     }))
 
     res.json({
@@ -246,13 +281,15 @@ cardsRouter.get('/uid/:uid', async (req, res) => {
     const owner = card.OwnerID
       ? await Person.findOne({ ID: card.OwnerID }).select('ID FullName Phone Gender')
       : null
+    const vehicleInfo = await getVehicleFromSubscription(card.CardID)
 
     res.json({
       success: true,
       data: {
         ...card.toJSON(),
         CardCategoryID: category || card.CardCategoryID,
-        OwnerID: owner || card.OwnerID
+        OwnerID: owner || card.OwnerID,
+        VehicleInfo: vehicleInfo
       }
     })
   } catch (error) {
@@ -377,11 +414,13 @@ cardsRouter.post('/', async (req, res) => {
     const owner = savedCard.OwnerID
       ? await Person.findOne({ ID: savedCard.OwnerID }).select('ID FullName Phone Gender')
       : null
+    const vehicleInfo = await getVehicleFromSubscription(savedCard.CardID)
 
     const populatedCard = {
       ...savedCard.toJSON(),
       CardCategoryID: category || savedCard.CardCategoryID,
-      OwnerID: owner || savedCard.OwnerID
+      OwnerID: owner || savedCard.OwnerID,
+      VehicleInfo: vehicleInfo
     }
 
     res.status(201).json({
@@ -536,13 +575,15 @@ cardsRouter.post('/:id/assign', async (req, res) => {
     // Manual hydration
     const category = await CardCategory.findOne({ ID: updated.CardCategoryID }).select('ID Name')
     const owner = await Person.findOne({ ID: updated.OwnerID }).select('ID FullName Phone Gender')
+    const vehicleInfo = await getVehicleFromSubscription(updated.CardID)
 
     res.json({
       success: true,
       data: {
         ...updated.toJSON(),
         CardCategoryID: category || updated.CardCategoryID,
-        OwnerID: owner || updated.OwnerID
+        OwnerID: owner || updated.OwnerID,
+        VehicleInfo: vehicleInfo
       },
       message: 'Card assigned successfully'
     })
@@ -672,11 +713,13 @@ cardsRouter.put('/:id', async (req, res) => {
     const owner = updatedCard.OwnerID
       ? await Person.findOne({ ID: updatedCard.OwnerID }).select('ID FullName Phone Gender')
       : null
+    const vehicleInfo = await getVehicleFromSubscription(updatedCard.CardID)
 
     const populatedCard = {
       ...updatedCard.toJSON(),
       CardCategoryID: category || updatedCard.CardCategoryID,
-      OwnerID: owner || updatedCard.OwnerID
+      OwnerID: owner || updatedCard.OwnerID,
+      VehicleInfo: vehicleInfo
     }
 
     res.json({
