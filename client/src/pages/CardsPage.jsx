@@ -881,7 +881,7 @@ function CardsPage() {
           <div className="add-category-section">
             <button className="btn-add-category" onClick={handleAddCategory}>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M10 4V16M4 10H16" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M10 4V16M4 10H16" stroke="white" strokeWidth="2" strokeLinecap="round" />
               </svg>
               Add Category
             </button>
@@ -921,7 +921,7 @@ function CardsPage() {
                           title="Delete"
                         >
                           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path d="M2 4h12M5.333 4V2.667a1.333 1.333 0 0 1 1.334-1.334h2.666a1.333 1.333 0 0 1 1.334 1.334V4m2 0v9.333a1.333 1.333 0 0 1-1.334 1.334H4.667a1.333 1.333 0 0 1-1.334-1.334V4h9.334Z" stroke="#dc2626" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M2 4h12M5.333 4V2.667a1.333 1.333 0 0 1 1.334-1.334h2.666a1.333 1.333 0 0 1 1.334 1.334V4m2 0v9.333a1.333 1.333 0 0 1-1.334 1.334H4.667a1.333 1.333 0 0 1-1.334-1.334V4h9.334Z" stroke="#dc2626" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                         </button>
                       </div>

@@ -190,6 +190,7 @@ export default function EmployeesTable({ employees, onEdit, onDelete, onViewCard
     <>
       <DataTable
         headers={headers}
+        columnKeys={['id', 'employee', 'role', 'status', 'hiredDate', 'actions']}
         rows={rows}
         total={employees.length}
         itemName="results"

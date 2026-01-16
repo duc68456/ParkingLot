@@ -146,10 +146,16 @@ export default function PeoplePage() {
   const [customerCards, setCustomerCards] = useState([]);
   const [customerCardsLoading, setCustomerCardsLoading] = useState(false);
   const [customerCardsError, setCustomerCardsError] = useState("");
+  const [customers, setCustomers] = useState([]);
+  const [customersLoading, setCustomersLoading] = useState(false);
+  const [customersError, setCustomersError] = useState("");
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCustomers, setTotalCustomers] = useState(0);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showEditCustomerModal, setShowEditCustomerModal] = useState(false);
   const [showDeleteCustomerModal, setShowDeleteCustomerModal] = useState(false);
-  const [customers, setCustomers] = useState([]);
   const [showCreateCustomerModal, setShowCreateCustomerModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [showEditEmployeeModal, setShowEditEmployeeModal] = useState(false);
@@ -159,7 +165,7 @@ export default function PeoplePage() {
       id: "customers",
       label: "Customers",
       icon: <PeopleTabCustomerIcon aria-hidden="true" />,
-      count: customers.length,
+      count: totalCustomers, // Use totalCustomers for the count
     },
     {
       id: "employees",
@@ -315,10 +321,28 @@ export default function PeoplePage() {
 
     (async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/customers?limit=100`, {
-          signal: controller.signal,
-          headers: { ...authHeaders },
+        setCustomersLoading(true);
+        setCustomersError("");
+
+        const queryParams = new URLSearchParams({
+          page: page.toString(),
+          limit: "10", // Assuming 10 items per page for customers
         });
+
+        if (statusFilter !== "All Status") {
+          queryParams.append("status", statusFilter);
+        }
+        if (searchQuery) {
+          queryParams.append("search", searchQuery);
+        }
+
+        const res = await fetch(
+          `${API_BASE_URL}/api/customers?${queryParams.toString()}`,
+          {
+            signal: controller.signal,
+            headers: { ...authHeaders },
+          }
+        );
 
         if (!res.ok) {
           throw new Error(`Failed to fetch customers (${res.status})`);
@@ -330,16 +354,34 @@ export default function PeoplePage() {
           : [];
 
         setCustomers(list.map(normalizeCustomer));
+
+        // Set pagination info from backend
+        if (json?.data?.pagination) {
+          setTotalPages(json.data.pagination.pages || 1);
+          setTotalCustomers(json.data.pagination.total || 0);
+        } else {
+          // Fallback if pagination data is missing
+          setTotalPages(1);
+          setTotalCustomers(list.length);
+        }
       } catch (err) {
         if (err?.name !== "AbortError") {
           console.error("Fetch customers error:", err);
           setCustomers([]);
+          setCustomersError(err?.message || "Failed to load customers");
         }
+      } finally {
+        setCustomersLoading(false);
       }
     })();
 
     return () => controller.abort();
-  }, []);
+  }, [authHeaders, page, statusFilter, searchQuery]); // Depend on pagination and filter states
+
+  // Reset page to 1 when search query or status filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter]);
 
   const handleAddEmployee = () => {
     setIsModalOpen(true);
@@ -634,7 +676,9 @@ export default function PeoplePage() {
 
         const created = customerJson?.data;
         if (created) {
-          setCustomers((prev) => [normalizeCustomer(created), ...prev]);
+          // After creating, refetch customers to update the list and pagination
+          setPage(1); // Go back to the first page to see the new customer
+          // The useEffect for customers will trigger a refetch
         }
 
         setShowCreateCustomerModal(false);
@@ -706,11 +750,12 @@ export default function PeoplePage() {
           throw new Error(msg);
         }
 
-        const saved = json?.data;
-        const normalized = saved ? normalizeCustomer(saved) : updatedCustomer;
+        // Trigger a refetch of customers to get the updated data and potentially new pagination info
+        // The useEffect for customers will trigger a refetch
         setCustomers((prev) =>
-          prev.map((c) => (c._id === normalized._id ? normalized : c))
+          prev.map((c) => (c._id === updatedCustomer._id ? updatedCustomer : c))
         );
+        handleCloseEditCustomerModal();
       } catch (error) {
         console.error("Update customer error:", error);
         window.alert(error?.message || "Failed to update customer");
@@ -739,6 +784,8 @@ export default function PeoplePage() {
         }
 
         // Backend soft-deletes by setting Status=INACTIVE; reflect in UI
+        // Trigger a refetch of customers to get the updated data and potentially new pagination info
+        // The useEffect for customers will trigger a refetch
         setCustomers((prev) =>
           prev.map((c) =>
             c._id === customerToDelete._id ? { ...c, status: "Inactive" } : c
@@ -862,26 +909,9 @@ export default function PeoplePage() {
     })();
   };
 
-  const filteredCustomers = customers
-    .filter((customer) => {
-      return (
-        customer.status.toLowerCase() === statusFilter.toLowerCase() ||
-        statusFilter === "All Status"
-      );
-    })
-    .filter((customer) => {
-      if (!searchQuery) return true;
-      const q = searchQuery.toLowerCase();
-      return (
-        (customer?.name || "").toLowerCase().includes(q) ||
-        (customer?.phone || "").toLowerCase().includes(q) ||
-        (customer?.email || "").toLowerCase().includes(q)
-      );
-    });
-
+  // Filter employees locally as their fetch doesn't support pagination/search yet
   const filteredEmployees = employees
     .filter((employee) => {
-      console.warn(employee);
       return (
         employee.status.toLowerCase() === statusFilter.toLowerCase() ||
         statusFilter === "All Status"
@@ -960,7 +990,7 @@ export default function PeoplePage() {
             onChange={setStatusFilter}
             count={
               activeTab === "customers"
-                ? `(${filteredCustomers.length}/${customers.length})`
+                ? `(${customers.length}/${totalCustomers})` // Use totalCustomers for overall count
                 : `(${filteredEmployees.length}/${employees.length})`
             }
           />
@@ -968,12 +998,19 @@ export default function PeoplePage() {
 
         {activeTab === "customers" ? (
           <CustomersTable
-            customers={filteredCustomers}
+            customers={customers} // Already filtered and paginated by backend
+            loading={customersLoading}
+            error={customersError}
             phoneIcon={phoneIconUrl}
             onView={handleViewCustomer}
             onViewCards={handleViewCards}
             onEdit={handleEditCustomer}
             onDelete={handleDeleteCustomer}
+            // Pagination props
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            totalCustomers={totalCustomers}
           />
         ) : (
           <EmployeesTable

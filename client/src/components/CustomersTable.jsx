@@ -5,7 +5,7 @@ import editIcon from '../assets/icons/common/actions/edit.svg';
 import cardIcon from '../assets/icons/cards/general/cards-list.svg';
 import deleteIcon from '../assets/icons/common/actions/trash.svg';
 
-export default function CustomersTable({ customers, phoneIcon, onView, onViewCards, onEdit, onDelete }) {
+export default function CustomersTable({ customers, phoneIcon, onView, onViewCards, onEdit, onDelete, currentPage = 1, totalPages = 1, onPageChange, totalCustomers }) {
   const headers = ['ID', 'Customer', 'Contact', 'Status', 'Registered', 'Actions'];
 
   const getStatusBadgeClass = (status) => {
@@ -109,9 +109,13 @@ export default function CustomersTable({ customers, phoneIcon, onView, onViewCar
   return (
     <DataTable
       headers={headers}
+      columnKeys={['id', 'customer', 'contact', 'status', 'registered', 'actions']}
       rows={rows}
-      total={customers.length}
+      total={totalCustomers || customers.length}
       itemName="results"
+      currentPage={currentPage}
+      totalPages={totalPages}
+      onPageChange={onPageChange}
     />
   );
 }
