@@ -1,4 +1,6 @@
 import '../styles/pages/Dashboard.css';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 import CashIcon from '../assets/icons/dashboard/cash.svg?react';
 import CarIcon from '../assets/icons/dashboard/car.svg?react';
@@ -19,7 +21,166 @@ import CapacityTrucksIcon from '../assets/icons/dashboard/capacity-trucks.svg?re
 import CapacityVansIcon from '../assets/icons/dashboard/capacity-vans.svg?react';
 
 export default function Dashboard() {
-  const stats = [
+  const { token } = useAuth();
+  const [stats, setStats] = useState(null);
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+  const [capacity, setCapacity] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+
+        // Fetch all dashboard data in parallel
+        const [statsRes, activityRes, alertsRes, capacityRes] = await Promise.all([
+          fetch(`${baseURL}/dashboard/stats`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          fetch(`${baseURL}/dashboard/recent-activity?limit=4`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          fetch(`${baseURL}/dashboard/alerts`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          fetch(`${baseURL}/dashboard/capacity`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
+
+        const statsData = await statsRes.json();
+        const activityData = await activityRes.json();
+        const alertsData = await alertsRes.json();
+        const capacityData = await capacityRes.json();
+
+        if (statsData.success) {
+          setStats(statsData.data);
+        }
+        if (activityData.success) {
+          setRecentActivity(activityData.data);
+        }
+        if (alertsData.success) {
+          setAlerts(alertsData.data);
+        }
+        if (capacityData.success) {
+          setCapacity(capacityData.data);
+        }
+
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch dashboard data:', err);
+        setError('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (token) {
+      fetchDashboardData();
+      // Refresh every 30 seconds
+      const interval = setInterval(fetchDashboardData, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [token]);
+
+  // Format currency
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
+
+  // Format relative time
+  const formatRelativeTime = (timestamp) => {
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diffInMinutes = Math.floor((now - time) / (1000 * 60));
+
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes} mins ago`;
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours} hours ago`;
+    return time.toLocaleDateString();
+  };
+
+  // Build stats cards from API data
+  const statsCards = stats ? [
+    {
+      id: 'revenue',
+      title: "Today's Revenue",
+      value: formatCurrency(stats.revenue.value),
+      subtext: null,
+      trend: {
+        value: `${Math.abs(stats.revenue.trend).toFixed(1)}%`,
+        direction: stats.revenue.trendDirection
+      },
+      color: 'green',
+      icon: CashIcon,
+    },
+    {
+      id: 'vehicles',
+      title: 'Vehicles In Lot',
+      value: stats.vehiclesInLot.value.toString(),
+      subtext: `${stats.vehiclesInLot.capacityPercent}% Capacity`,
+      trend: null,
+      color: 'blue',
+      icon: CarIcon,
+    },
+    {
+      id: 'staff',
+      title: 'Active Staff',
+      value: stats.activeStaff.value.toString(),
+      subtext: 'On Duty Now',
+      trend: null,
+      color: 'purple',
+      icon: UsersIcon,
+    },
+    {
+      id: 'entries',
+      title: "Today's Entries",
+      value: stats.todayEntries.value.toString(),
+      subtext: null,
+      trend: {
+        value: `${Math.abs(stats.todayEntries.trend).toFixed(1)}%`,
+        direction: stats.todayEntries.trendDirection
+      },
+      color: 'amber',
+      icon: PulseIcon,
+    },
+  ] : [];
+
+  // Map capacity data to display format
+  const capacityCards = capacity.map(c => ({
+    id: c.id,
+    title: c.name,
+    value: `${c.current} / ${c.max}`,
+    percentLabel: `${c.percent}% Full`,
+    percent: c.percent,
+    tone: c.tone
+  }));
+
+  if (loading) {
+    return (
+      <div className="dashboard" style={{ padding: '2rem', textAlign: 'center' }}>
+        <div>Loading dashboard...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="dashboard" style={{ padding: '2rem', textAlign: 'center', color: 'red' }}>
+        <div>{error}</div>
+      </div>
+    );
+  }
+
+  const statsCardsToDisplay = [
     {
       id: 'revenue',
       title: "Today's Revenue",
@@ -58,7 +219,7 @@ export default function Dashboard() {
     },
   ];
 
-  const recentActivity = [
+  const recentActivityToDisplay = [
     {
       id: 1,
       type: 'ENTRY',
@@ -93,7 +254,7 @@ export default function Dashboard() {
     },
   ];
 
-  const alerts = [
+  const alertsToDisplay = [
     {
       id: 1,
       tone: 'warning',
@@ -114,7 +275,7 @@ export default function Dashboard() {
     },
   ];
 
-  const capacity = [
+  const capacityToDisplay = [
     {
       id: 'cars',
       title: 'Cars',
@@ -149,160 +310,182 @@ export default function Dashboard() {
     },
   ];
 
+  // Use real data if available, fallback to mock data
+  const displayStats = statsCards.length > 0 ? statsCards : statsCardsToDisplay;
+  const displayActivity = recentActivity.length > 0
+    ? recentActivity.map(a => ({
+      id: a.id,
+      type: a.type,
+      plate: a.plate,
+      meta: `${a.personName} • ${formatRelativeTime(a.timestamp)}`,
+      tone: a.type === 'ENTRY' ? 'blue' : 'green',
+      amount: a.amount > 0 ? `+${formatCurrency(a.amount)}` : null
+    }))
+    : recentActivityToDisplay;
+  const displayAlerts = alerts.length > 0
+    ? alerts.map(al => ({
+      id: al.id,
+      tone: al.tone,
+      title: al.title,
+      time: formatRelativeTime(al.timestamp)
+    }))
+    : alertsToDisplay;
+  const displayCapacity = capacityCards.length > 0 ? capacityCards : capacityToDisplay;
+
   return (
-      <div className="dashboard">
-        <section className="dashboard-stats" aria-label="Key statistics">
-          {stats.map((s) => (
-            <div key={s.id} className="dashboard-statCard">
-              <div className="dashboard-statCardTop">
-                <div className={`dashboard-statIcon dashboard-statIcon--${s.color}`} aria-hidden="true">
-                  {s.icon ? <s.icon className="dashboard-statIconSvg" aria-hidden="true" focusable="false" /> : null}
+    <div className="dashboard">
+      <section className="dashboard-stats" aria-label="Key statistics">
+        {displayStats.map((s) => (
+          <div key={s.id} className="dashboard-statCard">
+            <div className="dashboard-statCardTop">
+              <div className={`dashboard-statIcon dashboard-statIcon--${s.color}`} aria-hidden="true">
+                {s.icon ? <s.icon className="dashboard-statIconSvg" aria-hidden="true" focusable="false" /> : null}
+              </div>
+              {s.trend ? (
+                <div className="dashboard-statTrend">
+                  <ArrowUpIcon className="dashboard-statTrendArrow" aria-hidden="true" focusable="false" />
+                  <span className="dashboard-statTrendValue">{s.trend.value}</span>
                 </div>
-                {s.trend ? (
-                  <div className="dashboard-statTrend">
-                    <ArrowUpIcon className="dashboard-statTrendArrow" aria-hidden="true" focusable="false" />
-                    <span className="dashboard-statTrendValue">{s.trend.value}</span>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="dashboard-statContent">
-                <div className="dashboard-statLabel">{s.title}</div>
-                <div className="dashboard-statValue">{s.value}</div>
-                {s.subtext ? <div className="dashboard-statSubtext">{s.subtext}</div> : null}
-              </div>
+              ) : null}
             </div>
-          ))}
-        </section>
 
-        <section className="dashboard-row dashboard-row--charts" aria-label="Charts">
-          <div className="dashboard-panel dashboard-panel--wide">
-            <div className="dashboard-panelHeader">
-              <div className="dashboard-panelTitle">Today's Revenue Trend</div>
-              <div className="dashboard-panelMeta">Last 6 hours</div>
-            </div>
-            <div className="dashboard-chartPlaceholder" role="img" aria-label="Revenue trend chart (placeholder)" />
-            <div className="dashboard-chartHint">(Chart placeholder — wire real data later)</div>
-          </div>
-
-          <div className="dashboard-panel">
-            <div className="dashboard-panelHeader">
-              <div className="dashboard-panelTitle">Vehicle Distribution</div>
-            </div>
-            <div className="dashboard-donutPlaceholder" role="img" aria-label="Vehicle distribution donut chart (placeholder)" />
-            <div className="dashboard-legend">
-              <div className="dashboard-legendItem">
-                <span className="dashboard-dot dashboard-dot--blue" />
-                <span>Cars:</span>
-                <span className="dashboard-legendValue">245</span>
-              </div>
-              <div className="dashboard-legendItem">
-                <span className="dashboard-dot dashboard-dot--purple" />
-                <span>Motorcycles:</span>
-                <span className="dashboard-legendValue">389</span>
-              </div>
-              <div className="dashboard-legendItem">
-                <span className="dashboard-dot dashboard-dot--orange" />
-                <span>Trucks:</span>
-                <span className="dashboard-legendValue">87</span>
-              </div>
-              <div className="dashboard-legendItem">
-                <span className="dashboard-dot dashboard-dot--green" />
-                <span>Vans:</span>
-                <span className="dashboard-legendValue">132</span>
-              </div>
+            <div className="dashboard-statContent">
+              <div className="dashboard-statLabel">{s.title}</div>
+              <div className="dashboard-statValue">{s.value}</div>
+              {s.subtext ? <div className="dashboard-statSubtext">{s.subtext}</div> : null}
             </div>
           </div>
-        </section>
+        ))}
+      </section>
 
-        <section className="dashboard-row dashboard-row--lists" aria-label="Activity and alerts">
-          <div className="dashboard-panel">
-            <div className="dashboard-panelHeader">
-              <div className="dashboard-panelTitle">Recent Activity</div>
-            </div>
-
-            <div className="dashboard-activityList">
-              {recentActivity.map((a) => (
-                <div key={a.id} className="dashboard-activityItem">
-                  <div className={`dashboard-activityIcon dashboard-activityIcon--${a.tone}`} aria-hidden="true">
-                    {a.type === 'ENTRY' ? (
-                      <EntryActivityIcon className="dashboard-activityIconSvg" aria-hidden="true" focusable="false" />
-                    ) : (
-                      <ExitActivityIcon className="dashboard-activityIconSvg" aria-hidden="true" focusable="false" />
-                    )}
-                  </div>
-                  <div className="dashboard-activityBody">
-                    <div className="dashboard-activityTop">
-                      <span className={`dashboard-pill dashboard-pill--${a.tone}`}>{a.type}</span>
-                      <span className="dashboard-activityPlate">{a.plate}</span>
-                    </div>
-                    <div className="dashboard-activityMeta">{a.meta}</div>
-                  </div>
-                  {a.amount ? <div className="dashboard-activityAmount">{a.amount}</div> : null}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="dashboard-panel">
-            <div className="dashboard-panelHeader">
-              <div className="dashboard-panelTitle">Active Alerts</div>
-            </div>
-
-            <div className="dashboard-alertList">
-              {alerts.map((al) => (
-                <div key={al.id} className={`dashboard-alert dashboard-alert--${al.tone}`}>
-                  <div className="dashboard-alertIcon" aria-hidden="true">
-                    {al.tone === 'warning' ? (
-                      <AlertWarningIcon className="dashboard-alertIconSvg" aria-hidden="true" focusable="false" />
-                    ) : al.tone === 'danger' ? (
-                      <AlertDangerIcon className="dashboard-alertIconSvg" aria-hidden="true" focusable="false" />
-                    ) : (
-                      <AlertInfoIcon className="dashboard-alertIconSvg" aria-hidden="true" focusable="false" />
-                    )}
-                  </div>
-                  <div className="dashboard-alertBody">
-                    <div className="dashboard-alertTitle">{al.title}</div>
-                    <div className="dashboard-alertTime">{al.time}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="dashboard-panel" aria-label="Parking capacity overview">
+      <section className="dashboard-row dashboard-row--charts" aria-label="Charts">
+        <div className="dashboard-panel dashboard-panel--wide">
           <div className="dashboard-panelHeader">
-            <div className="dashboard-panelTitle">Parking Capacity Overview</div>
+            <div className="dashboard-panelTitle">Today's Revenue Trend</div>
+            <div className="dashboard-panelMeta">Last 6 hours</div>
           </div>
-          <div className="dashboard-capacityGrid">
-            {capacity.map((c) => (
-              <div key={c.id} className={`dashboard-capacityCard dashboard-capacityCard--${c.tone}`}>
-                <div className="dashboard-capacityTop">
-                  <div className="dashboard-capacityTitle">
-                    <span className="dashboard-capacityIcon" aria-hidden="true">
-                      {c.id === 'cars' ? (
-                        <CapacityCarsIcon className="dashboard-capacityIconSvg" aria-hidden="true" focusable="false" />
-                      ) : c.id === 'motorcycles' ? (
-                        <CapacityMotorcyclesIcon className="dashboard-capacityIconSvg" aria-hidden="true" focusable="false" />
-                      ) : c.id === 'trucks' ? (
-                        <CapacityTrucksIcon className="dashboard-capacityIconSvg" aria-hidden="true" focusable="false" />
-                      ) : (
-                        <CapacityVansIcon className="dashboard-capacityIconSvg" aria-hidden="true" focusable="false" />
-                      )}
-                    </span>
-                    <span>{c.title}</span>
-                  </div>
-                  <div className="dashboard-capacityPercent">{c.percentLabel}</div>
+          <div className="dashboard-chartPlaceholder" role="img" aria-label="Revenue trend chart (placeholder)" />
+          <div className="dashboard-chartHint">(Chart placeholder — wire real data later)</div>
+        </div>
+
+        <div className="dashboard-panel">
+          <div className="dashboard-panelHeader">
+            <div className="dashboard-panelTitle">Vehicle Distribution</div>
+          </div>
+          <div className="dashboard-donutPlaceholder" role="img" aria-label="Vehicle distribution donut chart (placeholder)" />
+          <div className="dashboard-legend">
+            <div className="dashboard-legendItem">
+              <span className="dashboard-dot dashboard-dot--blue" />
+              <span>Cars:</span>
+              <span className="dashboard-legendValue">245</span>
+            </div>
+            <div className="dashboard-legendItem">
+              <span className="dashboard-dot dashboard-dot--purple" />
+              <span>Motorcycles:</span>
+              <span className="dashboard-legendValue">389</span>
+            </div>
+            <div className="dashboard-legendItem">
+              <span className="dashboard-dot dashboard-dot--orange" />
+              <span>Trucks:</span>
+              <span className="dashboard-legendValue">87</span>
+            </div>
+            <div className="dashboard-legendItem">
+              <span className="dashboard-dot dashboard-dot--green" />
+              <span>Vans:</span>
+              <span className="dashboard-legendValue">132</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="dashboard-row dashboard-row--lists" aria-label="Activity and alerts">
+        <div className="dashboard-panel">
+          <div className="dashboard-panelHeader">
+            <div className="dashboard-panelTitle">Recent Activity</div>
+          </div>
+
+          <div className="dashboard-activityList">
+            {displayActivity.map((a) => (
+              <div key={a.id} className="dashboard-activityItem">
+                <div className={`dashboard-activityIcon dashboard-activityIcon--${a.tone}`} aria-hidden="true">
+                  {a.type === 'ENTRY' ? (
+                    <EntryActivityIcon className="dashboard-activityIconSvg" aria-hidden="true" focusable="false" />
+                  ) : (
+                    <ExitActivityIcon className="dashboard-activityIconSvg" aria-hidden="true" focusable="false" />
+                  )}
                 </div>
-                <div className={`dashboard-capacityValue dashboard-capacityValue--${c.tone}`}>{c.value}</div>
-                <div className={`dashboard-progress dashboard-progress--${c.tone}`}>
-                  <div className="dashboard-progressBar" style={{ width: `${c.percent}%` }} />
+                <div className="dashboard-activityBody">
+                  <div className="dashboard-activityTop">
+                    <span className={`dashboard-pill dashboard-pill--${a.tone}`}>{a.type}</span>
+                    <span className="dashboard-activityPlate">{a.plate}</span>
+                  </div>
+                  <div className="dashboard-activityMeta">{a.meta}</div>
+                </div>
+                {a.amount ? <div className="dashboard-activityAmount">{a.amount}</div> : null}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="dashboard-panel">
+          <div className="dashboard-panelHeader">
+            <div className="dashboard-panelTitle">Active Alerts</div>
+          </div>
+
+          <div className="dashboard-alertList">
+            {displayAlerts.map((al) => (
+              <div key={al.id} className={`dashboard-alert dashboard-alert--${al.tone}`}>
+                <div className="dashboard-alertIcon" aria-hidden="true">
+                  {al.tone === 'warning' ? (
+                    <AlertWarningIcon className="dashboard-alertIconSvg" aria-hidden="true" focusable="false" />
+                  ) : al.tone === 'danger' ? (
+                    <AlertDangerIcon className="dashboard-alertIconSvg" aria-hidden="true" focusable="false" />
+                  ) : (
+                    <AlertInfoIcon className="dashboard-alertIconSvg" aria-hidden="true" focusable="false" />
+                  )}
+                </div>
+                <div className="dashboard-alertBody">
+                  <div className="dashboard-alertTitle">{al.title}</div>
+                  <div className="dashboard-alertTime">{al.time}</div>
                 </div>
               </div>
             ))}
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
+
+      <section className="dashboard-panel" aria-label="Parking capacity overview">
+        <div className="dashboard-panelHeader">
+          <div className="dashboard-panelTitle">Parking Capacity Overview</div>
+        </div>
+        <div className="dashboard-capacityGrid">
+          {displayCapacity.map((c) => (
+            <div key={c.id} className={`dashboard-capacityCard dashboard-capacityCard--${c.tone}`}>
+              <div className="dashboard-capacityTop">
+                <div className="dashboard-capacityTitle">
+                  <span className="dashboard-capacityIcon" aria-hidden="true">
+                    {c.id === 'cars' || c.title === 'Ô tô' ? (
+                      <CapacityCarsIcon className="dashboard-capacityIconSvg" aria-hidden="true" focusable="false" />
+                    ) : c.id === 'motorcycles' || c.title === 'Xe máy' ? (
+                      <CapacityMotorcyclesIcon className="dashboard-capacityIconSvg" aria-hidden="true" focusable="false" />
+                    ) : c.id === 'trucks' || c.title === 'Xe tải' ? (
+                      <CapacityTrucksIcon className="dashboard-capacityIconSvg" aria-hidden="true" focusable="false" />
+                    ) : (
+                      <CapacityVansIcon className="dashboard-capacityIconSvg" aria-hidden="true" focusable="false" />
+                    )}
+                  </span>
+                  <span>{c.title}</span>
+                </div>
+                <div className="dashboard-capacityPercent">{c.percentLabel}</div>
+              </div>
+              <div className={`dashboard-capacityValue dashboard-capacityValue--${c.tone}`}>{c.value}</div>
+              <div className={`dashboard-progress dashboard-progress--${c.tone}`}>
+                <div className="dashboard-progressBar" style={{ width: `${c.percent}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }
