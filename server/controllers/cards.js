@@ -5,6 +5,43 @@ const Person = require('../models/person')
 const Employee = require('../models/employee')
 const Customer = require('../models/customer')
 
+// GET next UID in sequence (for auto-generation)
+cardsRouter.get('/next-uid', async (req, res) => {
+  try {
+    // Find the latest card with a valid UID format (UID-XXXX)
+    const latestCard = await Card.findOne(
+      { UID: { $regex: /^UID-\d{4}$/ } },
+      { UID: 1 },
+      { sort: { UID: -1 } }
+    )
+
+    let nextNumber = 1
+    if (latestCard && latestCard.UID) {
+      const match = latestCard.UID.match(/^UID-(\d{4})$/)
+      if (match) {
+        nextNumber = parseInt(match[1], 10) + 1
+      }
+    }
+
+    const nextUid = `UID-${nextNumber.toString().padStart(4, '0')}`
+
+    res.json({
+      success: true,
+      data: {
+        nextUid
+      }
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: {
+        message: error.message,
+        code: 'GET_NEXT_UID_ERROR'
+      }
+    })
+  }
+})
+
 // GET all cards with filtering and pagination
 cardsRouter.get('/', async (req, res) => {
   try {
@@ -447,37 +484,51 @@ cardsRouter.post('/:id/assign', async (req, res) => {
     // Apply assignment
     card.OwnerID = String(personId)
 
-    // If UID is not yet known, allow providing it at assignment time (scan/type).
-    if (!card.UID) {
-      const nextUid = String(uid || '').trim()
-      if (!nextUid) {
-        return res.status(400).json({
-          success: false,
-          error: {
-            message: 'uid is required to assign a card without UID',
-            code: 'UID_REQUIRED'
-          }
-        })
-      }
-
-      // Ensure UID not already used by another card.
-      const existing = await Card.findOne({ UID: nextUid })
-      if (existing) {
-        return res.status(409).json({
-          success: false,
-          error: {
-            message: 'UID already exists',
-            code: 'UID_ALREADY_EXISTS'
-          }
-        })
-      }
-
-      card.UID = nextUid
-      card.UIDScannedAt = new Date()
+    // Always require UID in new format when assigning
+    const nextUid = String(uid || '').trim()
+    if (!nextUid) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'UID is required when assigning a card',
+          code: 'UID_REQUIRED'
+        }
+      })
     }
 
-    // If RFID is now present, activate; otherwise keep pending.
-    card.Status = card.UID ? 'ACTIVE' : 'PENDING_RFID'
+    // Validate new UID format (UID-XXXX)
+    const UID_FORMAT_REGEX = /^UID-\d{4}$/
+    if (!UID_FORMAT_REGEX.test(nextUid)) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'UID must be in format UID-XXXX (e.g. UID-0001)',
+          code: 'INVALID_UID_FORMAT'
+        }
+      })
+    }
+
+    // Ensure UID not already used by another card (excluding current card)
+    const existing = await Card.findOne({
+      UID: nextUid,
+      _id: { $ne: card._id }
+    })
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        error: {
+          message: 'UID already exists',
+          code: 'UID_ALREADY_EXISTS'
+        }
+      })
+    }
+
+    // Update UID to new format (replacing old UID if exists)
+    card.UID = nextUid
+    card.UIDScannedAt = new Date()
+
+    // Activate the card
+    card.Status = 'ACTIVE'
     if (!card.ActiveDay) card.ActiveDay = new Date()
 
     const updated = await card.save()

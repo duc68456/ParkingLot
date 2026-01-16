@@ -43,6 +43,8 @@ const cardSchema = new mongoose.Schema({
     type: String,
     trim: true,
     maxLength: 64
+    // Note: Validation for new UID format (UID-XXXX) is done at controller level
+    // to allow backward compatibility with existing card UIDs
   },
   // ✅ CHANGED: IsActive → Status (multi-state)
   Status: {

@@ -511,6 +511,9 @@ cardPurchaseInvoicesRouter.put('/:id', async (req, res) => {
 // into fresh inventory cards, one per detail line.
 cardPurchaseInvoicesRouter.post('/:id/confirm-payment', async (req, res) => {
   const session = await mongoose.startSession()
+  // Store created cards outside transaction for response
+  let createdCards = []
+
   try {
     const invoiceIdOrObjectId = req.params.id
     await session.withTransaction(async () => {
@@ -546,7 +549,7 @@ cardPurchaseInvoicesRouter.post('/:id/confirm-payment', async (req, res) => {
         })
       }
 
-  // Create fresh inventory cards (UNASSIGNED, no owner, UID not known yet)
+      // Create fresh inventory cards (UNASSIGNED, no owner, UID not known yet)
       // based on quantities per purchased card category.
       let nextCardId = await generateNextCardId(session)
       let nextCardSeq = parseInt(nextCardId.substring(3))
@@ -573,17 +576,40 @@ cardPurchaseInvoicesRouter.post('/:id/confirm-payment', async (req, res) => {
 
       await Card.insertMany(newCards, { session })
 
+      // Store for response
+      createdCards = newCards.map(c => ({
+        CardID: c.CardID,
+        CardCategoryID: c.CardCategoryID,
+        Status: c.Status
+      }))
+
       invoice.Status = 'COMPLETED'
       await invoice.save({ session })
     })
 
-    // Return refreshed invoice
+    // Return refreshed invoice with created cards
     const updated = mongoose.isValidObjectId(invoiceIdOrObjectId)
       ? await CardPurchaseInvoice.findById(invoiceIdOrObjectId)
       : await CardPurchaseInvoice.findOne({ ID: invoiceIdOrObjectId })
+
+    // Hydrate card categories for better display
+    const categoryIds = [...new Set(createdCards.map(c => c.CardCategoryID).filter(Boolean))]
+    const categories = categoryIds.length
+      ? await CardCategory.find({ ID: { $in: categoryIds } }).select('ID Name')
+      : []
+    const categoryById = new Map(categories.map(c => [c.ID, c.Name]))
+
+    const hydratedCards = createdCards.map(c => ({
+      ...c,
+      CardCategoryName: categoryById.get(c.CardCategoryID) || c.CardCategoryID
+    }))
+
     res.json({
       success: true,
-      data: updated,
+      data: {
+        invoice: updated,
+        createdCards: hydratedCards
+      },
       message: 'Payment confirmed and cards added to inventory'
     })
   } catch (error) {

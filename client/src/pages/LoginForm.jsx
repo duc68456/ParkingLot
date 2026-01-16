@@ -16,7 +16,7 @@ export default function LoginForm({ type }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    ;(async () => {
+    ; (async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/api/admin-accounts/login`, {
           method: 'POST',
@@ -45,11 +45,11 @@ export default function LoginForm({ type }) {
 
         const initials = fullName
           ? fullName
-              .trim()
-              .split(/\s+/)
-              .slice(0, 2)
-              .map((n) => n[0]?.toUpperCase())
-              .join('')
+            .trim()
+            .split(/\s+/)
+            .slice(0, 2)
+            .map((n) => n[0]?.toUpperCase())
+            .join('')
           : 'AD'
 
         login(
@@ -58,7 +58,8 @@ export default function LoginForm({ type }) {
             email: data?.Username ? `${data.Username}` : username,
             initials,
             id: data?.ID,
-            employeeId: data?.EmployeeID?.ID,
+            // EmployeeBusinessID is a string like "EMP0001", not an object
+            employeeId: data?.EmployeeBusinessID || data?.EmployeeID,
             employeeMongoId: data?.EmployeeID?.id,
             type: 'admin'
           },
@@ -95,8 +96,8 @@ export default function LoginForm({ type }) {
           onChange={(e) => setPassword(e.target.value)}
         />
         <Button type="submit">Login</Button>
-        <button 
-          type="button" 
+        <button
+          type="button"
           className="forgot-password-link"
           onClick={handleForgotPassword}
         >

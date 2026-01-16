@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import '../styles/components/RegisterSubscriptionModal.css';
 import { useAuth } from '../contexts/AuthContext';
+import AddVehicleModal from './AddVehicleModal';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
@@ -44,6 +45,14 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
   const [vehicleLoading, setVehicleLoading] = useState(false);
   const vehicleReqId = useRef(0);
 
+  // Add vehicle modal
+  const [showAddVehicle, setShowAddVehicle] = useState(false);
+  const [vehicleTypes, setVehicleTypes] = useState([]);
+
+  // Latest items for initial display (5 most recent)
+  const [latestCards, setLatestCards] = useState([]);
+  const [latestVehicles, setLatestVehicles] = useState([]);
+
   const cardSelected = useMemo(
     () => (cardId ? cardResults.find(r => r.id === cardId) || null : null),
     [cardId, cardResults]
@@ -64,7 +73,7 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
     setStartDate(today);
   }, []);
 
-  // Load subscription types (small list)
+  // Load subscription types, vehicle types, and 5 latest cards/vehicles on mount
   useEffect(() => {
     let cancelled = false;
 
@@ -73,10 +82,26 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
       setError('');
 
       try {
+        // Fetch subscription types
         const typesRes = await fetch(`${API_BASE_URL}/api/subscription-types?limit=200`, { headers: { ...authHeaders } });
         const typesJson = await typesRes.json().catch(() => null);
         if (!typesRes.ok) throw new Error(typesJson?.error?.message || `Failed to load subscription types (${typesRes.status})`);
         const typesItems = Array.isArray(typesJson?.data?.items) ? typesJson.data.items : [];
+
+        // Fetch vehicle types (for AddVehicleModal)
+        const vTypesRes = await fetch(`${API_BASE_URL}/api/vehicle-types?limit=50`, { headers: { ...authHeaders } });
+        const vTypesJson = await vTypesRes.json().catch(() => null);
+        const vTypesItems = Array.isArray(vTypesJson?.data?.vehicleTypes) ? vTypesJson.data.vehicleTypes : [];
+
+        // Fetch 5 latest cards (sorted by createdAt desc)
+        const cardsRes = await fetch(`${API_BASE_URL}/api/cards?limit=5`, { headers: { ...authHeaders } });
+        const cardsJson = await cardsRes.json().catch(() => null);
+        const cardsItems = Array.isArray(cardsJson?.data?.items) ? cardsJson.data.items : [];
+
+        // Fetch 5 latest vehicles (sorted by createdAt desc)
+        const vehiclesRes = await fetch(`${API_BASE_URL}/api/vehicles?limit=5`, { headers: { ...authHeaders } });
+        const vehiclesJson = await vehiclesRes.json().catch(() => null);
+        const vehiclesItems = Array.isArray(vehiclesJson?.data?.items) ? vehiclesJson.data.items : [];
 
         if (cancelled) return;
 
@@ -88,6 +113,35 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
             duration: Number(t?.DurationDays) || 0,
             price: Number(t?.Price) || null
           })).filter((t) => t.id)
+        );
+
+        // Vehicle types for AddVehicleModal
+        setVehicleTypes(
+          vTypesItems.map((vt) => ({
+            id: vt?.VehicleTypeID || vt?.id,
+            name: vt?.Name || vt?.name,
+            IsActive: vt?.IsActive ?? true
+          })).filter((vt) => vt.id)
+        );
+
+        // Latest 5 cards
+        setLatestCards(
+          cardsItems.map((c) => ({
+            id: c?.CardID,
+            uid: c?.UID,
+            category: c?.CardCategoryID?.Name || c?.CardCategoryID?.name || '',
+            categoryId: c?.CardCategoryID?.ID || c?.CardCategoryID?.id || ''
+          })).filter((c) => c.id)
+        );
+
+        // Latest 5 vehicles
+        setLatestVehicles(
+          vehiclesItems.map((v) => ({
+            id: v?.VehicleID,
+            plate: v?.PlateNumber,
+            typeName: v?.VehicleType?.Name || v?.VehicleType?.name || '',
+            typeId: v?.VehicleType?.VehicleTypeID || v?.VehicleType?.id || ''
+          })).filter((v) => v.id)
         );
       } catch (e) {
         if (cancelled) return;
@@ -104,12 +158,14 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
     };
   }, [authHeaders]);
 
-  // Search cards (async)
+  // Search cards (async) - show latest 5 when no query
   useEffect(() => {
     const q = String(cardQuery || '').trim();
     if (!cardOpen) return;
+
+    // If no query or too short, show latest cards
     if (q.length < 2) {
-      setCardResults([]);
+      setCardResults(latestCards);
       setCardLoading(false);
       return;
     }
@@ -142,14 +198,16 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
     }, 250);
 
     return () => clearTimeout(t);
-  }, [cardQuery, cardOpen, authHeaders]);
+  }, [cardQuery, cardOpen, authHeaders, latestCards]);
 
-  // Search vehicles (async)
+  // Search vehicles (async) - show latest 5 when no query
   useEffect(() => {
     const q = String(vehicleQuery || '').trim();
     if (!vehicleOpen) return;
+
+    // If no query or too short, show latest vehicles
     if (q.length < 2) {
-      setVehicleResults([]);
+      setVehicleResults(latestVehicles);
       setVehicleLoading(false);
       return;
     }
@@ -182,7 +240,7 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
     }, 250);
 
     return () => clearTimeout(t);
-  }, [vehicleQuery, vehicleOpen, authHeaders]);
+  }, [vehicleQuery, vehicleOpen, authHeaders, latestVehicles]);
 
   // Calculate end date and price when subscription type changes
   useEffect(() => {
@@ -434,26 +492,31 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
                       <div className="register-subscription-async-list">
                         {cardLoading ? (
                           <div className="register-subscription-async-empty">Searching…</div>
-                        ) : cardQuery.trim().length < 2 ? (
-                          <div className="register-subscription-async-empty">Type at least 2 characters</div>
                         ) : cardResults.length === 0 ? (
-                          <div className="register-subscription-async-empty">No results</div>
+                          <div className="register-subscription-async-empty">
+                            {cardQuery.trim().length >= 2 ? 'No results' : 'No cards available'}
+                          </div>
                         ) : (
-                          cardResults.map((c) => (
-                            <button
-                              type="button"
-                              key={c.id}
-                              className="register-subscription-async-item"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => {
-                                setCardId(c.id);
-                                setCardOpen(false);
-                              }}
-                            >
-                              <div className="register-subscription-async-item-title">{c.id}{c.uid ? ` - ${c.uid}` : ''}</div>
-                              <div className="register-subscription-async-item-subtitle">{c.category || '—'}</div>
-                            </button>
-                          ))
+                          <>
+                            {cardQuery.trim().length < 2 && (
+                              <div className="register-subscription-async-header">Recent Cards</div>
+                            )}
+                            {cardResults.map((c) => (
+                              <button
+                                type="button"
+                                key={c.id}
+                                className="register-subscription-async-item"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => {
+                                  setCardId(c.id);
+                                  setCardOpen(false);
+                                }}
+                              >
+                                <div className="register-subscription-async-item-title">{c.id}{c.uid ? ` - ${c.uid}` : ''}</div>
+                                <div className="register-subscription-async-item-subtitle">{c.category || '—'}</div>
+                              </button>
+                            ))}
+                          </>
                         )}
                       </div>
                     ) : null}
@@ -506,26 +569,55 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
                       <div className="register-subscription-async-list">
                         {vehicleLoading ? (
                           <div className="register-subscription-async-empty">Searching…</div>
-                        ) : vehicleQuery.trim().length < 2 ? (
-                          <div className="register-subscription-async-empty">Type at least 2 characters</div>
                         ) : vehicleResults.length === 0 ? (
-                          <div className="register-subscription-async-empty">No results</div>
-                        ) : (
-                          vehicleResults.map((v) => (
+                          <>
+                            <div className="register-subscription-async-empty">
+                              {vehicleQuery.trim().length >= 2 ? 'No results' : 'No vehicles available'}
+                            </div>
                             <button
                               type="button"
-                              key={v.id}
-                              className="register-subscription-async-item"
+                              className="register-subscription-async-add-btn"
                               onMouseDown={(e) => e.preventDefault()}
                               onClick={() => {
-                                setVehicleId(v.id);
                                 setVehicleOpen(false);
+                                setShowAddVehicle(true);
                               }}
                             >
-                              <div className="register-subscription-async-item-title">{v.id}{v.plate ? ` - ${v.plate}` : ''}</div>
-                              <div className="register-subscription-async-item-subtitle">{v.typeName || '—'}</div>
+                              + Add New Vehicle
                             </button>
-                          ))
+                          </>
+                        ) : (
+                          <>
+                            {vehicleQuery.trim().length < 2 && (
+                              <div className="register-subscription-async-header">Recent Vehicles</div>
+                            )}
+                            {vehicleResults.map((v) => (
+                              <button
+                                type="button"
+                                key={v.id}
+                                className="register-subscription-async-item"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => {
+                                  setVehicleId(v.id);
+                                  setVehicleOpen(false);
+                                }}
+                              >
+                                <div className="register-subscription-async-item-title">{v.id}{v.plate ? ` - ${v.plate}` : ''}</div>
+                                <div className="register-subscription-async-item-subtitle">{v.typeName || '—'}</div>
+                              </button>
+                            ))}
+                            <button
+                              type="button"
+                              className="register-subscription-async-add-btn"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => {
+                                setVehicleOpen(false);
+                                setShowAddVehicle(true);
+                              }}
+                            >
+                              + Add New Vehicle
+                            </button>
+                          </>
                         )}
                       </div>
                     ) : null}
@@ -613,6 +705,72 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
           </button>
         </div>
       </div>
+
+      {/* Add Vehicle Modal */}
+      {showAddVehicle && (
+        <AddVehicleModal
+          vehicleTypes={vehicleTypes}
+          onClose={() => setShowAddVehicle(false)}
+          onSave={async (vehicleData) => {
+            try {
+              // Find vehicle type ID from name
+              const vehicleType = vehicleTypes.find(vt => vt.name === vehicleData.type);
+
+              const res = await fetch(`${API_BASE_URL}/api/vehicles`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...authHeaders
+                },
+                body: JSON.stringify({
+                  PlateNumber: vehicleData.licensePlate,
+                  VehicleTypeID: vehicleType?.id,
+                  Color: vehicleData.color
+                })
+              });
+
+              const json = await res.json().catch(() => null);
+
+              if (!res.ok) {
+                throw new Error(json?.error?.message || 'Failed to create vehicle');
+              }
+
+              const newVehicle = json?.data;
+              const newVehicleId = newVehicle?.VehicleID;
+
+              // Refresh latest vehicles
+              const refreshRes = await fetch(`${API_BASE_URL}/api/vehicles?limit=5`, { headers: { ...authHeaders } });
+              const refreshJson = await refreshRes.json().catch(() => null);
+              const refreshItems = Array.isArray(refreshJson?.data?.items) ? refreshJson.data.items : [];
+
+              setLatestVehicles(
+                refreshItems.map((v) => ({
+                  id: v?.VehicleID,
+                  plate: v?.PlateNumber,
+                  typeName: v?.VehicleType?.Name || v?.VehicleType?.name || '',
+                  typeId: v?.VehicleType?.VehicleTypeID || v?.VehicleType?.id || ''
+                })).filter((v) => v.id)
+              );
+
+              // Auto-select the new vehicle
+              if (newVehicleId) {
+                setVehicleId(newVehicleId);
+                // Add to results so vehicleSelected can find it
+                setVehicleResults(prev => [{
+                  id: newVehicleId,
+                  plate: newVehicle?.PlateNumber,
+                  typeName: vehicleType?.name || '',
+                  typeId: vehicleType?.id || ''
+                }, ...prev]);
+              }
+
+              setShowAddVehicle(false);
+            } catch (err) {
+              alert(err?.message || 'Failed to create vehicle');
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

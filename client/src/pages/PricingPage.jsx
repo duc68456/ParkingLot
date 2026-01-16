@@ -798,7 +798,7 @@ export default function PricingPage() {
           {entryPricingLoading ? (
             <div style={{ padding: '21.2px 24px' }}>Loading...</div>
           ) : (
-            <PricingRulesTable 
+            <PricingRulesTable
               pricingRules={pricingRules}
               onEditRule={handleEditRule}
               onViewHistory={handleViewEntryPricingHistory}
@@ -836,30 +836,30 @@ export default function PricingPage() {
                   </tr>
                 ) : (
                   cardPricing.map((card) => (
-                  <tr key={card.id}>
-                    <td className="card-id-cell">{card.id}</td>
-                    <td>{card.category}</td>
-                    <td>${card.price.toFixed(2)}</td>
-                    <td>{card.lastUpdated}</td>
-                    <td>
-                      <div className="action-buttons action-buttons-right">
-                        <button
-                          className="action-btn"
-                          onClick={() => handleViewCardPriceHistory(card)}
-                          title="View Price History"
-                        >
-                          <img src={viewIcon} alt="View" width="16" height="16" />
-                        </button>
-                        <button
-                          className="action-btn"
-                          onClick={() => handleEditCardPrice(card)}
-                          title="Edit"
-                        >
-                          <img src={editIcon} alt="Edit" width="16" height="16" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                    <tr key={card.id}>
+                      <td className="card-id-cell">{card.id}</td>
+                      <td>{card.category}</td>
+                      <td>${card.price.toFixed(2)}</td>
+                      <td>{card.lastUpdated}</td>
+                      <td>
+                        <div className="action-buttons action-buttons-right">
+                          <button
+                            className="action-btn"
+                            onClick={() => handleViewCardPriceHistory(card)}
+                            title="View Price History"
+                          >
+                            <img src={viewIcon} alt="View" width="16" height="16" />
+                          </button>
+                          <button
+                            className="action-btn"
+                            onClick={() => handleEditCardPrice(card)}
+                            title="Edit"
+                          >
+                            <img src={editIcon} alt="Edit" width="16" height="16" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
                   ))
                 )}
               </tbody>
@@ -962,7 +962,7 @@ export default function PricingPage() {
             }
 
             // 2) Create initial price detail.
-            const ChangedBy = user?.employeeId || user?.id
+            const ChangedBy = user?.employeeId || user?.employeeBusinessId || user?.id
             if (!ChangedBy) throw new Error('Missing employee ID for this session (please login again)')
 
             await fetchJson('/api/subscription-pricing-rule-details', {

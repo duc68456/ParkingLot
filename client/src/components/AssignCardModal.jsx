@@ -4,6 +4,9 @@ import { useAuth } from '../contexts/AuthContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
+// UID validation regex matching backend format: UID-XXXX (4 digits)
+const UID_REGEX = /^UID-\d{4}$/;
+
 function AssignCardModal({ card, onClose, onAssign, defaultAssignType = '', defaultPersonId = '' }) {
   const { authHeaders } = useAuth();
   // Figma 241:1604 uses a single dropdown listing both customers and employees.
@@ -16,10 +19,40 @@ function AssignCardModal({ card, onClose, onAssign, defaultAssignType = '', defa
   const [selectedAssignKey, setSelectedAssignKey] = useState(initialAssignKey);
 
   const [cardUid, setCardUid] = useState('');
+  const [uidError, setUidError] = useState('');
+  const [uidLoading, setUidLoading] = useState(false);
 
   const [peopleLoading, setPeopleLoading] = useState(false);
   const [peopleError, setPeopleError] = useState('');
   const [customers, setCustomers] = useState([]);
+
+  // Validate UID format
+  const validateUid = (uid) => {
+    const trimmedUid = String(uid || '').trim();
+    if (!trimmedUid) {
+      return 'UID is required';
+    }
+    if (!UID_REGEX.test(trimmedUid)) {
+      return 'UID must be in format UID-XXXX (e.g. UID-0001)';
+    }
+    return '';
+  };
+
+  // Handle UID input change with validation
+  const handleUidChange = (e) => {
+    const newValue = e.target.value;
+    setCardUid(newValue);
+    // Clear error while typing, validate on blur
+    if (uidError) {
+      setUidError('');
+    }
+  };
+
+  // Validate on blur
+  const handleUidBlur = () => {
+    const error = validateUid(cardUid);
+    setUidError(error);
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -85,13 +118,35 @@ function AssignCardModal({ card, onClose, onAssign, defaultAssignType = '', defa
     return () => controller.abort();
   }, [authHeaders]);
 
-  // Keep the UID field prefilled when opening the modal or when card changes.
+  // Always auto-fetch next UID when modal opens (for new format UID-XXXX)
   useEffect(() => {
-    const nextUid = String(card?.uid || card?.UID || card?.Uid || '').trim();
-    // When purchasing cards, UID can legitimately be blank until scanned.
-    // Keep the field empty in that case so the user can scan/type the real UID.
-    setCardUid(nextUid);
-  }, [card]);
+    const controller = new AbortController();
+
+    // Always fetch next available UID in new format
+    (async () => {
+      try {
+        setUidLoading(true);
+        const response = await fetch(`${API_BASE_URL}/api/cards/next-uid`, {
+          signal: controller.signal,
+          headers: { ...authHeaders }
+        });
+        const json = await response.json().catch(() => null);
+
+        if (response.ok && json?.data?.nextUid) {
+          setCardUid(json.data.nextUid);
+        }
+      } catch (err) {
+        if (err?.name !== 'AbortError') {
+          console.error('Failed to fetch next UID:', err);
+          // Fallback: let user enter manually
+        }
+      } finally {
+        if (!controller.signal.aborted) setUidLoading(false);
+      }
+    })();
+
+    return () => controller.abort();
+  }, [card, authHeaders]);
 
   const peopleOptions = useMemo(() => {
     const customerOptions = customers.map((c) => ({
@@ -115,6 +170,13 @@ function AssignCardModal({ card, onClose, onAssign, defaultAssignType = '', defa
 
     const uidValue = String(cardUid || '').trim();
     if (!uidValue) return;
+
+    // Validate UID format before submission
+    const validationError = validateUid(uidValue);
+    if (validationError) {
+      setUidError(validationError);
+      return;
+    }
 
     onAssign({
       cardId: card.id,
@@ -169,14 +231,20 @@ function AssignCardModal({ card, onClose, onAssign, defaultAssignType = '', defa
               Card UID<span className="assign-card-required">*</span>
             </label>
             <input
-              className="assign-card-input"
+              className={`assign-card-input${uidError ? ' assign-card-input-error' : ''}`}
               value={cardUid}
-              onChange={(e) => setCardUid(e.target.value)}
-              placeholder="UID-123458"
+              onChange={handleUidChange}
+              onBlur={handleUidBlur}
+              placeholder={uidLoading ? 'Loading...' : 'UID-0001'}
               inputMode="text"
               autoComplete="off"
+              disabled={uidLoading}
             />
-            <p className="assign-card-help">Enter the card UID manually or use a card reader to scan it</p>
+            {uidError ? (
+              <p className="assign-card-field-error">{uidError}</p>
+            ) : (
+              <p className="assign-card-help">Format: UID-XXXX (e.g. UID-0001). Auto-generated if empty.</p>
+            )}
           </div>
 
           <div className="assign-card-fieldblock">

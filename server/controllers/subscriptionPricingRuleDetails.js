@@ -159,13 +159,26 @@ subscriptionPricingRuleDetailsRouter.get('/current/:subscriptionPricingRuleId', 
       })
     }
 
-    const currentPrice = await SubscriptionPricingRuleDetail
+    // Find current price (StartDateApply <= now) OR the most recent price if none qualify.
+    // This handles edge cases where the price was just created and StartDateApply may be
+    // slightly ahead due to timing/timezone differences.
+    let currentPrice = await SubscriptionPricingRuleDetail
       .findOne({
         SubscriptionPricingRuleID: rule.ID,
         StartDateApply: { $lte: now }
       })
       .sort({ StartDateApply: -1 })
       .limit(1)
+
+    // Fallback: if no price applies yet, get the earliest upcoming one
+    if (!currentPrice) {
+      currentPrice = await SubscriptionPricingRuleDetail
+        .findOne({
+          SubscriptionPricingRuleID: rule.ID
+        })
+        .sort({ StartDateApply: 1 })
+        .limit(1)
+    }
 
     if (!currentPrice) {
       return res.status(404).json({

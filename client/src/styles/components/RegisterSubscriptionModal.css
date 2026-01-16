@@ -238,6 +238,43 @@
   padding: 10px;
 }
 
+.register-subscription-async-header {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 16px;
+  color: #62748e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 10px 4px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 4px;
+}
+
+.register-subscription-async-add-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  margin-top: 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px dashed #cad5e2;
+  background: #f8fafc;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+  color: #155dfc;
+  transition: all 0.2s ease;
+}
+
+.register-subscription-async-add-btn:hover {
+  background: #eff6ff;
+  border-color: #155dfc;
+}
+
 .register-subscription-selected-pill {
   display: inline-flex;
   align-items: center;

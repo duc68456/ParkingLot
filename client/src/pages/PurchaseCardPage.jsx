@@ -3,6 +3,8 @@ import PageHeader from '../components/PageHeader';
 import StepIndicator from '../components/StepIndicator';
 import SearchInput from '../components/SearchInput';
 import CustomerCard from '../components/CustomerCard';
+import AssignCardModal from '../components/AssignCardModal';
+import RegisterSubscriptionModal from '../components/RegisterSubscriptionModal';
 import '../styles/pages/PurchaseCardPage.css';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -31,7 +33,7 @@ const buildInitials = (fullName = '') => {
 };
 
 const normalizeCustomer = (c) => {
-  const person = c?.person ?? c?.PersonID;
+  const person = c?.person ?? (typeof c?.PersonID === 'object' ? c?.PersonID : null);
   const fullName = person?.FullName || c?.FullName || '';
   const phone = person?.Phone || c?.Phone || '';
 
@@ -40,6 +42,8 @@ const normalizeCustomer = (c) => {
     id: c?.ID || c?._id || person?.ID || '',
     _id: c?._id,
     customerId: c?.ID,
+    // Fix: We need the Person Business ID (PER####) for card assignment
+    personBusinessId: person?.ID || (typeof c?.PersonID === 'string' ? c.PersonID : ''),
     personId: person?._id,
     name: fullName,
     initials: buildInitials(fullName),
@@ -89,6 +93,20 @@ export default function PurchaseCardPage() {
   const [finalizingInvoice, setFinalizingInvoice] = useState(false);
   const [finalizeInvoiceError, setFinalizeInvoiceError] = useState('');
 
+  // Cards created after confirm-payment (for display + navigation to assign)
+  const [createdCards, setCreatedCards] = useState([]);
+  const [invoiceConfirmed, setInvoiceConfirmed] = useState(false);
+
+  // Step 4: Assign Cards state
+  const [assigningCardIndex, setAssigningCardIndex] = useState(null);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignedCardIds, setAssignedCardIds] = useState(new Set());
+
+  // Step 5: Subscription state
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [subscriptionCardId, setSubscriptionCardId] = useState(null);
+  const [registeredSubscriptions, setRegisteredSubscriptions] = useState(new Set());
+
   const steps = [
     {
       number: 1,
@@ -108,7 +126,22 @@ export default function PurchaseCardPage() {
       number: 3,
       title: 'Review',
       subtitle: 'Confirm Payment',
-      active: currentStep === 3
+      active: currentStep === 3,
+      completed: currentStep > 3
+    },
+    {
+      number: 4,
+      title: 'Assign Cards',
+      subtitle: 'Set UID & Owner',
+      active: currentStep === 4,
+      completed: currentStep > 4
+    },
+    {
+      number: 5,
+      title: 'Subscription',
+      subtitle: 'Register Plans',
+      active: currentStep === 5,
+      completed: false
     }
   ];
 
@@ -165,27 +198,86 @@ export default function PurchaseCardPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmitCustomer = (e) => {
+  const handleSubmitCustomer = async (e) => {
     e.preventDefault();
     if (!validateForm()) {
       return;
     }
 
-    console.log('New customer data:', formData);
+    try {
+      setCustomersLoading(true);
+      setCustomersError('');
 
-    // NOTE: This flow still creates a local-only customer for now.
-    // (PeoplePage has the real create customer wiring; we can reuse it here later.)
-    const newCustomer = {
-      id: `TEMP-${Date.now()}`,
-      name: formData.fullName,
-      initials: buildInitials(formData.fullName),
-      phone: formData.phone,
-      gender: formData.gender
-    };
-    
-    setSelectedCustomer(newCustomer);
-    // Navigate to step 2
-    setCurrentStep(2);
+      // Step 1: Create Person
+      const personRes = await fetch(`${API_BASE_URL}/api/persons`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders
+        },
+        body: JSON.stringify({
+          FullName: formData.fullName.trim(),
+          Phone: formData.phone.trim(),
+          Gender: formData.gender.toUpperCase()
+        })
+      });
+
+      const personJson = await personRes.json().catch(() => null);
+
+      if (!personRes.ok) {
+        throw new Error(personJson?.error?.message || `Failed to create person (${personRes.status})`);
+      }
+
+      const personId = personJson?.data?.ID;
+      if (!personId) {
+        throw new Error('Person created but no ID returned');
+      }
+
+      // Step 2: Create Customer linked to Person
+      const customerRes = await fetch(`${API_BASE_URL}/api/customers`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders
+        },
+        body: JSON.stringify({
+          PersonID: personId,
+          Status: 'ACTIVE'
+        })
+      });
+
+      const customerJson = await customerRes.json().catch(() => null);
+
+      if (!customerRes.ok) {
+        throw new Error(customerJson?.error?.message || `Failed to create customer (${customerRes.status})`);
+      }
+
+      const customerId = customerJson?.data?.ID;
+      if (!customerId) {
+        throw new Error('Customer created but no ID returned');
+      }
+
+      // Successfully created both Person and Customer
+      const newCustomer = {
+        id: customerId,
+        customerId: customerId,
+        personId: personId,
+        personBusinessId: personId, // For AssignCardModal defaultPersonId
+        name: formData.fullName.trim(),
+        initials: buildInitials(formData.fullName),
+        phone: formData.phone.trim(),
+        gender: formData.gender
+      };
+
+      setSelectedCustomer(newCustomer);
+      // Navigate to step 2
+      setCurrentStep(2);
+    } catch (err) {
+      console.error('Create customer error:', err);
+      setCustomersError(err?.message || 'Failed to create customer');
+    } finally {
+      setCustomersLoading(false);
+    }
   };
 
   const handleCardFormChange = (e) => {
@@ -233,7 +325,7 @@ export default function PurchaseCardPage() {
     }));
 
     setCards((prev) => [...prev, ...newCards]);
-    
+
     // Reset form
     setCardForm({
       category: '',
@@ -348,7 +440,7 @@ export default function PurchaseCardPage() {
       }
 
       const json = await res.json();
-  setPurchaseInvoiceId(json?.data?.ID || json?.data?.id || json?.data?._id || null);
+      setPurchaseInvoiceId(json?.data?.ID || json?.data?.id || json?.data?._id || null);
     } catch (e) {
       // Don't block the modal.
       setConfirmPaymentError(e?.message || 'Failed to create invoice');
@@ -360,7 +452,7 @@ export default function PurchaseCardPage() {
   const handleCloseInvoiceModal = async () => {
     // When user clicks "Done", we finalize by calling confirm-payment so the server
     // adds UNASSIGNED cards to inventory.
-    if (purchaseInvoiceId) {
+    if (purchaseInvoiceId && !invoiceConfirmed) {
       try {
         setFinalizeInvoiceError('');
         setFinalizingInvoice(true);
@@ -372,10 +464,19 @@ export default function PurchaseCardPage() {
           }
         });
 
+        const json = await res.json().catch(() => null);
+
         if (!res.ok) {
-          const err = await res.json().catch(() => null);
-          throw new Error(err?.error?.message || `Failed to finalize invoice (${res.status})`);
+          throw new Error(json?.error?.message || `Failed to finalize invoice (${res.status})`);
         }
+
+        // Store created cards for display
+        const cards = Array.isArray(json?.data?.createdCards) ? json.data.createdCards : [];
+        setCreatedCards(cards);
+        setInvoiceConfirmed(true);
+
+        // Don't close modal yet - show success with card list
+        return;
       } catch (e) {
         setFinalizeInvoiceError(e?.message || 'Failed to add cards to database');
         return;
@@ -384,6 +485,7 @@ export default function PurchaseCardPage() {
       }
     }
 
+    // If already confirmed or no invoice, just close
     setShowInvoiceModal(false);
   };
 
@@ -400,7 +502,7 @@ export default function PurchaseCardPage() {
   useEffect(() => {
     const controller = new AbortController();
 
-    ;(async () => {
+    ; (async () => {
       try {
         setCategoriesLoading(true);
         setCategoriesError('');
@@ -485,7 +587,7 @@ export default function PurchaseCardPage() {
   useEffect(() => {
     const controller = new AbortController();
 
-    ;(async () => {
+    ; (async () => {
       try {
         setCustomersLoading(true);
         setCustomersError('');
@@ -674,23 +776,33 @@ export default function PurchaseCardPage() {
               </div>
             </div>
 
+            {/* Error Message */}
+            {customersError && (
+              <div className="form-error-banner" style={{ color: '#B42318', padding: '10px', background: '#FEF3F2', borderRadius: '8px', marginBottom: '16px' }}>
+                {customersError}
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div className="form-actions">
               <button
                 type="button"
                 onClick={handleBackToSelect}
                 className="back-btn"
+                disabled={customersLoading}
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 Back
               </button>
-              <button type="submit" className="submit-btn">
-                Continue to Purchase Cards
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+              <button type="submit" className="submit-btn" disabled={customersLoading}>
+                {customersLoading ? 'Creating...' : 'Continue to Purchase Cards'}
+                {!customersLoading && (
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
               </button>
             </div>
           </form>
@@ -716,7 +828,7 @@ export default function PurchaseCardPage() {
           <form onSubmit={handleAddCard} className="add-card-form">
             <div className="form-header">
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 4V16M4 10H16" stroke="#155DFC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M10 4V16M4 10H16" stroke="#155DFC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               <h3 className="form-title">Add New Card</h3>
             </div>
@@ -786,7 +898,7 @@ export default function PurchaseCardPage() {
 
             <button type="submit" className="add-card-btn">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8 3.2V12.8M3.2 8H12.8" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M8 3.2V12.8M3.2 8H12.8" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               Add Card to List
             </button>
@@ -797,8 +909,8 @@ export default function PurchaseCardPage() {
             <div className="cards-to-purchase">
               <div className="cards-header">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="2" y="3" width="12" height="10" rx="2" stroke="#009966" strokeWidth="1.5" fill="none"/>
-                  <path d="M2 6H14" stroke="#009966" strokeWidth="1.5"/>
+                  <rect x="2" y="3" width="12" height="10" rx="2" stroke="#009966" strokeWidth="1.5" fill="none" />
+                  <path d="M2 6H14" stroke="#009966" strokeWidth="1.5" />
                 </svg>
                 <h3 className="cards-title">Cards to Purchase</h3>
                 <span className="cards-count">{cards.length}</span>
@@ -814,8 +926,8 @@ export default function PurchaseCardPage() {
                       <div className="card-group-content">
                         <div className="card-icon">
                           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="3" y="4" width="14" height="12" rx="2" stroke="white" strokeWidth="1.5" fill="none"/>
-                            <path d="M3 8H17" stroke="white" strokeWidth="1.5"/>
+                            <rect x="3" y="4" width="14" height="12" rx="2" stroke="white" strokeWidth="1.5" fill="none" />
+                            <path d="M3 8H17" stroke="white" strokeWidth="1.5" />
                           </svg>
                         </div>
                         <div className="card-group-details">
@@ -859,19 +971,19 @@ export default function PurchaseCardPage() {
               className="back-btn"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               Back
             </button>
-            <button 
+            <button
               type="button"
-              onClick={handleContinueToReview} 
+              onClick={handleContinueToReview}
               className={`submit-btn ${cards.length === 0 ? 'disabled' : ''}`}
               disabled={cards.length === 0}
             >
               Continue to Review
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
           </div>
@@ -990,6 +1102,275 @@ export default function PurchaseCardPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Step 4: Assign Cards */}
+      {currentStep === 4 && createdCards.length > 0 && (
+        <div className="assign-cards-section">
+          <div className="section-header">
+            <h2 className="section-title">Assign Cards</h2>
+            <p className="section-subtitle">
+              Set UID and assign owner for each card. {assignedCardIds.size}/{createdCards.length} assigned.
+            </p>
+          </div>
+
+          <div className="cards-assign-table" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #E4E7EC', overflow: 'hidden' }}>
+            <div className="cards-assign-header" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1.5fr 1.5fr 120px', padding: '12px 16px', background: '#F9FAFB', borderBottom: '1px solid #E4E7EC', fontWeight: 500, fontSize: '13px', color: '#667085' }}>
+              <div>Card ID</div>
+              <div>Category</div>
+              <div>UID</div>
+              <div>Status</div>
+              <div>Actions</div>
+            </div>
+            {createdCards.map((card, idx) => {
+              const isAssigned = assignedCardIds.has(card.CardID);
+              return (
+                <div key={card.CardID} className="cards-assign-row" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1.5fr 1.5fr 120px', padding: '12px 16px', borderBottom: '1px solid #E4E7EC', alignItems: 'center' }}>
+                  <div style={{ fontWeight: 500 }}>{card.CardID}</div>
+                  <div style={{ color: '#667085' }}>{card.CardCategoryName}</div>
+                  <div style={{ color: '#667085' }}>{card.UID || '—'}</div>
+                  <div>
+                    <span style={{
+                      padding: '4px 8px',
+                      borderRadius: '16px',
+                      fontSize: '12px',
+                      background: isAssigned ? '#ECFDF3' : '#FEF3F2',
+                      color: isAssigned ? '#027A48' : '#B42318'
+                    }}>
+                      {isAssigned ? 'Assigned' : 'Unassigned'}
+                    </span>
+                  </div>
+                  <div>
+                    {!isAssigned ? (
+                      <button
+                        type="button"
+                        className="assign-card-btn"
+                        style={{ padding: '6px 12px', background: '#155DFC', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
+                        onClick={() => {
+                          setAssigningCardIndex(idx);
+                          setShowAssignModal(true);
+                        }}
+                      >
+                        Assign
+                      </button>
+                    ) : (
+                      <span style={{ color: '#667085', fontSize: '13px' }}>✓ Done</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="assign-actions" style={{ marginTop: '24px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              className="skip-btn"
+              style={{ padding: '10px 20px', background: '#fff', color: '#344054', border: '1px solid #D0D5DD', borderRadius: '8px', cursor: 'pointer' }}
+              onClick={() => setCurrentStep(5)}
+            >
+              Skip to Subscription
+            </button>
+            <button
+              type="button"
+              className="continue-btn"
+              style={{ padding: '10px 20px', background: '#155DFC', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+              onClick={() => setCurrentStep(5)}
+              disabled={assignedCardIds.size === 0}
+            >
+              Continue to Subscription →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 5: Subscription */}
+      {currentStep === 5 && createdCards.length > 0 && (
+        <div className="subscription-section">
+          <div className="section-header">
+            <h2 className="section-title">Register Subscription</h2>
+            <p className="section-subtitle">
+              Register subscription plans for assigned cards. {registeredSubscriptions.size}/{assignedCardIds.size} registered.
+            </p>
+          </div>
+
+          <div className="cards-subscription-table" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #E4E7EC', overflow: 'hidden' }}>
+            <div className="cards-subscription-header" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1.5fr 1.5fr 140px', padding: '12px 16px', background: '#F9FAFB', borderBottom: '1px solid #E4E7EC', fontWeight: 500, fontSize: '13px', color: '#667085' }}>
+              <div>Card ID</div>
+              <div>Category</div>
+              <div>UID</div>
+              <div>Subscription</div>
+              <div>Actions</div>
+            </div>
+            {createdCards.filter(c => assignedCardIds.has(c.CardID)).map((card) => {
+              const hasSubscription = registeredSubscriptions.has(card.CardID);
+              return (
+                <div key={card.CardID} className="cards-subscription-row" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1.5fr 1.5fr 140px', padding: '12px 16px', borderBottom: '1px solid #E4E7EC', alignItems: 'center' }}>
+                  <div style={{ fontWeight: 500 }}>{card.CardID}</div>
+                  <div style={{ color: '#667085' }}>{card.CardCategoryName}</div>
+                  <div style={{ color: '#667085' }}>{card.UID || '—'}</div>
+                  <div>
+                    <span style={{
+                      padding: '4px 8px',
+                      borderRadius: '16px',
+                      fontSize: '12px',
+                      background: hasSubscription ? '#ECFDF3' : '#F9FAFB',
+                      color: hasSubscription ? '#027A48' : '#667085'
+                    }}>
+                      {hasSubscription ? 'Registered' : 'None'}
+                    </span>
+                  </div>
+                  <div>
+                    {!hasSubscription ? (
+                      <button
+                        type="button"
+                        className="register-subscription-btn"
+                        style={{ padding: '6px 12px', background: '#009966', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
+                        onClick={() => {
+                          setSubscriptionCardId(card.CardID);
+                          setShowSubscriptionModal(true);
+                        }}
+                      >
+                        Register
+                      </button>
+                    ) : (
+                      <span style={{ color: '#027A48', fontSize: '13px' }}>✓ Active</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            {assignedCardIds.size === 0 && (
+              <div style={{ padding: '24px', textAlign: 'center', color: '#667085' }}>
+                No assigned cards available. Please go back and assign cards first.
+              </div>
+            )}
+          </div>
+
+          <div className="subscription-actions" style={{ marginTop: '24px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              className="back-btn"
+              style={{ padding: '10px 20px', background: '#fff', color: '#344054', border: '1px solid #D0D5DD', borderRadius: '8px', cursor: 'pointer' }}
+              onClick={() => setCurrentStep(4)}
+            >
+              ← Back to Assign
+            </button>
+            <button
+              type="button"
+              className="finish-btn"
+              style={{ padding: '10px 20px', background: '#009966', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+              onClick={() => {
+                // Reset all state and start new purchase
+                setCurrentStep(1);
+                setSelectedCustomer(null);
+                setCards([]);
+                setPurchaseInvoiceId(null);
+                setCreatedCards([]);
+                setInvoiceConfirmed(false);
+                setAssignedCardIds(new Set());
+                setRegisteredSubscriptions(new Set());
+              }}
+            >
+              Finish & Start New Purchase
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* AssignCardModal */}
+      {showAssignModal && assigningCardIndex !== null && createdCards[assigningCardIndex] && (
+        <AssignCardModal
+          card={{
+            id: createdCards[assigningCardIndex].CardID,
+            cardId: createdCards[assigningCardIndex].CardID,
+            category: createdCards[assigningCardIndex].CardCategoryName,
+            status: 'Unassigned'
+          }}
+          defaultAssignType="customer"
+          defaultPersonId={selectedCustomer?.personBusinessId}
+          onClose={() => {
+            setShowAssignModal(false);
+            setAssigningCardIndex(null);
+          }}
+          onAssign={async (assignData) => {
+            try {
+              const cardId = createdCards[assigningCardIndex].CardID;
+              const res = await fetch(`${API_BASE_URL}/api/cards/${cardId}/assign`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...authHeaders
+                },
+                body: JSON.stringify({
+                  uid: assignData.uid,
+                  personId: assignData.personId
+                })
+              });
+
+              if (!res.ok) {
+                const err = await res.json().catch(() => null);
+                throw new Error(err?.error?.message || `Failed to assign card (${res.status})`);
+              }
+
+              // Update local state
+              setCreatedCards(prev => prev.map((c, idx) =>
+                idx === assigningCardIndex ? { ...c, UID: assignData.uid } : c
+              ));
+              setAssignedCardIds(prev => new Set(prev).add(cardId));
+              setShowAssignModal(false);
+              setAssigningCardIndex(null);
+            } catch (e) {
+              console.error('Assign card error:', e);
+              alert(e?.message || 'Failed to assign card');
+            }
+          }}
+        />
+      )}
+
+      {/* RegisterSubscriptionModal */}
+      {showSubscriptionModal && subscriptionCardId && (
+        <RegisterSubscriptionModal
+          onClose={() => {
+            setShowSubscriptionModal(false);
+            setSubscriptionCardId(null);
+          }}
+          onRegister={async (newSubscription) => {
+            try {
+              const payload = {
+                VehicleID: newSubscription?.vehicleId,
+                VehicleTypeID: newSubscription?.vehicleTypeId,
+                CardID: newSubscription?.cardId,
+                SubscriptionTypeID: newSubscription?.subscriptionTypeId,
+                PricePaid: newSubscription?.price,
+                StartDate: newSubscription?.startDateRaw || undefined,
+                CustomerID: newSubscription?.customerId || undefined
+              };
+
+              const res = await fetch(`${API_BASE_URL}/api/subscriptions`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...authHeaders
+                },
+                body: JSON.stringify(payload)
+              });
+
+              const json = await res.json().catch(() => null);
+              if (!res.ok) {
+                const msg = json?.error?.message || `Failed to register subscription (${res.status})`;
+                throw new Error(msg);
+              }
+
+              // Success - update local state
+              setRegisteredSubscriptions(prev => new Set(prev).add(subscriptionCardId));
+              setShowSubscriptionModal(false);
+              setSubscriptionCardId(null);
+            } catch (err) {
+              alert(err?.message || 'Failed to register subscription');
+            }
+          }}
+        />
       )}
 
       {showInvoiceModal && (
@@ -1120,22 +1501,85 @@ export default function PurchaseCardPage() {
                   <div className="invoiceFooterLine">Thank you for your purchase.</div>
                   <div className="invoiceFooterLine">Please keep this invoice for your records.</div>
                 </div>
+
+                {/* Success: Created Cards List */}
+                {invoiceConfirmed && createdCards.length > 0 && (
+                  <div className="invoiceCreatedCards" style={{ marginTop: '20px', padding: '16px', background: '#ECFDF3', borderRadius: '10px', border: '1px solid #ABEFC6' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                      <PurchaseCardCheckCircleIcon style={{ width: '20px', height: '20px', color: '#12B76A' }} />
+                      <span style={{ fontWeight: 500, color: '#027A48' }}>Cards Created Successfully!</span>
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#344054', marginBottom: '8px' }}>
+                      {createdCards.length} card(s) added to inventory:
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {createdCards.map((c) => (
+                        <div key={c.CardID} style={{
+                          padding: '6px 12px',
+                          background: '#fff',
+                          borderRadius: '6px',
+                          border: '1px solid #D0D5DD',
+                          fontSize: '13px'
+                        }}>
+                          <span style={{ fontWeight: 500 }}>{c.CardID}</span>
+                          <span style={{ color: '#667085', marginLeft: '8px' }}>{c.CardCategoryName}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: '12px', fontSize: '12px', color: '#667085' }}>
+                      These cards are now in UNASSIGNED status. Go to Cards → Assign Card to assign them.
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="invoiceModalFooter">
-              <button type="button" className="invoiceActionBtn" onClick={handlePrintInvoice}>
-                <PurchaseCardPrintIcon className="invoiceActionIcon" aria-hidden="true" focusable="false" />
-                Print
-              </button>
-              <button type="button" className="invoiceActionBtn invoiceActionBtnBlue" onClick={handleDownloadInvoice}>
-                <PurchaseCardDownloadIcon className="invoiceActionIcon" aria-hidden="true" focusable="false" />
-                Download PDF
-              </button>
-              <button type="button" className="invoiceActionBtn invoiceActionBtnGreen" onClick={handleCloseInvoiceModal}>
-                Done
-              </button>
+              {!invoiceConfirmed ? (
+                <>
+                  <button type="button" className="invoiceActionBtn" onClick={handlePrintInvoice}>
+                    <PurchaseCardPrintIcon className="invoiceActionIcon" aria-hidden="true" focusable="false" />
+                    Print
+                  </button>
+                  <button type="button" className="invoiceActionBtn invoiceActionBtnBlue" onClick={handleDownloadInvoice}>
+                    <PurchaseCardDownloadIcon className="invoiceActionIcon" aria-hidden="true" focusable="false" />
+                    Download PDF
+                  </button>
+                  <button
+                    type="button"
+                    className="invoiceActionBtn invoiceActionBtnGreen"
+                    onClick={handleCloseInvoiceModal}
+                    disabled={finalizingInvoice}
+                  >
+                    {finalizingInvoice ? 'Processing...' : 'Confirm & Create Cards'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button type="button" className="invoiceActionBtn" onClick={handlePrintInvoice}>
+                    <PurchaseCardPrintIcon className="invoiceActionIcon" aria-hidden="true" focusable="false" />
+                    Print
+                  </button>
+                  <button
+                    type="button"
+                    className="invoiceActionBtn invoiceActionBtnGreen"
+                    onClick={() => {
+                      setShowInvoiceModal(false);
+                      // Navigate to Step 4 - Assign Cards
+                      setCurrentStep(4);
+                    }}
+                  >
+                    Continue to Assign Cards →
+                  </button>
+                </>
+              )}
             </div>
+
+            {finalizeInvoiceError && (
+              <div style={{ padding: '10px', color: '#B42318', background: '#FEF3F2', margin: '12px', borderRadius: '8px' }}>
+                {finalizeInvoiceError}
+              </div>
+            )}
           </div>
         </div>
       )}

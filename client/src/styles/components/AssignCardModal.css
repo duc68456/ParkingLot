@@ -162,6 +162,27 @@
   color: #62748e;
 }
 
+/* Input error state */
+.assign-card-input-error {
+  border-color: #fb2c36;
+}
+
+.assign-card-input-error:hover,
+.assign-card-input-error:focus {
+  border-color: #fb2c36;
+  box-shadow: 0 0 0 3px rgba(251, 44, 54, 0.1);
+}
+
+/* Field error message */
+.assign-card-field-error {
+  margin: 0;
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+  color: #fb2c36;
+}
+
 .assign-card-select {
   height: 41.6px;
   background: #ffffff;
