@@ -1,10 +1,66 @@
+import { useEffect, useState } from 'react';
 import '../styles/components/ViewCardModal.css';
+import { useAuth } from '../contexts/AuthContext';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export default function ViewCardModal({ card, onClose }) {
+  const { authHeaders } = useAuth();
+  const [licensePlate, setLicensePlate] = useState(null);
+  const [vehicleType, setVehicleType] = useState(null);
+  const [loadingPlate, setLoadingPlate] = useState(false);
+
+  useEffect(() => {
+    if (!card?.id) return;
+
+    let isMounted = true;
+    setLoadingPlate(true);
+
+    const fetchSubscription = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/subscriptions/check/${card.id}`, {
+          headers: { ...authHeaders }
+        });
+        const json = await res.json().catch(() => null);
+
+        if (isMounted && res.ok && json?.success && json?.data?.hasValidSubscription) {
+          const sub = json.data.subscription;
+          const vehicle = sub?.VehicleID; // Populated object
+          if (vehicle) {
+            setLicensePlate(vehicle.PlateNumber || null);
+            setVehicleType(vehicle.VehicleTypeID?.Name || null);
+          }
+        } else {
+          if (isMounted) {
+            setLicensePlate(null);
+            setVehicleType(null);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to check subscription:', err);
+      } finally {
+        if (isMounted) setLoadingPlate(false);
+      }
+    };
+
+    fetchSubscription();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [card, authHeaders]);
+
   if (!card) return null;
 
+  const formatDate = (value) => {
+    if (!value || value === '-') return '-';
+    const d = new Date(value);
+    if (!Number.isNaN(d.getTime())) return d.toLocaleDateString('en-GB');
+    return String(value);
+  };
+
   const getStatusClass = (status) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase()) {
       case 'active':
         return 'status-active';
       case 'inactive':
@@ -84,9 +140,19 @@ export default function ViewCardModal({ card, onClose }) {
               <p className="view-card-detail-value">{card.owner || 'Unassigned'}</p>
             </div>
 
+            {licensePlate && (
+              <div className="view-card-detail-item">
+                <label className="view-card-detail-label">LICENSE PLATE</label>
+                <div className="view-card-detail-value" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontWeight: 500 }}>{licensePlate}</span>
+                  {vehicleType && <span style={{ fontSize: '12px', color: '#64748b' }}>({vehicleType})</span>}
+                </div>
+              </div>
+            )}
+
             <div className="view-card-detail-item view-card-detail-full">
               <label className="view-card-detail-label">EXPIRY DATE</label>
-              <p className="view-card-detail-value">{card.expiry}</p>
+              <p className="view-card-detail-value">{formatDate(card.expiry)}</p>
             </div>
           </div>
         </div>

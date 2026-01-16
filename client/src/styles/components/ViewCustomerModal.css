@@ -393,7 +393,7 @@
   .view-customer-modal-container {
     padding: 40px 60px;
   }
-  
+
   .view-customer-modal-content {
     width: 100%;
     max-width: 800px;
@@ -475,4 +475,17 @@
   .vehicle-card-date {
     text-align: left;
   }
+}
+
+.subscriptions-badge--large {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 10px;
+  border-radius: 6px;
+  background: rgba(67, 45, 215, 0.1);
+  color: #432dd7;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
 }

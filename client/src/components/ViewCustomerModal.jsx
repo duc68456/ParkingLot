@@ -1,8 +1,62 @@
+import { useEffect, useState } from 'react';
 import '../styles/components/ViewCustomerModal.css';
 import vehicleIcon from '../assets/icons/vehicles.svg';
 import carIcon from '../assets/icons/dashboard/car.svg';
+import { useAuth } from '../contexts/AuthContext';
 
-function ViewCustomerModal({ customer, vehicles, onClose }) {
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+
+function ViewCustomerModal({ customer, onClose }) {
+  const { authHeaders } = useAuth();
+  const [vehicles, setVehicles] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!customer?.id) return;
+
+    let isMounted = true;
+    setLoading(true);
+
+    const fetchVehicles = async () => {
+      try {
+        // Fetch active subscriptions for this customer to find registered vehicles
+        const res = await fetch(`${API_BASE_URL}/api/subscriptions?customerId=${customer.id}&isActive=true`, {
+          headers: { ...authHeaders }
+        });
+        const json = await res.json().catch(() => null);
+
+        if (isMounted && res.ok && json?.success && Array.isArray(json?.data?.items)) {
+          // Extract unique vehicles from subscriptions
+          const uniqueVehicles = [];
+          const seenIds = new Set();
+
+          json.data.items.forEach(sub => {
+            const v = sub.Vehicle;
+            if (v && !seenIds.has(v.VehicleID)) {
+              seenIds.add(v.VehicleID);
+              uniqueVehicles.push({
+                plateNumber: v.PlateNumber,
+                vehicleType: sub.VehicleType?.Name || 'Car',
+                registeredDate: sub.StartDate
+              });
+            }
+          });
+          setVehicles(uniqueVehicles);
+        }
+      } catch (err) {
+        console.error('Failed to fetch customer vehicles:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchVehicles();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [customer, authHeaders]);
+
   if (!customer) return null;
 
   const safeText = (value, fallback = '-') => {
@@ -12,12 +66,15 @@ function ViewCustomerModal({ customer, vehicles, onClose }) {
   };
 
   const formatDateShort = (value) => {
-    if (!value) return '-';
-    if (typeof value === 'string') return value;
+    if (!value || value === '-') return '-';
+    // If it's already a localized string "dd/mm/yyyy", return it
+    if (typeof value === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+      return value;
+    }
     try {
-      const dt = value instanceof Date ? value : new Date(value);
+      const dt = new Date(value);
       if (Number.isNaN(dt.getTime())) return '-';
-      return dt.toLocaleDateString(undefined);
+      return dt.toLocaleDateString('en-GB');
     } catch {
       return '-';
     }
@@ -81,22 +138,17 @@ function ViewCustomerModal({ customer, vehicles, onClose }) {
                 <div className="detail-field detail-field-registered-day">
                   <label className="detail-field-label">Registered Day</label>
                   <p className="detail-field-value">
-                    {formatDateShort(customer.registeredDay || customer.registeredAt || customer.createdAt) || '15/01/2023'}
-                  </p>
-                </div>
-
-                <div className="detail-field detail-field-cards">
-                  <label className="detail-field-label">Cards Count</label>
-                  <p className="detail-field-value">
-                    {customer.cardsCount ?? customer.cards?.length ?? 2}
+                    {formatDateShort(customer.registeredDay || customer.registered)}
                   </p>
                 </div>
 
                 <div className="detail-field detail-field-subscriptions">
                   <label className="detail-field-label">Active Subscriptions</label>
-                  <p className="detail-field-value">
-                    {customer.activeSubscriptions ?? customer.subscriptions?.length ?? 1}
-                  </p>
+                  <div className="detail-field-value">
+                    <span className="subscriptions-badge--large">
+                      {loading ? '...' : vehicles.length}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -106,12 +158,16 @@ function ViewCustomerModal({ customer, vehicles, onClose }) {
                   <img src={vehicleIcon} alt="Vehicle" className="vehicles-icon" />
                   <h4 className="vehicles-title">Registered Vehicles</h4>
                   <span className="vehicles-count-badge">
-                    {vehicles?.length || 1}
+                    {loading ? '...' : vehicles.length}
                   </span>
                 </div>
 
                 <div className="vehicles-list-container">
-                  {vehicles && vehicles.length > 0 ? (
+                  {loading ? (
+                    <div className="vehicle-card" style={{ justifyContent: 'center', color: '#64748b' }}>
+                      Loading vehicles...
+                    </div>
+                  ) : vehicles && vehicles.length > 0 ? (
                     vehicles.map((vehicle, index) => (
                       <div key={index} className="vehicle-card">
                         <div className="vehicle-card-left">
@@ -126,26 +182,14 @@ function ViewCustomerModal({ customer, vehicles, onClose }) {
                         <div className="vehicle-card-right">
                           <span className="vehicle-registered-label">Registered</span>
                           <p className="vehicle-registered-date">
-                            {formatDateShort(vehicle.registeredDate) || '15/01/2023'}
+                            {formatDateShort(vehicle.registeredDate)}
                           </p>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="vehicle-card">
-                      <div className="vehicle-card-left">
-                        <div className="vehicle-card-icon">
-                          <img src={carIcon} alt="Car" />
-                        </div>
-                        <div className="vehicle-card-info">
-                          <p className="vehicle-plate-number">ABC-1234</p>
-                          <p className="vehicle-type-text">Car</p>
-                        </div>
-                      </div>
-                      <div className="vehicle-card-right">
-                        <span className="vehicle-registered-label">Registered</span>
-                        <p className="vehicle-registered-date">15/01/2023</p>
-                      </div>
+                    <div className="vehicle-card" style={{ justifyContent: 'center', color: '#64748b' }}>
+                      No active vehicles found
                     </div>
                   )}
                 </div>

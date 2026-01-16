@@ -136,3 +136,23 @@
   width: 16px;
   height: 16px;
 }
+
+.subscriptions-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.subscriptions-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #e0e7ff;
+  color: #432dd7;
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+}

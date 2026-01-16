@@ -19,8 +19,54 @@ export default function ViewCardsModal({ customer, cards, onClose, loading = fal
 
   // Keep internal list synced with latest prop (e.g. after async fetch).
   useEffect(() => {
-    setLocalCards(Array.isArray(cards) ? cards : []);
-  }, [cards]);
+    let active = true;
+    const initialCards = Array.isArray(cards) ? cards : [];
+    setLocalCards(initialCards);
+
+    // If we have cards and a customer ID, fetch active subscriptions to get plates
+    if (initialCards.length > 0 && customer?.id) {
+      const fetchSubscriptions = async () => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/subscriptions?customerId=${customer.id}&isActive=true`, {
+            headers: { ...authHeaders }
+          });
+          const json = await res.json().catch(() => null);
+
+          if (active && res.ok && json?.success && Array.isArray(json?.data?.items)) {
+            const subs = json.data.items;
+            const subsByCardId = new Map();
+            subs.forEach(s => {
+              if (s.CardID && s.Vehicle) {
+                // CardID object or string
+                const cId = s.CardID.CardID || s.CardID;
+                subsByCardId.set(cId, s.Vehicle);
+              }
+            });
+
+            setLocalCards(prev => prev.map(c => {
+              // Try to match by business CardID
+              const cId = c.CardID || c.cardId || c.ID || c.id;
+              const vehicle = subsByCardId.get(cId);
+              if (vehicle) {
+                return {
+                  ...c,
+                  plateNumber: vehicle.PlateNumber,
+                  vehicleType: vehicle.VehicleTypeID?.Name || null // Optional if populated
+                };
+              }
+              return c;
+            }));
+          }
+        } catch (err) {
+          console.error('Failed to fetch card subscriptions:', err);
+        }
+      };
+
+      fetchSubscriptions();
+    }
+
+    return () => { active = false; };
+  }, [cards, customer, authHeaders]);
 
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget) {
@@ -174,7 +220,7 @@ export default function ViewCardsModal({ customer, cards, onClose, loading = fal
           <div className="view-cards-modal-wrapper">
             <div className={`view-cards-modal ${isEmployeeFlow ? 'view-cards-modal--employee' : ''}`}>
               <div className="view-cards-header">
-                <h3 className="view-cards-title">Cards - {customer.name}</h3>
+                <h3 className="view-cards-title">Cards ({localCards.length}) - {customer.name}</h3>
                 <button className="view-cards-close-btn" onClick={onClose}>
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                     <path d="M5 5L15 15M15 5L5 15" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" />

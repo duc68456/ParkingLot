@@ -186,11 +186,11 @@ export default function PeoplePage() {
 
     const initials = fullName
       ? fullName
-          .trim()
-          .split(/\s+/)
-          .slice(0, 2)
-          .map((n) => n[0]?.toUpperCase())
-          .join("")
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((n) => n[0]?.toUpperCase())
+        .join("")
       : "";
 
     const hiredDate = hiredDateRaw
@@ -242,11 +242,11 @@ export default function PeoplePage() {
 
     const initials = fullName
       ? fullName
-          .trim()
-          .split(/\s+/)
-          .slice(0, 2)
-          .map((n) => n[0]?.toUpperCase())
-          .join("")
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((n) => n[0]?.toUpperCase())
+        .join("")
       : "";
 
     return {
@@ -272,6 +272,10 @@ export default function PeoplePage() {
       registered,
       address: c?.Address ?? c?.address ?? "",
       hometown: c?.Hometown ?? c?.hometown ?? "",
+      // New counts from backend enrichment
+      cardsCount: c?.cardsCount,
+      activeSubscriptions: c?.activeSubscriptions,
+      registeredDay: c?.registeredDay || c?.RegisteredDay,
     };
   };
 
@@ -510,18 +514,18 @@ export default function PeoplePage() {
           const rawStatus = String(c?.Status || "");
           const status = rawStatus
             ? rawStatus.charAt(0) +
-              rawStatus
-                .slice(1)
-                .toLowerCase()
-                .replace(/_(.)/g, (_, ch) => ` ${ch.toUpperCase()}`)
+            rawStatus
+              .slice(1)
+              .toLowerCase()
+              .replace(/_(.)/g, (_, ch) => ` ${ch.toUpperCase()}`)
             : "-";
 
           const expiryDate = c?.ExpireDay
             ? (() => {
-                const d = new Date(c.ExpireDay);
-                if (Number.isNaN(d.getTime())) return "-";
-                return d.toLocaleDateString("en-GB");
-              })()
+              const d = new Date(c.ExpireDay);
+              if (Number.isNaN(d.getTime())) return "-";
+              return d.toLocaleDateString("en-GB");
+            })()
             : "-";
 
           return {

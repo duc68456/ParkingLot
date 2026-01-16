@@ -1331,6 +1331,7 @@ export default function PurchaseCardPage() {
       {/* RegisterSubscriptionModal */}
       {showSubscriptionModal && subscriptionCardId && (
         <RegisterSubscriptionModal
+          defaultCard={createdCards.find(c => c.CardID === subscriptionCardId)}
           onClose={() => {
             setShowSubscriptionModal(false);
             setSubscriptionCardId(null);

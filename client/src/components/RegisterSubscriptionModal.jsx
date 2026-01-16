@@ -13,10 +13,10 @@ const addDaysIso = (startIso, days) => {
   return d.toISOString().split('T')[0];
 };
 
-function RegisterSubscriptionModal({ onClose, onRegister }) {
+function RegisterSubscriptionModal({ onClose, onRegister, defaultCard = null }) {
   const { authHeaders } = useAuth();
 
-  const [cardId, setCardId] = useState('');
+  const [cardId, setCardId] = useState(defaultCard?.CardID || defaultCard?.id || '');
   const [vehicleId, setVehicleId] = useState('');
   const [customerId, setCustomerId] = useState('');
   const [subscriptionType, setSubscriptionType] = useState('');
@@ -54,8 +54,20 @@ function RegisterSubscriptionModal({ onClose, onRegister }) {
   const [latestVehicles, setLatestVehicles] = useState([]);
 
   const cardSelected = useMemo(
-    () => (cardId ? cardResults.find(r => r.id === cardId) || null : null),
-    [cardId, cardResults]
+    () => {
+      if (!cardId) return null;
+      // If defaultCard provided and matches, use it (normalized)
+      if (defaultCard && (defaultCard.CardID === cardId || defaultCard.id === cardId)) {
+        return {
+          id: defaultCard.CardID || defaultCard.id,
+          uid: defaultCard.UID || defaultCard.uid,
+          category: defaultCard.CardCategoryName || defaultCard.category || '',
+          categoryId: defaultCard.CardCategoryID || defaultCard.categoryId || ''
+        };
+      }
+      return cardResults.find(r => r.id === cardId) || null;
+    },
+    [cardId, cardResults, defaultCard]
   );
   const vehicleSelected = useMemo(
     () => (vehicleId ? vehicleResults.find(r => r.id === vehicleId) || null : null),

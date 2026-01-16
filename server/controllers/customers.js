@@ -1,6 +1,8 @@
 const customersRouter = require('express').Router();
 const Customer = require('../models/customer');
 const Person = require('../models/person');
+const Card = require('../models/card');
+const Subscription = require('../models/subscription');
 
 /**
  * GET /api/customers
@@ -51,13 +53,32 @@ customersRouter.get('/', async (request, response) => {
       .limit(parseInt(limit))
       .sort({ createdAt: -1 });
 
+    // Enrich with counts
+    const enrichedCustomers = await Promise.all(customers.map(async (c) => {
+      const [cardsCount, subCount] = await Promise.all([
+        Card.countDocuments({ OwnerID: c.PersonID }),
+        Subscription.countDocuments({
+          CustomerID: c.ID,
+          IsSuspended: false,
+          EndDate: { $gte: new Date() }
+        })
+      ]);
+      const obj = c.toJSON();
+      return {
+        ...obj,
+        cardsCount,
+        activeSubscriptions: subCount,
+        registeredDay: obj.RegisteredDay // For frontend compatibility (lowercase r)
+      };
+    }));
+
     // Get total count for pagination
     const total = await Customer.countDocuments(filter);
 
     response.json({
       success: true,
       data: {
-        customers,
+        customers: enrichedCustomers,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -97,9 +118,26 @@ customersRouter.get('/:id', async (request, response) => {
       });
     }
 
+    // Enrich with counts
+    const [cardsCount, subCount] = await Promise.all([
+      Card.countDocuments({ OwnerID: customer.PersonID }),
+      Subscription.countDocuments({
+        CustomerID: customer.ID,
+        IsSuspended: false,
+        EndDate: { $gte: new Date() }
+      })
+    ]);
+
+    const obj = customer.toJSON();
+
     response.json({
       success: true,
-      data: customer
+      data: {
+        ...obj,
+        cardsCount,
+        activeSubscriptions: subCount,
+        registeredDay: obj.RegisteredDay
+      }
     });
   } catch (error) {
     console.error('Get customer by ID error:', error);
@@ -175,8 +213,8 @@ customersRouter.post('/', async (request, response) => {
 
     const savedCustomer = await customer.save();
 
-  // Populate person details before returning
-  await savedCustomer.populate('person', 'ID FullName Phone Gender IsActive');
+    // Populate person details before returning
+    await savedCustomer.populate('person', 'ID FullName Phone Gender IsActive');
 
     response.status(201).json({
       success: true,
@@ -237,7 +275,7 @@ customersRouter.put('/:id', async (request, response) => {
     if (Status !== undefined) customer.Status = Status.toUpperCase();
 
     const updatedCustomer = await customer.save();
-  await updatedCustomer.populate('person', 'ID FullName Phone Gender IsActive');
+    await updatedCustomer.populate('person', 'ID FullName Phone Gender IsActive');
 
     response.json({
       success: true,
