@@ -14,6 +14,11 @@ const DEFAULT_REPORT = {
     trucks: 0,
     vans: 0
   },
+  // Optional: backend can provide a dynamic breakdown.
+  // Supported shapes:
+  // - Array: [{ vehicleTypeId, vehicleTypeName, count }]
+  // - Object: { [vehicleTypeIdOrName]: count }
+  statsByVehicleType: null,
   sessions: []
 }
 
@@ -62,9 +67,59 @@ const ShiftReportModal = ({ isOpen, onClose, gateType = 'entry', report }) => {
         ...base.stats,
         ...(report.stats || {})
       },
+      statsByVehicleType: report.statsByVehicleType ?? base.statsByVehicleType,
       sessions: Array.isArray(report.sessions) ? report.sessions : base.sessions
     }
   }, [gateType, report])
+
+  const vehicleTypeStats = useMemo(() => {
+    // Highest priority: explicit dynamic breakdown from backend.
+    const raw = reportData.statsByVehicleType
+    if (Array.isArray(raw)) {
+      return raw
+        .map((x) => ({
+          key: String(x?.vehicleTypeId || x?.VehicleTypeID || x?.vehicleType || x?.name || '').trim() || (x?.vehicleTypeName || x?.VehicleTypeName || 'Unknown'),
+          label: x?.vehicleTypeName || x?.VehicleTypeName || x?.vehicleType || x?.name || 'Unknown',
+          count: Number(x?.count ?? x?.Count ?? 0) || 0
+        }))
+        .filter((x) => x.label)
+    }
+
+    if (raw && typeof raw === 'object') {
+      return Object.entries(raw)
+        .map(([key, value]) => ({
+          key,
+          label: key,
+          count: Number(value) || 0
+        }))
+        .filter((x) => x.label)
+    }
+
+    // Back-compat: if an older payload includes hard-coded keys, show those
+    // but only if at least one exists (prevents displaying misleading 0s).
+    const legacy = []
+    const legacyMap = [
+      { key: 'cars', label: 'Cars', value: reportData?.stats?.cars },
+      { key: 'motorcycles', label: 'Motorcycles', value: reportData?.stats?.motorcycles },
+      { key: 'trucks', label: 'Trucks', value: reportData?.stats?.trucks },
+      { key: 'vans', label: 'Vans', value: reportData?.stats?.vans }
+    ]
+    const hasLegacyValues = legacyMap.some((x) => Number(x.value) > 0)
+    if (hasLegacyValues) {
+      legacyMap.forEach((x) => legacy.push({ key: x.key, label: x.label, count: Number(x.value) || 0 }))
+      return legacy
+    }
+
+    // Last-resort fallback: derive from sessions list.
+    const counts = new Map()
+    for (const s of (reportData.sessions || [])) {
+      const label = String(s?.vehicleType || s?.vehicleTypeName || '').trim() || 'Unknown'
+      counts.set(label, (counts.get(label) || 0) + 1)
+    }
+    return Array.from(counts.entries())
+      .map(([label, count]) => ({ key: label, label, count }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  }, [reportData.statsByVehicleType, reportData.stats, reportData.sessions])
 
   const subtitleText = `${reportData.gateTypeLabel} - ${formatReportDate(reportData.date)}`
 
@@ -149,16 +204,12 @@ const ShiftReportModal = ({ isOpen, onClose, gateType = 'entry', report }) => {
               <p className="shift-stat-value">{reportData.stats.total}</p>
             </div>
 
-            {/* Dynamic vehicle type stats */}
-            {Object.entries(reportData.stats)
-              .filter(([key]) => key !== 'total')
-              .map(([key, value]) => (
-                <div key={key} className="shift-stat-card">
-                  <p className="shift-stat-label">{key.charAt(0).toUpperCase() + key.slice(1)}</p>
-                  <p className="shift-stat-value">{value}</p>
-                </div>
-              ))
-            }
+            {vehicleTypeStats.map((vt) => (
+              <div className="shift-stat-card" key={vt.key}>
+                <p className="shift-stat-label">{vt.label}</p>
+                <p className="shift-stat-value">{vt.count}</p>
+              </div>
+            ))}
           </div>
 
           {/* Sessions Table */}

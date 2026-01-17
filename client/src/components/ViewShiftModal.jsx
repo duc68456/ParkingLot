@@ -89,6 +89,7 @@ export default function ViewShiftModal({ isOpen, onClose, shiftId, apiBaseUrl, h
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [shift, setShift] = useState(null);
+  const [breakdownRows, setBreakdownRows] = useState(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -97,6 +98,7 @@ export default function ViewShiftModal({ isOpen, onClose, shiftId, apiBaseUrl, h
     (async () => {
       setLoading(true);
       setError('');
+      setBreakdownRows(null);
       try {
         // If we don't have a shiftId (or there isn't a backend endpoint yet), render from fallback.
         if (!shiftId) {
@@ -122,6 +124,75 @@ export default function ViewShiftModal({ isOpen, onClose, shiftId, apiBaseUrl, h
 
         const data = json?.data?.item || json?.data || json;
         setShift(data);
+
+        // Best-effort: fetch real breakdown from ShiftReportDetail.
+        try {
+          const shiftBusinessId = data?.ID || data?.id || shiftId;
+          if (!shiftBusinessId) return;
+
+          const [vtRes, srRes] = await Promise.all([
+            fetch(`${apiBaseUrl}/api/vehicle-types?isActive=true&limit=100`, {
+              headers: { ...(headers || {}) },
+              signal: controller.signal
+            }),
+            fetch(`${apiBaseUrl}/api/shift-reports/by-shift/${encodeURIComponent(shiftBusinessId)}`, {
+              headers: { ...(headers || {}) },
+              signal: controller.signal
+            })
+          ]);
+
+          const vtJson = vtRes.ok ? await vtRes.json().catch(() => null) : null;
+          const srJson = srRes.ok ? await srRes.json().catch(() => null) : null;
+
+          const vehicleTypes = Array.isArray(vtJson?.data?.items)
+            ? vtJson.data.items
+            : (Array.isArray(vtJson?.data) ? vtJson.data : []);
+
+          const vtNameById = new Map(
+            vehicleTypes
+              .filter(Boolean)
+              .map((v) => [String(v.VehicleTypeID || v.vehicleTypeId || '').toUpperCase(), v.Name || v.name || 'Unknown'])
+          );
+
+          const shiftReport = srJson?.data?.item || srJson?.data || srJson;
+          const shiftReportId = shiftReport?.ID || shiftReport?.id;
+          if (!shiftReportId) return;
+
+          const detRes = await fetch(`${apiBaseUrl}/api/shift-report-details?shiftReportId=${encodeURIComponent(shiftReportId)}`, {
+            headers: { ...(headers || {}) },
+            signal: controller.signal
+          });
+
+          const detJson = detRes.ok ? await detRes.json().catch(() => null) : null;
+          const details = Array.isArray(detJson?.data?.items)
+            ? detJson.data.items
+            : (Array.isArray(detJson?.data) ? detJson.data : []);
+
+          const rows = details
+            .map((d) => {
+              const vtId = String(d?.VehicleTypeID || d?.vehicleTypeId || '').toUpperCase();
+              return {
+                type: vtNameById.get(vtId) || vtId || 'Unknown',
+                count: Number(d?.Count ?? d?.count ?? 0) || 0
+              };
+            })
+            .filter((r) => r.type);
+
+          // Ensure all active vehicle types appear even if missing a detail row.
+          if (vehicleTypes.length) {
+            const existing = new Set(rows.map((r) => r.type));
+            vehicleTypes.forEach((v) => {
+              const name = v?.Name || v?.name;
+              if (name && !existing.has(name)) rows.push({ type: name, count: 0 });
+            });
+          }
+
+          rows.sort((a, b) => String(a.type).localeCompare(String(b.type)));
+          setBreakdownRows(rows);
+        } catch {
+          // Keep fallback breakdown if the report endpoints are not available yet.
+          setBreakdownRows(null);
+        }
       } catch (e) {
         if (e?.name !== 'AbortError') {
           setError(e?.message || 'Failed to load shift');
@@ -160,14 +231,9 @@ export default function ViewShiftModal({ isOpen, onClose, shiftId, apiBaseUrl, h
     const totalVehicles =
       s?.TotalVehicles ?? s?.totalVehicles ?? s?.Entries ?? s?.entries ?? s?.TotalEntries ?? 0;
 
-    // Placeholder breakdown until we wire ShiftReportDetail. Keep the UI structure identical.
-    const breakdown = Array.isArray(s?.breakdown)
-      ? s.breakdown
-      : [
-          { type: 'Car', count: Math.max(0, Math.round(totalVehicles * 0.66)) },
-          { type: 'Motorcycle', count: Math.max(0, Math.round(totalVehicles * 0.27)) },
-          { type: 'Truck', count: Math.max(0, totalVehicles - (Math.max(0, Math.round(totalVehicles * 0.66)) + Math.max(0, Math.round(totalVehicles * 0.27)))) }
-        ];
+    const breakdown = (Array.isArray(breakdownRows) && breakdownRows.length)
+      ? breakdownRows
+      : (Array.isArray(s?.breakdown) ? s.breakdown : []);
 
     const createdAt = s?.CreatedAt || s?.createdAt || checkIn;
 
@@ -197,7 +263,7 @@ export default function ViewShiftModal({ isOpen, onClose, shiftId, apiBaseUrl, h
       entries,
       revenue
     };
-  }, [rowFallback, shift, shiftId]);
+  }, [breakdownRows, rowFallback, shift, shiftId]);
 
   if (!isOpen) return null;
 

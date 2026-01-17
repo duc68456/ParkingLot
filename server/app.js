@@ -43,6 +43,10 @@ const entrySessionsRouter = require('./controllers/entrySessions')
 // Phase 9: Shift Management
 const shiftsRouter = require('./controllers/shifts')
 
+// Phase 9.1: Shift Report & Details
+const shiftReportsRouter = require('./controllers/shiftReports')
+const shiftReportDetailsRouter = require('./controllers/shiftReportDetails')
+
 // Dashboard
 const dashboardRouter = require('./controllers/dashboard')
 
@@ -122,6 +126,10 @@ app.use('/api/staff-gate', middleware.authRequired, staffGateRouter)
 
 // Phase 9: Shift Management Routes
 app.use('/api/shifts', middleware.authRequired, middleware.adminOnly, shiftsRouter)
+
+// Shift report routes (admin or staff)
+app.use('/api/shift-reports', middleware.authRequired, shiftReportsRouter)
+app.use('/api/shift-report-details', middleware.authRequired, shiftReportDetailsRouter)
 
 // Dashboard Routes
 app.use('/api/dashboard', middleware.authRequired, dashboardRouter)
