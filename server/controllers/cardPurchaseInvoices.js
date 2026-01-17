@@ -235,10 +235,10 @@ cardPurchaseInvoicesRouter.get('/:id', async (req, res) => {
     const hydratedInvoice = {
       ...invoice.toJSON(),
       CustomerID: customer
-        ? { ...customer.toJSON(), PersonID: personById.get(customer.PersonID?.toString()) || customer.PersonID }
+        ? { ...customer.toJSON(), PersonID: personById2.get(customer.PersonID?.toString()) || customer.PersonID }
         : invoice.CustomerID,
       SaledBy: employee
-        ? { ...employee.toJSON(), PersonID: personById.get(employee.PersonID?.toString()) || employee.PersonID }
+        ? { ...employee.toJSON(), PersonID: personById2.get(employee.PersonID?.toString()) || employee.PersonID }
         : invoice.SaledBy
     }
 

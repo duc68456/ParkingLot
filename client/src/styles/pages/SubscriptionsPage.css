@@ -286,10 +286,16 @@
   color: #008236;
 }
 
+.subscriptions-page .status-paused {
+  background: #fff7ed;
+  border: 0.8px solid #ffd6a7;
+  color: #c2410c;
+}
+
 /* Action Buttons */
 .subscriptions-page .action-buttons {
   display: flex;
-  gap: 4px;
+  gap: 8px;
   align-items: center;
 }
 
@@ -300,32 +306,67 @@
 .subscriptions-page .action-btn {
   width: 32px;
   height: 32px;
-  padding: 8px;
-  background: none;
+  padding: 0;
+  background: transparent;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .subscriptions-page .action-btn:hover {
-  background-color: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .subscriptions-page .action-btn svg {
   width: 16px;
   height: 16px;
+  flex-shrink: 0;
 }
 
-.subscriptions-page .action-btn-delete:hover {
-  background-color: #fef2f2;
+.subscriptions-page .action-btn--view {
+  background: #EFF6FF;
 }
 
-.subscriptions-page .action-btn-delete:hover svg path {
-  stroke: #dc2626;
+.subscriptions-page .action-btn--view:hover {
+  background: #DBEAFE;
+}
+
+.subscriptions-page .action-btn--edit {
+  background: #F8FAFC;
+}
+
+.subscriptions-page .action-btn--edit:hover {
+  background: #F1F5F9;
+}
+
+.subscriptions-page .action-btn--pause {
+  background: #FFF7ED;
+}
+
+.subscriptions-page .action-btn--pause:hover {
+  background: #FFEDD5;
+}
+
+.subscriptions-page .action-btn--continue {
+  background: #F0FDF4;
+}
+
+.subscriptions-page .action-btn--continue:hover {
+  background: #DCFCE7;
+}
+
+.subscriptions-page .action-btn--delete {
+  background: #FEF2F2;
+}
+
+.subscriptions-page .action-btn--delete:hover {
+  background: #FEE2E2;
 }
 
 /* Subscription Types table action button (edit icon) */

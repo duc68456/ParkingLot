@@ -24,6 +24,7 @@ export default function EntrySessionsTable({ sessions, onViewSession }) {
             <th>ENTRY TIME</th>
             <th>EXIT TIME</th>
             <th>STATUS</th>
+            <th>TYPE</th>
             <th>FINAL FEE</th>
             <th>STAFF</th>
             <th className="text-right">ACTIONS</th>
@@ -41,6 +42,13 @@ export default function EntrySessionsTable({ sessions, onViewSession }) {
                 <span className={`status-badge ${getStatusClass(session.status)}`}>
                   {session.status}
                 </span>
+              </td>
+              <td>
+                {session.inSubscription ? (
+                  <span className="subscription-badge">🔄 Subscription</span>
+                ) : (
+                  <span className="guest-badge">Guest</span>
+                )}
               </td>
               <td>${session.finalFee.toFixed(2)}</td>
               <td className="staff-cell">{session.staff}</td>

@@ -309,10 +309,12 @@ customersRouter.put('/:id', async (request, response) => {
 
 /**
  * DELETE /api/customers/:id
- * Delete customer (soft delete - set status to INACTIVE)
+ * Update customer status (soft delete - typically set to INACTIVE)
  */
 customersRouter.delete('/:id', async (request, response) => {
   try {
+    const { status } = request.body;
+
     const customer = await Customer.findById(request.params.id)
       .populate('person', 'ID FullName');
 
@@ -326,17 +328,32 @@ customersRouter.delete('/:id', async (request, response) => {
       });
     }
 
-    // Soft delete - set status to INACTIVE
-    customer.Status = 'INACTIVE';
+    // Update status - accept from body or default to INACTIVE
+    const newStatus = status ? String(status).toUpperCase() : 'INACTIVE';
+    const allowedStatuses = ['ACTIVE', 'INACTIVE'];
+
+    if (!allowedStatuses.includes(newStatus)) {
+      return response.status(400).json({
+        success: false,
+        error: {
+          message: 'Validation error',
+          code: 'VALIDATION_ERROR',
+          details: `Status: ${newStatus} is not a valid status`
+        }
+      });
+    }
+
+    customer.Status = newStatus;
     await customer.save();
 
     response.json({
       success: true,
-      message: 'Customer deactivated successfully',
+      message: 'Customer status updated successfully',
       data: {
         id: customer._id,
         ID: customer.ID,
-        PersonID: customer.PersonID
+        PersonID: customer.PersonID,
+        Status: customer.Status
       }
     });
   } catch (error) {
@@ -344,7 +361,7 @@ customersRouter.delete('/:id', async (request, response) => {
     response.status(500).json({
       success: false,
       error: {
-        message: 'Failed to delete customer',
+        message: 'Failed to update customer status',
         details: error.message
       }
     });

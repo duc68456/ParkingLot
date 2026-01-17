@@ -61,7 +61,7 @@
 
 .action-buttons {
   display: inline-flex;
-  gap: 4px;
+  gap: 8px;
   align-items: center;
 }
 
@@ -73,42 +73,43 @@
   justify-content: center;
   background: transparent;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
   padding: 0;
+  flex-shrink: 0;
 }
 
 .action-btn:hover {
-  background: #f1f5f9;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .action-btn:active {
-  background: #e2e8f0;
+  transform: translateY(0);
 }
 
 .action-btn svg {
   width: 16px;
   height: 16px;
   display: block;
+  flex-shrink: 0;
 }
 
-.edit-btn svg path {
-  fill: #45556c;
-  transition: fill 0.2s;
+.action-btn--edit {
+  background: #F8FAFC;
 }
 
-.edit-btn:hover svg path {
-  fill: #1d293d;
+.action-btn--edit:hover {
+  background: #F1F5F9;
 }
 
-.delete-btn svg path {
-  fill: #d92d20;
-  transition: fill 0.2s;
+.action-btn--delete {
+  background: #FEF2F2;
 }
 
-.delete-btn:hover svg path {
-  fill: #b91c1c;
+.action-btn--delete:hover {
+  background: #FEE2E2;
 }
 
 .status-pill {

@@ -1,5 +1,19 @@
 import '../styles/components/PricingRulesTable.css';
-import historyIcon from '../assets/icons/dashboard/pulse.svg';
+
+// Inline SVG icons for consistent rendering
+const EditIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M11.3333 2.00004C11.5084 1.82494 11.716 1.68605 11.9447 1.59129C12.1735 1.49653 12.4187 1.44775 12.6666 1.44775C12.9146 1.44775 13.1598 1.49653 13.3886 1.59129C13.6173 1.68605 13.8249 1.82494 14 2.00004C14.1751 2.17513 14.314 2.38272 14.4088 2.61149C14.5035 2.84026 14.5523 3.08543 14.5523 3.33337C14.5523 3.58132 14.5035 3.82649 14.4088 4.05526C14.314 4.28403 14.1751 4.49162 14 4.66671L5.00001 13.6667L1.33334 14.6667L2.33334 11L11.3333 2.00004Z" stroke="#314158" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const HistoryIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M8 4V8L10.5 10.5" stroke="#314158" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M2 8C2 11.3137 4.68629 14 8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C5.87827 2 4.01111 3.08909 2.91118 4.72727" stroke="#314158" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M2 2V5H5" stroke="#314158" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 
 export default function PricingRulesTable({ pricingRules, onEditRule, onViewHistory }) {
   const formatDate = (value) => {
@@ -45,24 +59,21 @@ export default function PricingRulesTable({ pricingRules, onEditRule, onViewHist
               <td className="actions-cell">
                 <div className="action-buttons">
                   <button
-                    className="action-btn edit-btn"
+                    className="action-btn action-btn--edit"
                     onClick={() => onEditRule && onEditRule(rule)}
                     aria-label="Edit"
                   >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path d="M2 11.5V14H4.5L11.8733 6.62667L9.37333 4.12667L2 11.5Z" fill="#45556C" />
-                      <path d="M13.8067 4.69333L11.3067 2.19333L12.78 0.72C13.0667 0.433333 13.4267 0.293333 13.86 0.3C14.2933 0.306667 14.6533 0.453333 14.94 0.74L15.28 1.08C15.5667 1.36667 15.7067 1.72667 15.7 2.16C15.6933 2.59333 15.5467 2.95333 15.26 3.24L13.8067 4.69333Z" fill="#45556C" />
-                    </svg>
+                    <EditIcon />
                   </button>
 
                   <button
-                    className="action-btn"
+                    className="action-btn action-btn--history"
                     onClick={() => onViewHistory && onViewHistory(rule)}
                     aria-label="View history"
                     title="View Price History"
                     type="button"
                   >
-                    <img src={historyIcon} alt="" width="16" height="16" />
+                    <HistoryIcon />
                   </button>
                 </div>
               </td>

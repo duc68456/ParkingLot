@@ -411,10 +411,12 @@ employeesRouter.put("/:id", async (request, response) => {
 
 /**
  * DELETE /api/employees/:id
- * Delete employee (soft delete - set status to TERMINATED)
+ * Update employee status (soft delete - typically set to INACTIVE)
  */
 employeesRouter.delete("/:id", async (request, response) => {
   try {
+    const { status } = request.body;
+
     const employee = await Employee.findById(request.params.id).populate(
       "person",
       "ID FullName"
@@ -430,17 +432,32 @@ employeesRouter.delete("/:id", async (request, response) => {
       });
     }
 
-    // Soft delete - set status to TERMINATED
-    employee.Status = "INACTIVE";
+    // Update status - accept from body or default to INACTIVE
+    const newStatus = status ? String(status).toUpperCase() : "INACTIVE";
+    const allowedStatuses = ALLOWED_EMPLOYEE_STATUSES;
+
+    if (!allowedStatuses.includes(newStatus)) {
+      return response.status(400).json({
+        success: false,
+        error: {
+          message: "Validation error",
+          code: "VALIDATION_ERROR",
+          details: `Status: ${newStatus} is not a valid status`,
+        },
+      });
+    }
+
+    employee.Status = newStatus;
     await employee.save();
 
     response.json({
       success: true,
-      message: "Employee terminated successfully",
+      message: "Employee status updated successfully",
       data: {
         id: employee._id,
         ID: employee.ID,
         PersonID: employee.PersonID,
+        Status: employee.Status,
       },
     });
   } catch (error) {
@@ -448,7 +465,7 @@ employeesRouter.delete("/:id", async (request, response) => {
     response.status(500).json({
       success: false,
       error: {
-        message: "Failed to delete employee",
+        message: "Failed to update employee status",
         details: error.message,
       },
     });

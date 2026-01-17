@@ -1,0 +1,30 @@
+/* Toggle Status Button Styles */
+.action-btn--toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.action-btn--activate {
+  color: #10b981;
+}
+
+.action-btn--activate:hover {
+  background-color: #d1fae5;
+  color: #059669;
+}
+
+.action-btn--deactivate {
+  color: #ef4444;
+}
+
+.action-btn--deactivate:hover {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.action-btn--toggle svg {
+  width: 16px;
+  height: 16px;
+}

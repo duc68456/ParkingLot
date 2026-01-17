@@ -1,6 +1,42 @@
 const vehiclesRouter = require('express').Router()
 const Vehicle = require('../models/vehicle')
 const VehicleType = require('../models/vehicleType')
+const Subscription = require('../models/subscription')
+const Customer = require('../models/customer')
+const Person = require('../models/person')
+
+const getOwnerFromSubscription = async (vehicleId) => {
+  if (!vehicleId) return null
+
+  const now = new Date()
+  const subscription = await Subscription.findOne({
+    VehicleID: vehicleId,
+    IsSuspended: false,
+    StartDate: { $lte: now },
+    EndDate: { $gte: now }
+  }).lean()
+
+  console.log(`[getOwnerFromSubscription] VehicleID: ${vehicleId}, Found subscription:`, subscription)
+
+  if (!subscription || !subscription.CustomerID) return null
+
+  const customer = await Customer.findOne({ ID: subscription.CustomerID }).lean()
+  console.log(`[getOwnerFromSubscription] CustomerID: ${subscription.CustomerID}, Found customer:`, customer)
+
+  if (!customer || !customer.PersonID) return null
+
+  const person = await Person.findOne({ ID: customer.PersonID }).lean()
+  console.log(`[getOwnerFromSubscription] PersonID: ${customer.PersonID}, Found person:`, person)
+
+  if (!person) return null
+
+  return {
+    ownerId: customer.ID,
+    ownerName: person.FullName,
+    ownerType: 'Customer',
+    ownerPhone: person.Phone
+  }
+}
 
 const attachVehicleType = async (vehicleDoc) => {
   if (!vehicleDoc) return vehicleDoc
@@ -86,10 +122,21 @@ vehiclesRouter.get('/', async (req, res) => {
 
     const vehiclesWithTypes = await attachVehicleTypes(vehicles)
 
+    // Add owner info for each vehicle
+    const vehiclesWithOwners = await Promise.all(
+      vehiclesWithTypes.map(async (v) => {
+        const ownerInfo = await getOwnerFromSubscription(v.VehicleID)
+        return {
+          ...v,
+          ...ownerInfo
+        }
+      })
+    )
+
     res.json({
       success: true,
       data: {
-        items: vehiclesWithTypes,
+        items: vehiclesWithOwners,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -126,10 +173,14 @@ vehiclesRouter.get('/:id', async (req, res) => {
     }
 
     const vehicleWithType = await attachVehicleType(vehicle)
+    const ownerInfo = await getOwnerFromSubscription(vehicleWithType.VehicleID)
 
     res.json({
       success: true,
-      data: vehicleWithType
+      data: {
+        ...vehicleWithType,
+        ...ownerInfo
+      }
     })
   } catch (error) {
     res.status(500).json({
@@ -284,9 +335,11 @@ vehiclesRouter.put('/:id', async (req, res) => {
   }
 })
 
-// DELETE - Soft delete vehicle
+// DELETE - Update vehicle status (soft delete)
 vehiclesRouter.delete('/:id', async (req, res) => {
   try {
+    const { status } = req.body;
+
     const vehicle = await Vehicle.findById(req.params.id)
     if (!vehicle) {
       return res.status(404).json({
@@ -298,13 +351,34 @@ vehiclesRouter.delete('/:id', async (req, res) => {
       })
     }
 
-    vehicle.IsActive = false
-    vehicle.Status = 'BLOCKED'
+    // Update status - accept from body or default to Inactive
+    const newStatus = status ? String(status) : 'Inactive';
+    const allowedStatuses = ['Active', 'Inactive', 'BLOCKED'];
+
+    if (!allowedStatuses.includes(newStatus)) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Validation error',
+          code: 'VALIDATION_ERROR',
+          details: `Status: ${newStatus} is not a valid status`
+        }
+      })
+    }
+
+    vehicle.IsActive = newStatus === 'Active';
+    vehicle.Status = newStatus === 'Active' ? 'ACTIVE' : 'BLOCKED';
     await vehicle.save()
 
     res.json({
       success: true,
-      message: 'Vehicle deactivated successfully'
+      message: 'Vehicle status updated successfully',
+      data: {
+        id: vehicle._id,
+        VehicleID: vehicle.VehicleID,
+        IsActive: vehicle.IsActive,
+        Status: vehicle.Status
+      }
     })
   } catch (error) {
     res.status(500).json({

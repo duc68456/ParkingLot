@@ -43,6 +43,9 @@ const entrySessionsRouter = require('./controllers/entrySessions')
 // Phase 9: Shift Management
 const shiftsRouter = require('./controllers/shifts')
 
+// Dashboard
+const dashboardRouter = require('./controllers/dashboard')
+
 const app = express()
 
 logger.info('connecting to', config.MONGODB_URI)
@@ -115,6 +118,9 @@ app.use('/api/entry-sessions', middleware.authRequired, entrySessionsRouter)
 
 // Phase 9: Shift Management Routes
 app.use('/api/shifts', middleware.authRequired, middleware.adminOnly, shiftsRouter)
+
+// Dashboard Routes
+app.use('/api/dashboard', middleware.authRequired, dashboardRouter)
 
 app.use(middleware.unknownEndpoint)
 app.use(middleware.errorHandler)

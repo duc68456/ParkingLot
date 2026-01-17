@@ -1,11 +1,19 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import '../styles/components/AddEmployeeCardModal.css';
+import { useAuth } from '../contexts/AuthContext';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+
+const UID_REGEX = /^UID-\d{4}$/;
 
 export default function AddEmployeeCardModal({ employee, onBackToCards, onClose, onCreate }) {
   if (!employee) return null;
 
+  const { authHeaders } = useAuth();
   const [cardUid, setCardUid] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
+  const [uidLoading, setUidLoading] = useState(false);
+  const [uidError, setUidError] = useState('');
 
   const initials = employee.initials || employee.name?.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
 
@@ -13,10 +21,63 @@ export default function AddEmployeeCardModal({ employee, onBackToCards, onClose,
     if (e.target === e.currentTarget) onClose();
   };
 
-  const canSubmit = Boolean(cardUid.trim());
+  // Auto-fetch next UID
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const fetchNextUid = async () => {
+      try {
+        setUidLoading(true);
+        const res = await fetch(`${API_BASE_URL}/api/cards/next-uid`, {
+          signal: controller.signal,
+          headers: { ...authHeaders }
+        });
+        const json = await res.json().catch(() => null);
+
+        if (res.ok && json?.data?.nextUid) {
+          setCardUid(json.data.nextUid);
+        }
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Failed to fetch next UID:', err);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setUidLoading(false);
+        }
+      }
+    };
+
+    fetchNextUid();
+
+    return () => controller.abort();
+  }, [authHeaders]);
+
+  const validateUid = (uid) => {
+    const trimmed = String(uid || '').trim();
+    if (!trimmed) return 'UID is required';
+    if (!UID_REGEX.test(trimmed)) return 'UID must be in format UID-XXXX (e.g. UID-0001)';
+    return '';
+  };
+
+  const handleUidChange = (e) => {
+    const val = e.target.value;
+    setCardUid(val);
+    if (uidError) setUidError('');
+  };
+
+  const handleUidBlur = () => {
+    setUidError(validateUid(cardUid));
+  };
+
+  const canSubmit = Boolean(cardUid.trim()) && !uidError && !uidLoading;
 
   const handleSubmit = () => {
-    if (!canSubmit) return;
+    const error = validateUid(cardUid);
+    if (error) {
+      setUidError(error);
+      return;
+    }
 
     const payload = {
       employeeId: employee.id,
@@ -49,7 +110,7 @@ export default function AddEmployeeCardModal({ employee, onBackToCards, onClose,
               <div className="employee-summary-info">
                 <div className="employee-summary-name">{employee.name}</div>
                 <div className="employee-summary-meta">
-                  {employee.role}  Employee
+                  {employee.role}   Employee
                 </div>
                 <div className="employee-summary-hint">
                   This card will be automatically assigned to this employee upon creation.
@@ -70,14 +131,20 @@ export default function AddEmployeeCardModal({ employee, onBackToCards, onClose,
               </label>
               <input
                 type="text"
-                className="form-control add-employee-card-uid"
+                className={`form-control add-employee-card-uid${uidError ? ' form-control-error' : ''}`}
                 value={cardUid}
-                onChange={(e) => setCardUid(e.target.value)}
-                placeholder="Enter or scan card UID (e.g., UID-123456)"
+                onChange={handleUidChange}
+                onBlur={handleUidBlur}
+                placeholder={uidLoading ? 'Loading...' : 'Enter or scan card UID (e.g., UID-123456)'}
+                disabled={uidLoading}
               />
-              <div className="add-employee-card-help">
-                Enter the card UID manually or use a card reader to scan it
-              </div>
+              {uidError ? (
+                <div className="add-employee-card-error" style={{ color: '#dc2626', fontSize: '13px', marginTop: '4px' }}>{uidError}</div>
+              ) : (
+                <div className="add-employee-card-help">
+                  {uidLoading ? 'Fetching next available UID...' : 'Enter the card UID manually or use a card reader to scan it'}
+                </div>
+              )}
             </div>
 
             <div className="form-group">

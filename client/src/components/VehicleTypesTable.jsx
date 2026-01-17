@@ -1,6 +1,22 @@
 import React from 'react';
 import '../styles/components/VehicleTypesTable.css';
 
+// Inline SVG icons for consistent rendering
+const EditIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M11.3333 2.00004C11.5084 1.82494 11.716 1.68605 11.9447 1.59129C12.1735 1.49653 12.4187 1.44775 12.6666 1.44775C12.9146 1.44775 13.1598 1.49653 13.3886 1.59129C13.6173 1.68605 13.8249 1.82494 14 2.00004C14.1751 2.17513 14.314 2.38272 14.4088 2.61149C14.5035 2.84026 14.5523 3.08543 14.5523 3.33337C14.5523 3.58132 14.5035 3.82649 14.4088 4.05526C14.314 4.28403 14.1751 4.49162 14 4.66671L5.00001 13.6667L1.33334 14.6667L2.33334 11L11.3333 2.00004Z" stroke="#314158" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const DeleteIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M2 4H14" stroke="#314158" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M5.33334 4V2.66667C5.33334 2.48986 5.40358 2.32029 5.52861 2.19526C5.65363 2.07024 5.8232 2 6.00001 2H10C10.1768 2 10.3464 2.07024 10.4714 2.19526C10.5964 2.32029 10.6667 2.48986 10.6667 2.66667V4M12.6667 4V13.3333C12.6667 13.5101 12.5964 13.6797 12.4714 13.8047C12.3464 13.9298 12.1768 14 12 14H4.00001C3.8232 14 3.65363 13.9298 3.52861 13.8047C3.40358 13.6797 3.33334 13.5101 3.33334 13.3333V4H12.6667Z" stroke="#314158" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M6.66666 7.33337V11.3334" stroke="#314158" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M9.33334 7.33337V11.3334" stroke="#314158" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 export default function VehicleTypesTable({ vehicleTypes, onEditType, onDeleteType }) {
   const getStatusBadgeClass = (status) => {
     switch ((status || '').toLowerCase()) {
@@ -45,23 +61,18 @@ export default function VehicleTypesTable({ vehicleTypes, onEditType, onDeleteTy
               <td className="actions-cell">
                 <div className="action-buttons">
                   <button
-                    className="action-btn edit-btn"
+                    className="action-btn action-btn--edit"
                     onClick={() => onEditType && onEditType(type)}
                     aria-label="Edit"
                   >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M2 11.5V14H4.5L11.8733 6.62667L9.37333 4.12667L2 11.5Z" fill="#45556C"/>
-                      <path d="M13.8067 4.69333L11.3067 2.19333L12.78 0.72C13.0667 0.433333 13.4267 0.293333 13.86 0.3C14.2933 0.306667 14.6533 0.453333 14.94 0.74L15.28 1.08C15.5667 1.36667 15.7067 1.72667 15.7 2.16C15.6933 2.59333 15.5467 2.95333 15.26 3.24L13.8067 4.69333Z" fill="#45556C"/>
-                    </svg>
+                    <EditIcon />
                   </button>
                   <button
-                    className="action-btn delete-btn"
+                    className="action-btn action-btn--delete"
                     onClick={() => onDeleteType && onDeleteType(type)}
                     aria-label="Delete"
                   >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M4.5 14C4.08333 14 3.72933 13.854 3.438 13.562C3.146 13.2707 3 12.9167 3 12.5V4H2V2.66667H5.66667V2H10.3333V2.66667H14V4H13V12.5C13 12.9167 12.854 13.2707 12.562 13.562C12.2707 13.854 11.9167 14 11.5 14H4.5ZM11.6667 4H4.33333V12.5C4.33333 12.5556 4.35278 12.6 4.39167 12.6333C4.43056 12.6667 4.47778 12.6667 4.53333 12.6667H11.4667C11.5222 12.6667 11.5694 12.6528 11.6083 12.625C11.6472 12.5972 11.6667 12.5556 11.6667 12.5V4ZM6.33333 11.3333H7.66667V5.33333H6.33333V11.3333ZM8.33333 11.3333H9.66667V5.33333H8.33333V11.3333Z" fill="#D92D20"/>
-                    </svg>
+                    <DeleteIcon />
                   </button>
                 </div>
               </td>

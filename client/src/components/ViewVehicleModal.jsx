@@ -51,9 +51,15 @@ export default function ViewVehicleModal({ vehicle, onClose }) {
               </div>
               <div className="view-vehicle-owner-info">
                 <div className="view-vehicle-owner-label">OWNER</div>
-                <div className="view-vehicle-owner-name">{vehicle.ownerName || 'John Doe'}</div>
+                <div className="view-vehicle-owner-name">{vehicle.ownerName || 'Unassigned'}</div>
                 <div className="view-vehicle-owner-details">
-                  {(vehicle.ownerType || 'Customer')} • ID: {vehicle.ownerId || 'CUST001'}
+                  {vehicle.ownerId ? (
+                    <>
+                      {vehicle.ownerType || 'Customer'} • ID: {vehicle.ownerId}
+                    </>
+                  ) : (
+                    'No active subscription'
+                  )}
                 </div>
               </div>
             </div>

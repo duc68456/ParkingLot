@@ -766,7 +766,8 @@ entrySessionsRouter.post('/gate/entry', async (req, res) => {
           LicensePlate: LicensePlate || null,
           ProcessedEntryBy,
           EntryTime: new Date(),
-          Status: 'IN_PARKING'
+          Status: 'IN_PARKING',
+          DiscountReason: null // No subscription = instant charge
         })
 
         const saved = await session.save()
@@ -801,7 +802,8 @@ entrySessionsRouter.post('/gate/entry', async (req, res) => {
           LicensePlate: LicensePlate || vehicle.PlateNumber || null,
           ProcessedEntryBy,
           EntryTime: new Date(),
-          Status: 'IN_PARKING'
+          Status: 'IN_PARKING',
+          DiscountReason: 'SUBSCRIPTION' // Has matching subscription
         })
 
         const saved = await session.save()
@@ -850,7 +852,8 @@ entrySessionsRouter.post('/gate/entry', async (req, res) => {
       LicensePlate: LicensePlate || null,
       ProcessedEntryBy,
       EntryTime: new Date(),
-      Status: 'IN_PARKING'
+      Status: 'IN_PARKING',
+      DiscountReason: subscription ? 'SUBSCRIPTION' : null // Set based on subscription existence
     })
 
     const saved = await session.save()
@@ -1106,6 +1109,14 @@ entrySessionsRouter.post('/entry', async (req, res) => {
       })
     }
 
+    // Check if card holder has active subscription for this vehicle type
+    let subscription = null
+    if (card.CustomerID) {
+      subscription = await checkSubscription(card.CustomerID, VehicleTypeID)
+    } else if (card.EmployeeID) {
+      subscription = await checkSubscription(card.EmployeeID, VehicleTypeID)
+    }
+
     const session = new EntrySession({
       VehicleID: VehicleID || null,
       VehicleTypeID,
@@ -1113,7 +1124,8 @@ entrySessionsRouter.post('/entry', async (req, res) => {
       LicensePlate: LicensePlate || null,
       ProcessedEntryBy,
       EntryTime: new Date(),
-      Status: 'IN_PARKING'
+      Status: 'IN_PARKING',
+      DiscountReason: subscription ? 'SUBSCRIPTION' : null
     })
 
   const savedSession = await session.save()

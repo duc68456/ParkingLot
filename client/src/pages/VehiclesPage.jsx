@@ -71,7 +71,11 @@ export default function VehiclesPage() {
           .toUpperCase() === 'ACTIVE'
           ? 'Active'
           : 'Inactive',
-      IsActive: v?.IsActive
+      IsActive: v?.IsActive,
+      ownerId: v?.ownerId,
+      ownerName: v?.ownerName,
+      ownerType: v?.ownerType,
+      ownerPhone: v?.ownerPhone
     };
   };
 
@@ -171,15 +175,15 @@ export default function VehiclesPage() {
   }, []);
 
   const tabs = [
-    { 
-      id: 'vehicles', 
+    {
+      id: 'vehicles',
       label: 'Vehicles',
-      count: vehicles.length 
+      count: vehicles.length
     },
-    { 
-      id: 'vehicleTypes', 
+    {
+      id: 'vehicleTypes',
       label: 'Vehicle Types',
-      count: vehicleTypes.length 
+      count: vehicleTypes.length
     }
   ];
 
@@ -294,11 +298,11 @@ export default function VehiclesPage() {
             // Keep status consistent; Edit modal currently doesn't change it.
             ...(updatedVehicle?.status
               ? {
-                  Status:
-                    updatedVehicle.status === 'Inactive' || updatedVehicle.status === 'BLOCKED'
-                      ? 'BLOCKED'
-                      : 'ACTIVE'
-                }
+                Status:
+                  updatedVehicle.status === 'Inactive' || updatedVehicle.status === 'BLOCKED'
+                    ? 'BLOCKED'
+                    : 'ACTIVE'
+              }
               : {})
           })
         });
@@ -323,7 +327,7 @@ export default function VehiclesPage() {
     })();
   };
 
-  const handleConfirmDeleteVehicle = (vehicleToDelete) => {
+  const handleConfirmDeleteVehicle = (vehicleToDelete, newStatus) => {
     (async () => {
       if (!vehicleToDelete) return;
       const id = vehicleToDelete?._id ?? vehicleToDelete?.id;
@@ -332,7 +336,11 @@ export default function VehiclesPage() {
       try {
         const res = await fetch(`${API_BASE_URL}/api/vehicles/${id}`, {
           method: 'DELETE',
-          headers: { ...authHeaders }
+          headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders
+          },
+          body: JSON.stringify({ status: newStatus || 'Inactive' }),
         });
 
         const json = await res.json().catch(() => null);
@@ -342,11 +350,13 @@ export default function VehiclesPage() {
           throw new Error(msg);
         }
 
-        // Backend does soft-delete (IsActive=false). Reflect that in UI.
+        // Backend updates status; reflect in UI
+        const isActive = newStatus === 'Active';
+        const statusToSet = newStatus || 'Inactive';
         setVehicles((prev) =>
           prev.map((v) =>
             v.id === vehicleToDelete.id
-              ? { ...v, status: 'Inactive', IsActive: false }
+              ? { ...v, status: statusToSet, IsActive: isActive }
               : v
           )
         );
@@ -402,14 +412,14 @@ export default function VehiclesPage() {
       const saved = json?.data;
       const normalized = saved
         ? {
-            id: saved.id ?? saved._id ?? saved.VehicleTypeID,
-            VehicleTypeID: saved.VehicleTypeID ?? updatedType.VehicleTypeID,
-            name: saved.Name ?? saved.name,
-            status: (saved.IsActive ?? true) ? 'Active' : 'Inactive',
-            capacity: saved.capacity ?? updatedType.capacity ?? 0,
-            // keep raw IsActive if we ever need it
-            IsActive: saved.IsActive
-          }
+          id: saved.id ?? saved._id ?? saved.VehicleTypeID,
+          VehicleTypeID: saved.VehicleTypeID ?? updatedType.VehicleTypeID,
+          name: saved.Name ?? saved.name,
+          status: (saved.IsActive ?? true) ? 'Active' : 'Inactive',
+          capacity: saved.capacity ?? updatedType.capacity ?? 0,
+          // keep raw IsActive if we ever need it
+          IsActive: saved.IsActive
+        }
         : updatedType;
 
       setVehicleTypes((prevTypes) =>
@@ -447,7 +457,7 @@ export default function VehiclesPage() {
       console.error('Delete vehicle type error:', error);
       window.alert(
         error?.message ||
-          'Failed to delete vehicle type. Tip: you can only delete types that are inactive.'
+        'Failed to delete vehicle type. Tip: you can only delete types that are inactive.'
       );
     }
   };
@@ -533,7 +543,7 @@ export default function VehiclesPage() {
       (vehicle.type || '').toString().toLowerCase() === typeFilter.toLowerCase();
     const matchesStatus = statusFilter === 'All Status' || vehicle.status === statusFilter;
     const matchesSearch = vehicle.licensePlate.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         vehicle.id.toLowerCase().includes(searchQuery.toLowerCase());
+      vehicle.id.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesType && matchesStatus && matchesSearch;
   });
 
@@ -545,9 +555,9 @@ export default function VehiclesPage() {
       />
 
       <div className="tab-navigation-wrapper">
-        <TabNavigation 
-          tabs={tabs} 
-          activeTab={activeTab} 
+        <TabNavigation
+          tabs={tabs}
+          activeTab={activeTab}
           onTabChange={setActiveTab}
         />
       </div>
@@ -564,7 +574,7 @@ export default function VehiclesPage() {
               />
               <button className="add-vehicle-btn" onClick={handleAddVehicle} type="button">
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M10 5V15M5 10H15" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M10 5V15M5 10H15" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 Add Vehicle
               </button>
@@ -585,7 +595,7 @@ export default function VehiclesPage() {
             </div>
           </div>
 
-          <VehiclesTable 
+          <VehiclesTable
             vehicles={filteredVehicles}
             onViewVehicle={handleViewVehicle}
             onEditVehicle={handleEditVehicle}
@@ -599,7 +609,7 @@ export default function VehiclesPage() {
           <div className="add-type-button-wrapper">
             <button className="add-type-btn" onClick={handleAddType}>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 5V15M5 10H15" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M10 5V15M5 10H15" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               Add Type
             </button>

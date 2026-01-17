@@ -333,6 +333,26 @@
   text-overflow: ellipsis;
 }
 
+.dashboard-activityVehicleType {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 20px;
+  color: #62748e;
+  margin-left: 4px;
+}
+
+.dashboard-activitySubscription {
+  font-family: 'Arimo', sans-serif;
+  font-size: 11px;
+  line-height: 16px;
+  color: #10b981;
+  background: #dcfce7;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  font-weight: 500;
+}
+
 .dashboard-activityMeta {
   font-family: 'Arimo', sans-serif;
   font-size: 12px;
@@ -588,6 +608,7 @@
 }
 
 @media (max-width: 900px) {
+
   .dashboard-row--charts,
   .dashboard-row--lists {
     grid-template-columns: 1fr;
