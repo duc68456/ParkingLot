@@ -141,39 +141,29 @@ dashboardRouter.get('/recent-activity', async (request, response, next) => {
       const vehicleTypeName = vehicleType?.Name || 'Unknown'
 
       // For each session, we might have entry and/or exit
-      const card = await Card.findOne({ CardID: session.CardID }).select('CardID CustomerID EmployeeID').lean()
+      // Card model has OwnerID which directly references Person
+      const card = await Card.findOne({ CardID: session.CardID }).select('CardID OwnerID CardCategoryID').lean()
 
       console.log(`[Dashboard Activity] Session ${session.ID}:`, {
         CardID: session.CardID,
         CardFound: !!card,
-        CustomerID: card?.CustomerID,
-        EmployeeID: card?.EmployeeID,
+        OwnerID: card?.OwnerID,
         DiscountReason: session.DiscountReason
       })
 
-      let personName = 'Unknown'
+      let personName = 'Visitor'
       let personType = 'guest'
 
       // Check if this is a subscription-based session
       const hasSubscription = session.DiscountReason === 'SUBSCRIPTION'
 
-      if (card?.CustomerID) {
-        const customer = await Customer.findOne({ ID: card.CustomerID }).select('PersonID').lean()
-        console.log(`  Customer found:`, !!customer, customer?.PersonID)
-        if (customer?.PersonID) {
-          const person = await Person.findOne({ ID: customer.PersonID }).select('FullName').lean()
-          console.log(`  Person found:`, !!person, person?.FullName)
-          personName = person?.FullName || 'Unknown Customer'
-          personType = 'customer'
-        }
-      } else if (card?.EmployeeID) {
-        const employee = await Employee.findOne({ ID: card.EmployeeID }).select('PersonID').lean()
-        console.log(`  Employee found:`, !!employee, employee?.PersonID)
-        if (employee?.PersonID) {
-          const person = await Person.findOne({ ID: employee.PersonID }).select('FullName').lean()
-          console.log(`  Person found:`, !!person, person?.FullName)
-          personName = person?.FullName || 'Unknown Staff'
-          personType = 'staff'
+      // Get person name from Card.OwnerID (direct ref to Person)
+      if (card?.OwnerID) {
+        const person = await Person.findOne({ ID: card.OwnerID }).select('FullName').lean()
+        console.log(`  Person found:`, !!person, person?.FullName)
+        if (person?.FullName) {
+          personName = person.FullName
+          personType = hasSubscription ? 'subscriber' : 'customer'
         }
       } else if (!card) {
         personName = 'Guest'
@@ -229,20 +219,15 @@ dashboardRouter.get('/recent-activity', async (request, response, next) => {
  */
 dashboardRouter.get('/capacity', async (request, response, next) => {
   try {
-    // Get all vehicle types
-    const vehicleTypes = await VehicleType.find({}).lean()
+    // Get all active vehicle types
+    const vehicleTypes = await VehicleType.find({ IsActive: true }).lean()
 
-    // Define max capacity per type (could be stored in VehicleType model later)
-    const capacityConfig = {
-      'Ô tô': 500,
-      'Xe máy': 1200,
-      'Xe tải': 150,
-      'Xe khách': 200
-    }
+    // Default capacity per type (100 as requested)
+    const DEFAULT_CAPACITY = 100
 
     // Count vehicles currently in parking by type
     const sessionsInParking = await EntrySession.find({
-      Status: 'IN_PARKING'
+      Status: { $in: ['IN_PARKING', 'Active', 'ACTIVE'] }
     }).select('VehicleTypeID').lean()
 
     // Group by vehicle type
@@ -251,11 +236,23 @@ dashboardRouter.get('/capacity', async (request, response, next) => {
       countByType[session.VehicleTypeID] = (countByType[session.VehicleTypeID] || 0) + 1
     }
 
-    // Build capacity response
-    const capacityData = vehicleTypes.map(vt => {
+    // Build capacity response - use actual vehicle types from DB
+    const capacityData = vehicleTypes.map((vt, index) => {
       const current = countByType[vt.VehicleTypeID] || 0
-      const max = capacityConfig[vt.Name] || 100
+      const max = DEFAULT_CAPACITY
       const percent = max > 0 ? Math.round((current / max) * 100) : 0
+
+      // Map tone based on vehicle type name (case-insensitive)
+      const nameLower = (vt.Name || '').toLowerCase()
+      let tone = 'blue'
+      if (nameLower.includes('motor') || nameLower.includes('xe máy') || nameLower.includes('bike')) {
+        tone = 'purple'
+      } else if (nameLower.includes('bus') || nameLower.includes('xe khách') || nameLower.includes('van')) {
+        tone = 'green'
+      } else if (nameLower.includes('truck') || nameLower.includes('xe tải')) {
+        tone = 'orange'
+      }
+      // Car/default stays blue
 
       return {
         id: vt.VehicleTypeID,
@@ -263,11 +260,7 @@ dashboardRouter.get('/capacity', async (request, response, next) => {
         current,
         max,
         percent,
-        // Map to tone for frontend
-        tone: vt.Name === 'Ô tô' ? 'blue'
-          : vt.Name === 'Xe máy' ? 'purple'
-            : vt.Name === 'Xe tải' ? 'orange'
-              : 'green'
+        tone
       }
     })
 
@@ -289,19 +282,15 @@ dashboardRouter.get('/alerts', async (request, response, next) => {
     const alerts = []
     const now = new Date()
 
-    // Check capacity alerts
-    const vehicleTypes = await VehicleType.find({}).lean()
-    const capacityConfig = {
-      'Ô tô': 500,
-      'Xe máy': 1200,
-      'Xe tải': 150,
-      'Xe khách': 200
-    }
+    // Check capacity alerts - use 100 default capacity per type
+    const DEFAULT_CAPACITY = 100
+    const vehicleTypes = await VehicleType.find({ IsActive: true }).lean()
 
     const sessionsInParking = await EntrySession.find({
-      Status: 'IN_PARKING'
+      Status: { $in: ['IN_PARKING', 'Active', 'ACTIVE'] }
     }).select('VehicleTypeID').lean()
 
+    // Group by vehicle type
     const countByType = {}
     for (const session of sessionsInParking) {
       countByType[session.VehicleTypeID] = (countByType[session.VehicleTypeID] || 0) + 1
@@ -310,7 +299,7 @@ dashboardRouter.get('/alerts', async (request, response, next) => {
     // Generate capacity alerts
     for (const vt of vehicleTypes) {
       const current = countByType[vt.VehicleTypeID] || 0
-      const max = capacityConfig[vt.Name] || 100
+      const max = DEFAULT_CAPACITY
       const percent = max > 0 ? Math.round((current / max) * 100) : 0
 
       if (percent >= 90) {
@@ -415,6 +404,74 @@ dashboardRouter.get('/revenue-trend', async (request, response, next) => {
     response.json({
       success: true,
       data: trendData
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+/**
+ * GET /api/dashboard/vehicle-distribution-today
+ * Returns vehicle type distribution based on today's entries
+ */
+dashboardRouter.get('/vehicle-distribution-today', async (request, response, next) => {
+  try {
+    const now = new Date()
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0)
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59)
+
+    // Get active vehicle types
+    const vehicleTypes = await VehicleType.find({ IsActive: true }).lean()
+
+    // Aggregate entries by VehicleTypeID for today
+    const stats = await EntrySession.aggregate([
+      {
+        $match: {
+          EntryTime: { $gte: startOfToday, $lte: endOfToday }
+        }
+      },
+      {
+        $group: {
+          _id: '$VehicleTypeID',
+          count: { $sum: 1 }
+        }
+      }
+    ])
+
+    // Convert to map for easy lookup
+    const statsMap = {}
+    stats.forEach(s => {
+      if (s._id) statsMap[s._id] = s.count
+    })
+
+    const distribution = vehicleTypes.map(vt => {
+      const count = statsMap[vt.VehicleTypeID] || 0
+
+      // Map tone
+      const nameLower = (vt.Name || '').toLowerCase()
+      let tone = 'blue'
+      if (nameLower.includes('motor') || nameLower.includes('xe máy') || nameLower.includes('bike')) {
+        tone = 'purple'
+      } else if (nameLower.includes('bus') || nameLower.includes('xe khách') || nameLower.includes('van')) {
+        tone = 'green'
+      } else if (nameLower.includes('truck') || nameLower.includes('xe tải')) {
+        tone = 'orange'
+      }
+
+      return {
+        id: vt.VehicleTypeID,
+        title: vt.Name,
+        value: count, // Raw count for chart
+        tone
+      }
+    })
+
+    // Filter out types with 0 entries if you want a cleaner chart, 
+    // or keep them to show "0 entries". Keeping for now.
+
+    response.json({
+      success: true,
+      data: distribution
     })
   } catch (error) {
     next(error)

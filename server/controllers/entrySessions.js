@@ -5,6 +5,7 @@ const VehicleType = require('../models/vehicleType')
 const Card = require('../models/card')
 const CardCategory = require('../models/cardCategory')
 const Employee = require('../models/employee')
+const Person = require('../models/person')
 const Subscription = require('../models/subscription')
 const SinglePricingRule = require('../models/singlePricingRule')
 const { getLPClient } = require('../utils/lpClient')
@@ -117,6 +118,13 @@ const resolveCardByBusinessId = async (cardId) => {
   if (!card) return null
   const category = await resolveCardCategory(card.CardCategoryID)
   if (category) card.CardCategoryID = category
+
+  // Populate OwnerID with Person data for customer name display
+  if (card.OwnerID) {
+    const owner = await Person.findOne({ ID: String(card.OwnerID).trim() }).select('ID FullName Phone').lean()
+    if (owner) card.OwnerID = owner
+  }
+
   return card
 }
 
@@ -268,33 +276,53 @@ entrySessionsRouter.get('/gate/query', async (req, res) => {
       }
     }
 
-    const vehicle = licensePlate
-      ? await Vehicle.findOne({ PlateNumber: licensePlate }).populate({
-        path: 'VehicleTypeID',
-        select: 'VehicleTypeID Name'
-      })
+    // Manual lookup instead of populate (VehicleTypeID is business ID, not ObjectId)
+    let vehicle = licensePlate
+      ? await Vehicle.findOne({ PlateNumber: licensePlate }).lean()
       : null
 
-    const activeSession = cardId
-      ? await EntrySession.findOne({ CardID: cardId, Status: 'IN_PARKING' })
-        .populate({
-          path: 'VehicleID',
-          select: 'VehicleID PlateNumber',
-          populate: { path: 'VehicleTypeID', select: 'VehicleTypeID Name' }
-        })
-        .populate('VehicleTypeID', 'VehicleTypeID Name')
-        .populate({
-          path: 'CardID',
-          select: 'CardID UID CardCategoryID',
-          populate: { path: 'CardCategoryID', select: 'ID Name' }
-        })
-        .populate({
-          path: 'ProcessedEntryBy',
-          select: 'ID',
-          populate: { path: 'PersonID', select: 'FullName' }
-        })
-        .lean()
+    if (vehicle?.VehicleTypeID) {
+      const vType = await VehicleType.findOne({ VehicleTypeID: String(vehicle.VehicleTypeID) }).select('VehicleTypeID Name').lean()
+      if (vType) vehicle.VehicleTypeID = vType
+    }
+
+    // Manual hydration instead of populate (business IDs, not ObjectIds)
+    let activeSession = cardId
+      ? await EntrySession.findOne({ CardID: cardId, Status: 'IN_PARKING' }).lean()
       : null
+
+    if (activeSession) {
+      // Hydrate VehicleTypeID
+      if (activeSession.VehicleTypeID) {
+        const vType = await VehicleType.findOne({ VehicleTypeID: String(activeSession.VehicleTypeID) }).select('VehicleTypeID Name').lean()
+        if (vType) activeSession.VehicleTypeID = vType
+      }
+      // Hydrate VehicleID
+      if (activeSession.VehicleID) {
+        const veh = await Vehicle.findOne({ VehicleID: String(activeSession.VehicleID) }).select('VehicleID PlateNumber VehicleTypeID').lean()
+        if (veh) {
+          if (veh.VehicleTypeID) {
+            const vType = await VehicleType.findOne({ VehicleTypeID: String(veh.VehicleTypeID) }).select('VehicleTypeID Name').lean()
+            if (vType) veh.VehicleTypeID = vType
+          }
+          activeSession.VehicleID = veh
+        }
+      }
+      // Hydrate CardID
+      if (activeSession.CardID) {
+        const cardData = await resolveCardByBusinessId(activeSession.CardID)
+        if (cardData) activeSession.CardID = cardData
+      }
+      // Hydrate ProcessedEntryBy
+      if (activeSession.ProcessedEntryBy) {
+        const emp = await Employee.findOne({ ID: String(activeSession.ProcessedEntryBy) }).select('ID').lean()
+        if (emp) {
+          const person = await Person.findOne({ ID: emp.PersonID }).select('FullName').lean()
+          if (person) emp.PersonID = person
+          activeSession.ProcessedEntryBy = emp
+        }
+      }
+    }
 
     if (activeSession?.CardID?.CardCategoryID) {
       const raw = String(activeSession.CardID.CardCategoryID)
@@ -320,11 +348,13 @@ entrySessionsRouter.get('/gate/query', async (req, res) => {
     if (subscription?.VehicleID) {
       subscriptionVehicle = await Vehicle
         .findOne({ VehicleID: String(subscription.VehicleID).trim() })
-        .populate({
-          path: 'VehicleTypeID',
-          select: 'VehicleTypeID Name'
-        })
         .lean()
+
+      // Manual hydration for VehicleTypeID
+      if (subscriptionVehicle?.VehicleTypeID) {
+        const vType = await VehicleType.findOne({ VehicleTypeID: String(subscriptionVehicle.VehicleTypeID) }).select('VehicleTypeID Name').lean()
+        if (vType) subscriptionVehicle.VehicleTypeID = vType
+      }
     }
 
     if (subscription?.VehicleTypeID) {
@@ -497,12 +527,19 @@ entrySessionsRouter.post('/gate/entry', async (req, res) => {
       })
     }
 
-    // Card.Status is the current field (replaces IsActive). Treat non-ACTIVE as not usable.
-    if (card.Status && card.Status !== 'ACTIVE') {
+    // Card.Status is the current field (replaces IsActive).
+    // Allow ACTIVE cards, or auto-activate PENDING_RFID cards (visitor cards being scanned)
+    if (card.Status && card.Status !== 'ACTIVE' && card.Status !== 'PENDING_RFID') {
       return res.status(403).json({
         success: false,
         error: { message: 'Card is not active', code: 'CARD_INACTIVE' }
       })
+    }
+
+    // Auto-activate PENDING_RFID cards when creating session (completes card scan workflow)
+    if (card.Status === 'PENDING_RFID') {
+      await Card.updateOne({ CardID }, { Status: 'ACTIVE' })
+      card.Status = 'ACTIVE'
     }
 
     // Check if card has expired

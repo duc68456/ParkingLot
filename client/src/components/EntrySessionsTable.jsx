@@ -45,7 +45,7 @@ export default function EntrySessionsTable({ sessions, onViewSession }) {
               </td>
               <td>
                 {session.inSubscription ? (
-                  <span className="subscription-badge">🔄 Subscription</span>
+                  <span className="subscription-badge">Subscription</span>
                 ) : (
                   <span className="guest-badge">Guest</span>
                 )}

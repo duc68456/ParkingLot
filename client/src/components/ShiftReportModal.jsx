@@ -149,25 +149,16 @@ const ShiftReportModal = ({ isOpen, onClose, gateType = 'entry', report }) => {
               <p className="shift-stat-value">{reportData.stats.total}</p>
             </div>
 
-            <div className="shift-stat-card">
-              <p className="shift-stat-label">Cars</p>
-              <p className="shift-stat-value">{reportData.stats.cars}</p>
-            </div>
-
-            <div className="shift-stat-card">
-              <p className="shift-stat-label">Motorcycles</p>
-              <p className="shift-stat-value">{reportData.stats.motorcycles}</p>
-            </div>
-
-            <div className="shift-stat-card">
-              <p className="shift-stat-label">Trucks</p>
-              <p className="shift-stat-value">{reportData.stats.trucks}</p>
-            </div>
-
-            <div className="shift-stat-card">
-              <p className="shift-stat-label">Vans</p>
-              <p className="shift-stat-value">{reportData.stats.vans}</p>
-            </div>
+            {/* Dynamic vehicle type stats */}
+            {Object.entries(reportData.stats)
+              .filter(([key]) => key !== 'total')
+              .map(([key, value]) => (
+                <div key={key} className="shift-stat-card">
+                  <p className="shift-stat-label">{key.charAt(0).toUpperCase() + key.slice(1)}</p>
+                  <p className="shift-stat-value">{value}</p>
+                </div>
+              ))
+            }
           </div>
 
           {/* Sessions Table */}
@@ -178,24 +169,24 @@ const ShiftReportModal = ({ isOpen, onClose, gateType = 'entry', report }) => {
                 <thead className="shift-table-header">
                   <tr>
                     <th>Entry Time</th>
-                      <th>Exit Time</th>
+                    <th>Exit Time</th>
                     <th>License Plate</th>
                     <th>Card ID</th>
                     <th>Vehicle Type</th>
-                      <th>Duration</th>
-                      <th>Price</th>
+                    <th>Duration</th>
+                    <th>Price</th>
                   </tr>
                 </thead>
                 <tbody className="shift-table-body">
                   {reportData.sessions.map((session, index) => (
                     <tr key={index}>
                       <td>{session.entryTime}</td>
-                        <td>{session.exitTime || '-'}</td>
+                      <td>{session.exitTime || '-'}</td>
                       <td className="shift-license-plate">{session.licensePlate}</td>
                       <td>{session.cardId}</td>
                       <td className="shift-vehicle-type">{session.vehicleType}</td>
-                        <td>{session.duration || '-'}</td>
-                        <td className="shift-price">{normalizeMoney(session.price) || '-'}</td>
+                      <td>{session.duration || '-'}</td>
+                      <td className="shift-price">{normalizeMoney(session.price) || '-'}</td>
                     </tr>
                   ))}
                 </tbody>

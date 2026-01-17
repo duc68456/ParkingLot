@@ -303,6 +303,69 @@ cardsRouter.get('/uid/:uid', async (req, res) => {
   }
 })
 
+// POST - Create visitor card (for staff gate)
+cardsRouter.post('/create-visitor', async (req, res) => {
+  try {
+    // Find Visitor category automatically
+    const visitorCategory = await CardCategory.findOne({
+      $or: [
+        { Name: { $regex: /^visitor$/i } },
+        { Name: { $regex: /visitor/i } },
+        { Name: { $regex: /vãng lai/i } }
+      ]
+    })
+
+    if (!visitorCategory) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          message: 'Visitor card category not found. Please create a "Visitor" category first.',
+          code: 'VISITOR_CATEGORY_NOT_FOUND'
+        }
+      })
+    }
+
+    // Create visitor card with no owner and no UID
+    const card = new Card({
+      CardCategoryID: visitorCategory.ID,
+      OwnerID: null, // Visitor cards have no owner
+      ActiveDay: new Date(),
+      ExpireDay: null,
+      UID: null, // UID will be assigned when card is scanned
+      Status: 'UNASSIGNED',
+      UIDScannedAt: null,
+      UIDScannedBy: null
+    })
+
+    const savedCard = await card.save()
+
+    // Manual hydration
+    const category = await CardCategory.findOne({ ID: savedCard.CardCategoryID }).select('ID Name')
+    const vehicleInfo = await getVehicleFromSubscription(savedCard.CardID)
+
+    const populatedCard = {
+      ...savedCard.toJSON(),
+      CardCategoryID: category || savedCard.CardCategoryID,
+      OwnerID: null,
+      VehicleInfo: vehicleInfo
+    }
+
+    res.status(201).json({
+      success: true,
+      data: populatedCard,
+      message: 'Visitor card created successfully'
+    })
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: {
+        message: error.message,
+        code: 'CREATE_VISITOR_CARD_ERROR'
+      }
+    })
+  }
+})
+
 // POST - Create new card
 cardsRouter.post('/', async (req, res) => {
   try {

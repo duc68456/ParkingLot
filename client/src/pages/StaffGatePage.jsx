@@ -58,6 +58,17 @@ const StaffGatePage = () => {
   }, []);
 
   const [vehicleTypes, setVehicleTypes] = useState([])
+  const [creatingVisitorCard, setCreatingVisitorCard] = useState({ gate1: false, gate2: false })
+
+  // Parking capacity - fetched from API
+  const [parkingCapacity, setParkingCapacity] = useState({
+    current: 0,
+    total: 0,
+    vehicleTypes: {}
+  })
+
+  // Shift report data
+  const [shiftReportData, setShiftReportData] = useState(null)
 
   const [gate1Busy, setGate1Busy] = useState(false)
   const [gate2Busy, setGate2Busy] = useState(false)
@@ -95,6 +106,48 @@ const StaffGatePage = () => {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token])
+
+  // Fetch card categories for visitor card creation
+  useEffect(() => {
+    let cancelled = false
+
+    const fetchCategories = async () => {
+      if (!token) return
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/card-categories?limit=100`, {
+          headers: { ...authHeaders() }
+        })
+
+        const json = await res.json().catch(() => null)
+
+        console.log('Card categories API response:', {
+          ok: res.ok,
+          status: res.status,
+          json
+        })
+
+        if (!res.ok) {
+          throw new Error(json?.error?.message || 'Failed to load card categories')
+        }
+
+        const list = json?.data?.cardCategories || []
+        console.log('Parsed card categories list:', list)
+
+        if (!cancelled) {
+          setCardCategories(list)
+          console.log('Card categories set to state:', list.length, 'items')
+        }
+      } catch (e) {
+        console.error('Failed to fetch card categories:', e)
+      }
+    }
+
+    fetchCategories()
+    return () => {
+      cancelled = true
+    }
   }, [token])
 
   // Per-gate mode: 'idle' (no vehicle) | 'newEntry' (form) | 'processing' (details)
@@ -160,7 +213,8 @@ const StaffGatePage = () => {
       session?.VehicleTypeID?.VehicleTypeID ||
       ''
     const cardId = session?.CardID?.CardID || session?.CardID || ''
-    const customer = session?.CardID?.CustomerID?.PersonID?.FullName || ''
+    // Customer name comes from Card.OwnerID (Person) - null for visitors
+    const customer = session?.CardID?.OwnerID?.FullName || ''
 
     return {
       gateNumber,
@@ -256,15 +310,52 @@ const StaffGatePage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
-  // Mock parking capacity data
-  const parkingCapacity = {
-    current: 2,
-    total: 2050,
-    cars: { current: 1, total: 500 },
-    motorcycles: { current: 1, total: 1200 },
-    bikes: { current: 0, total: 150 },
-    vans: { current: 0, total: 200 }
-  };
+  // Fetch parking capacity from API
+  useEffect(() => {
+    let cancelled = false
+
+    const fetchCapacity = async () => {
+      if (!token) return
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/staff-gate/parking-capacity`, {
+          headers: { ...authHeaders() }
+        })
+        const json = await res.json().catch(() => null)
+        if (res.ok && json?.data && !cancelled) {
+          setParkingCapacity(json.data)
+        }
+      } catch (e) {
+        console.error('Failed to fetch parking capacity:', e)
+      }
+    }
+
+    fetchCapacity()
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchCapacity, 30000)
+
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [token])
+
+  // Fetch shift report data
+  const fetchShiftReport = async () => {
+    if (!token) return
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/staff-gate/shift-report`, {
+        headers: { ...authHeaders() }
+      })
+      const json = await res.json().catch(() => null)
+      if (res.ok && json?.data) {
+        setShiftReportData(json.data)
+      }
+    } catch (e) {
+      console.error('Failed to fetch shift report:', e)
+    }
+  }
 
   const handleProcessEntry = (gateNumber) => {
     console.log(`Processing entry for Gate ${gateNumber}`);
@@ -333,74 +424,99 @@ const StaffGatePage = () => {
     }
   };
 
-  const handleQueryPlate = (gateNumber) => {
+  const handleQueryPlate = async (gateNumber) => {
     const gateState = gateNumber === 1 ? gate1NewEntry : gate2NewEntry
     const setBusy = gateNumber === 1 ? setGate1Busy : setGate2Busy
     const setErr = gateNumber === 1 ? setGate1Error : setGate2Error
     const setHasQueried = gateNumber === 1 ? setGate1HasQueried : setGate2HasQueried
     const setNewEntry = gateNumber === 1 ? setGate1NewEntry : setGate2NewEntry
 
-    const cardId = (gateState.cardId || '').trim()
+    let cardId = (gateState.cardId || '').trim()
     const licensePlate = (gateState.licensePlate || '').trim().toUpperCase()
 
     setErr('')
     setBusy(true)
 
-    fetch(`${API_BASE_URL}/api/entry-sessions/gate/query?cardId=${encodeURIComponent(cardId)}&licensePlate=${encodeURIComponent(licensePlate)}`, {
-      headers: {
-        ...authHeaders()
+    try {
+      // If no cardId is provided, create a visitor card first (simulating card scan)
+      if (!cardId) {
+        const createRes = await fetch(`${API_BASE_URL}/api/staff-gate/create-visitor-card`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders()
+          }
+        })
+
+        const createJson = await createRes.json().catch(() => null)
+        if (!createRes.ok) {
+          throw new Error(createJson?.error?.message || 'Failed to create visitor card')
+        }
+
+        const createdCard = createJson?.data
+        cardId = createdCard?.CardID || createdCard?.ID || createdCard?.id
+
+        console.log('Visitor card created during scan simulation:', cardId)
+
+        // Update form with the new card ID
+        setNewEntry((prev) => ({ ...prev, cardId }))
       }
-    })
-      .then(async (res) => {
-        const json = await res.json().catch(() => null)
-        if (!res.ok) {
-          throw new Error(json?.error?.message || `Query failed (${res.status})`)
+
+      // Proceed with query
+      const res = await fetch(`${API_BASE_URL}/api/entry-sessions/gate/query?cardId=${encodeURIComponent(cardId)}&licensePlate=${encodeURIComponent(licensePlate)}`, {
+        headers: {
+          ...authHeaders()
         }
-
-        // If staff entered a CardID but the backend didn't find it, treat as an error.
-        if (cardId && !json?.data?.card) {
-          throw new Error('Card not found')
-        }
-
-        const gate = json?.data?.gate || {}
-
-        // Backend already encodes the rules for queried plate:
-        // - Visitor => Instant
-        // - Non-visitor + ACTIVE subscription => subscription plate
-        // - Non-visitor + no subscription => Instant
-        const queriedPlate = String(gate?.queriedPlate || '').trim() || 'Instant'
-
-        const normalizedQueriedPlate = queriedPlate.toUpperCase()
-        const normalizedInputPlate = String(licensePlate || '').trim().toUpperCase()
-        const mismatch =
-          gate?.queriedPlateMode === 'SUBSCRIPTION' &&
-          Boolean(normalizedQueriedPlate) &&
-          Boolean(normalizedInputPlate) &&
-          normalizedQueriedPlate !== normalizedInputPlate
-
-        // Card type should show vehicle type from subscription when available,
-        // otherwise (Instant) the UI will allow selecting vehicle type.
-        const subscriptionVehicleTypeId =
-          json?.data?.subscriptionVehicleType?.VehicleTypeID ||
-          json?.data?.subscription?.VehicleTypeID ||
-          ''
-
-        setHasQueried(true)
-        setNewEntry((prev) => ({
-          ...prev,
-          queriedPlate: normalizedQueriedPlate,
-          queriedPlateMismatch: mismatch,
-          queriedPlateMode: gate?.queriedPlateMode || (normalizedQueriedPlate === 'INSTANT' ? 'INSTANT' : prev.queriedPlateMode),
-          // Only set vehicleType from subscription when provided.
-          vehicleType: subscriptionVehicleTypeId || prev.vehicleType
-        }))
       })
-      .catch((e) => {
-        setErr(e.message)
-      })
-      .finally(() => {
-        setBusy(false)
-      })
+
+      const json = await res.json().catch(() => null)
+      if (!res.ok) {
+        throw new Error(json?.error?.message || `Query failed (${res.status})`)
+      }
+
+      // If staff entered a CardID but the backend didn't find it, treat as an error.
+      if (cardId && !json?.data?.card) {
+        throw new Error('Card not found')
+      }
+
+      const gate = json?.data?.gate || {}
+
+      // Backend already encodes the rules for queried plate:
+      // - Visitor => Instant
+      // - Non-visitor + ACTIVE subscription => subscription plate
+      // - Non-visitor + no subscription => Instant
+      const queriedPlate = String(gate?.queriedPlate || '').trim() || 'Instant'
+
+      const normalizedQueriedPlate = queriedPlate.toUpperCase()
+      const normalizedInputPlate = String(licensePlate || '').trim().toUpperCase()
+      const mismatch =
+        gate?.queriedPlateMode === 'SUBSCRIPTION' &&
+        Boolean(normalizedQueriedPlate) &&
+        Boolean(normalizedInputPlate) &&
+        normalizedQueriedPlate !== normalizedInputPlate
+
+      // Card type should show vehicle type from subscription when available,
+      // otherwise (Instant) the UI will allow selecting vehicle type.
+      const subscriptionVehicleTypeId =
+        json?.data?.subscriptionVehicleType?.VehicleTypeID ||
+        json?.data?.subscription?.VehicleTypeID ||
+        ''
+
+      setHasQueried(true)
+      setNewEntry((prev) => ({
+        ...prev,
+        cardId, // Ensure cardId is updated in case it was created
+        queriedPlate: normalizedQueriedPlate,
+        queriedPlateMismatch: mismatch,
+        queriedPlateMode: gate?.queriedPlateMode || (normalizedQueriedPlate === 'INSTANT' ? 'INSTANT' : prev.queriedPlateMode),
+        // Only set vehicleType from subscription when provided.
+        vehicleType: subscriptionVehicleTypeId || prev.vehicleType
+      }))
+    } catch (e) {
+      setErr(e.message)
+    } finally {
+      setBusy(false)
+    }
   };
 
   const handleCaptureClick = (gateNumber) => {
@@ -470,6 +586,49 @@ const StaffGatePage = () => {
     }
   };
 
+  const handleCreateVisitorCard = async (gateNumber) => {
+    const isGate1 = gateNumber === 1
+    const setError = isGate1 ? setGate1Error : setGate2Error
+
+    setCreatingVisitorCard(prev => ({ ...prev, [`gate${gateNumber}`]: true }))
+    setError('')
+
+    try {
+      // Use dedicated staff-gate endpoint for creating visitor cards
+      const createRes = await fetch(`${API_BASE_URL}/api/staff-gate/create-visitor-card`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders()
+        }
+      })
+
+      const createJson = await createRes.json().catch(() => null)
+      if (!createRes.ok) {
+        throw new Error(createJson?.error?.message || 'Failed to create visitor card')
+      }
+
+      const createdCard = createJson?.data
+      const cardId = createdCard?.CardID || createdCard?.ID || createdCard?.id
+
+      console.log('Visitor card created:', cardId)
+
+      // Auto-fill the card ID in the form
+      if (isGate1) {
+        setGate1NewEntry(prev => ({ ...prev, cardId }))
+      } else {
+        setGate2NewEntry(prev => ({ ...prev, cardId }))
+      }
+
+      setError('')
+    } catch (err) {
+      console.error('Failed to create visitor card:', err)
+      setError(err?.message || 'Failed to create visitor card')
+    } finally {
+      setCreatingVisitorCard(prev => ({ ...prev, [`gate${gateNumber}`]: false }))
+    }
+  }
+
   const handleAddEntry = (gateNumber) => {
     const gateState = gateNumber === 1 ? gate1NewEntry : gate2NewEntry
     const setBusy = gateNumber === 1 ? setGate1Busy : setGate2Busy
@@ -520,6 +679,9 @@ const StaffGatePage = () => {
           ? 'Instant'
           : normalizedQueriedPlate
 
+        // Extract customer name from Card.OwnerID (null for visitors)
+        const customerName = session?.CardID?.OwnerID?.FullName || ''
+
         setData((prev) => ({
           ...prev,
           hasVehicle: true,
@@ -528,7 +690,8 @@ const StaffGatePage = () => {
           licensePlate: displayPlate,
           plateInput: LicensePlate,
           plateQueried: plateQueriedValue,
-          entryTime: session?.EntryTime ? new Date(session.EntryTime).toLocaleTimeString() : prev.entryTime
+          entryTime: session?.EntryTime ? new Date(session.EntryTime).toLocaleTimeString() : prev.entryTime,
+          customer: customerName
         }))
         setMode('processing')
         setHasQueried(false)
@@ -551,12 +714,13 @@ const StaffGatePage = () => {
   const isGateIdle = (mode, gateData) => mode === 'idle' || !gateData.hasVehicle;
   const isGateNewEntry = (mode) => mode === 'newEntry';
 
-  const handleViewShiftReport = () => {
-    setShowShiftReport(true);
+  const handleViewShiftReport = async () => {
+    await fetchShiftReport()
+    setShowShiftReport(true)
   };
 
   const handleLogout = () => {
-    ;(async () => {
+    ; (async () => {
       try {
         // Best-effort: tell server to end the current shift before clearing auth.
         // Even if it fails, we still logout locally.
@@ -632,24 +796,17 @@ const StaffGatePage = () => {
                 </div>
               </div>
 
-              {/* Vehicle Stats */}
+              {/* Vehicle Stats - Dynamic from API */}
               <div className="vehicle-stats">
-                <div className="vehicle-stat-item">
-                  <img src={carIcon} alt="" />
-                  <span>{parkingCapacity.cars.current}/{parkingCapacity.cars.total}</span>
-                </div>
-                <div className="vehicle-stat-item">
-                  <img src={motorcycleIcon} alt="" />
-                  <span>{parkingCapacity.motorcycles.current}/{parkingCapacity.motorcycles.total}</span>
-                </div>
-                <div className="vehicle-stat-item">
-                  <img src={bikeIcon} alt="" />
-                  <span>{parkingCapacity.bikes.current}/{parkingCapacity.bikes.total}</span>
-                </div>
-                <div className="vehicle-stat-item">
-                  <img src={vanIcon} alt="" />
-                  <span>Vans {parkingCapacity.vans.current}/{parkingCapacity.vans.total}</span>
-                </div>
+                {Object.values(parkingCapacity.vehicleTypes || {}).map((vt) => (
+                  <div key={vt.id} className="vehicle-stat-item">
+                    <img src={vt.name?.toLowerCase().includes('motor') ? motorcycleIcon : vt.name?.toLowerCase().includes('bus') ? vanIcon : carIcon} alt="" />
+                    <span>{vt.name} {vt.current}/{vt.total}</span>
+                  </div>
+                ))}
+                {Object.keys(parkingCapacity.vehicleTypes || {}).length === 0 && (
+                  <span className="vehicle-stat-empty">Loading...</span>
+                )}
               </div>
 
               {/* Progress Bar */}
@@ -679,19 +836,37 @@ const StaffGatePage = () => {
                 <div className="new-entry-form">
                   <div className="new-entry-field">
                     <label className="new-entry-label">Card ID</label>
-                    <input
-                      className="new-entry-input"
-                      inputMode="text"
-                      placeholder="e.g., CARD-12345"
-                      value={gate1NewEntry.cardId}
-                      onChange={(e) => {
-                        setGate1HasQueried(false);
-                        setGate1NewEntry((prev) => ({
-                          ...prev,
-                          cardId: e.target.value
-                        }));
-                      }}
-                    />
+                    <div className="new-entry-plate-wrapper">
+                      <input
+                        className="new-entry-input new-entry-input-plate"
+                        inputMode="text"
+                        placeholder="e.g., CARD-12345"
+                        value={gate1NewEntry.cardId}
+                        onChange={(e) => {
+                          setGate1HasQueried(false);
+                          setGate1NewEntry((prev) => ({
+                            ...prev,
+                            cardId: e.target.value
+                          }));
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="capture-plate-btn"
+                        onClick={() => {
+                          // Clear cardId and show hint that Query will create visitor card
+                          setGate1NewEntry(prev => ({ ...prev, cardId: '' }))
+                          setGate1Error('Click "Query" to simulate card scan and create visitor card')
+                        }}
+                        disabled={creatingVisitorCard.gate1 || gate1Busy}
+                        title="Clear card ID - Query will create visitor card"
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                          <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                        Visitor Card
+                      </button>
+                    </div>
                   </div>
 
                   <div className="new-entry-field">
@@ -912,19 +1087,37 @@ const StaffGatePage = () => {
                 <div className="new-entry-form">
                   <div className="new-entry-field">
                     <label className="new-entry-label">Card ID</label>
-                    <input
-                      className="new-entry-input"
-                      inputMode="text"
-                      placeholder="e.g., CARD-12345"
-                      value={gate2NewEntry.cardId}
-                      onChange={(e) => {
-                        setGate2HasQueried(false);
-                        setGate2NewEntry((prev) => ({
-                          ...prev,
-                          cardId: e.target.value
-                        }));
-                      }}
-                    />
+                    <div className="new-entry-plate-wrapper">
+                      <input
+                        className="new-entry-input new-entry-input-plate"
+                        inputMode="text"
+                        placeholder="e.g., CARD-12345"
+                        value={gate2NewEntry.cardId}
+                        onChange={(e) => {
+                          setGate2HasQueried(false);
+                          setGate2NewEntry((prev) => ({
+                            ...prev,
+                            cardId: e.target.value
+                          }));
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="capture-plate-btn"
+                        onClick={() => {
+                          // Clear cardId and show hint that Query will create visitor card
+                          setGate2NewEntry(prev => ({ ...prev, cardId: '' }))
+                          setGate2Error('Click "Query" to simulate card scan and create visitor card')
+                        }}
+                        disabled={creatingVisitorCard.gate2 || gate2Busy}
+                        title="Clear card ID - Query will create visitor card"
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                          <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                        Visitor Card
+                      </button>
+                    </div>
                   </div>
 
                   <div className="new-entry-field">
@@ -1146,6 +1339,7 @@ const StaffGatePage = () => {
         isOpen={showShiftReport}
         onClose={() => setShowShiftReport(false)}
         gateType={activeTab}
+        report={shiftReportData}
       />
 
       {/* Webcam Modals */}
