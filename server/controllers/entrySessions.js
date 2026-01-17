@@ -236,7 +236,6 @@ const incrementShiftCounters = async (employeeBusinessId, vehicleTypeId) => {
     {
       $setOnInsert: {
         ShiftID: shift.ID,
-        TotalVehicles: 0,
         GeneratedAt: new Date()
       },
       $inc: { TotalVehicles: 1 }
@@ -265,7 +264,6 @@ const incrementShiftCounters = async (employeeBusinessId, vehicleTypeId) => {
       $setOnInsert: {
         ShiftReportID: report.ID,
         VehicleTypeID: String(vehicleTypeId).toUpperCase(),
-        Count: 0
       },
       $inc: { Count: 1 }
     },
