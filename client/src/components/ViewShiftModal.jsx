@@ -144,14 +144,31 @@ export default function ViewShiftModal({ isOpen, onClose, shiftId, apiBaseUrl, h
           const vtJson = vtRes.ok ? await vtRes.json().catch(() => null) : null;
           const srJson = srRes.ok ? await srRes.json().catch(() => null) : null;
 
-          const vehicleTypes = Array.isArray(vtJson?.data?.items)
-            ? vtJson.data.items
-            : (Array.isArray(vtJson?.data) ? vtJson.data : []);
+          // API shape (server/controllers/vehicleTypes.js): { data: { vehicleTypes: [...] } }
+          const vehicleTypesRaw =
+            (Array.isArray(vtJson?.data?.vehicleTypes) && vtJson.data.vehicleTypes) ||
+            (Array.isArray(vtJson?.data?.items) && vtJson.data.items) ||
+            (Array.isArray(vtJson?.data) && vtJson.data) ||
+            [];
+
+          const vehicleTypes = vehicleTypesRaw.filter(Boolean);
+
+          const getVehicleTypeId = (v) =>
+            String(
+              v?.VehicleTypeID ||
+              v?.vehicleTypeId ||
+              v?.ID ||
+              v?.id ||
+              ''
+            ).toUpperCase();
+
+          const getVehicleTypeName = (v) =>
+            v?.Name || v?.name || v?.VehicleTypeName || v?.vehicleTypeName || v?.TypeName || v?.typeName || null;
 
           const vtNameById = new Map(
             vehicleTypes
-              .filter(Boolean)
-              .map((v) => [String(v.VehicleTypeID || v.vehicleTypeId || '').toUpperCase(), v.Name || v.name || 'Unknown'])
+              .map((v) => [getVehicleTypeId(v), getVehicleTypeName(v)])
+              .filter(([id, name]) => id && name)
           );
 
           const shiftReport = srJson?.data?.item || srJson?.data || srJson;
@@ -182,7 +199,7 @@ export default function ViewShiftModal({ isOpen, onClose, shiftId, apiBaseUrl, h
           if (vehicleTypes.length) {
             const existing = new Set(rows.map((r) => r.type));
             vehicleTypes.forEach((v) => {
-              const name = v?.Name || v?.name;
+              const name = getVehicleTypeName(v);
               if (name && !existing.has(name)) rows.push({ type: name, count: 0 });
             });
           }

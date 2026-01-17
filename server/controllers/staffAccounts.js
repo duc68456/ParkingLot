@@ -5,7 +5,7 @@ const Shift = require('../models/shift');
 const ShiftReport = require('../models/shiftReport');
 const ShiftReportDetail = require('../models/shiftReportDetail');
 const VehicleType = require('../models/vehicleType');
-const { signToken } = require('../utils/auth');
+const { signToken, verifyToken } = require('../utils/auth');
 const middleware = require('../utils/middleware');
 
 const generatePin = () => String(Math.floor(100000 + Math.random() * 900000));
@@ -768,6 +768,76 @@ staffAccountsRouter.post('/logout', middleware.authRequired, async (request, res
     return response.json({ success: true, data: { ended: true, shift: shift.toJSON ? shift.toJSON() : shift } })
   } catch (error) {
     console.error('Staff logout error:', error)
+    return response.status(500).json({
+      success: false,
+      error: { message: 'Failed to logout', details: error.message }
+    })
+  }
+})
+
+/**
+ * POST /api/staff-accounts/logout-beacon
+ * Beacon/unload-friendly logout.
+ *
+ * Problem:
+ * - The Browser Beacon API cannot send Authorization headers.
+ * - Our authRequired middleware expects: Authorization: Bearer <token>
+ *
+ * Solution:
+ * - Accept the JWT via query param or body and verify it server-side.
+ * - Then complete the most recent active shift.
+ */
+staffAccountsRouter.post('/logout-beacon', async (request, response) => {
+  try {
+    const token = String(request?.query?.token || request?.body?.token || '').trim()
+    if (!token) {
+      return response.status(400).json({
+        success: false,
+        error: { message: 'Missing token', code: 'TOKEN_MISSING' }
+      })
+    }
+
+    let decoded
+    try {
+      decoded = verifyToken(token)
+    } catch (e) {
+      return response.status(401).json({
+        success: false,
+        error: { message: 'token missing or invalid', code: 'TOKEN_INVALID' }
+      })
+    }
+
+    if (decoded?.type !== 'staff') {
+      return response.status(403).json({
+        success: false,
+        error: { message: 'forbidden', code: 'FORBIDDEN' }
+      })
+    }
+
+    const employeeId = String(decoded?.employeeBusinessId || decoded?.employeeId || '').trim().toUpperCase()
+    if (!employeeId) {
+      return response.status(400).json({
+        success: false,
+        error: { message: 'Missing employee id', code: 'MISSING_REQUIRED_FIELDS' }
+      })
+    }
+
+    const shift = await Shift.findOne({
+      EmployeeID: employeeId,
+      Status: { $in: ['IN_PROGRESS', 'ACTIVE'] }
+    }).sort({ CheckInTime: -1 })
+
+    if (!shift) {
+      return response.json({ success: true, data: { ended: false } })
+    }
+
+    shift.CheckOutTime = new Date()
+    shift.Status = 'COMPLETED'
+    await shift.save()
+
+    return response.json({ success: true, data: { ended: true } })
+  } catch (error) {
+    console.error('Staff logout-beacon error:', error)
     return response.status(500).json({
       success: false,
       error: { message: 'Failed to logout', details: error.message }

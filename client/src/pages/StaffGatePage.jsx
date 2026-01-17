@@ -357,6 +357,54 @@ const StaffGatePage = () => {
     }
   }
 
+  // Best-effort: if the staff closes/reloads the page unexpectedly,
+  // treat it like logout so the active shift is completed on the server.
+  useEffect(() => {
+    if (!token) return
+
+    let didSend = false
+
+    const sendLogout = () => {
+      if (didSend) return
+      didSend = true
+
+      try {
+        const safeToken = encodeURIComponent(String(token || ''))
+        const url = `${API_BASE_URL}/api/staff-accounts/logout-beacon?token=${safeToken}`
+
+        // Primary attempt: keepalive fetch.
+        fetch(url, {
+          method: 'POST',
+          keepalive: true
+        }).catch(() => {})
+
+        // Secondary attempt: Beacon API.
+        try {
+          if (navigator?.sendBeacon) {
+            const blob = new Blob([], { type: 'application/json' })
+            navigator.sendBeacon(url, blob)
+          }
+        } catch {
+          // ignore
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    const handlePageHide = () => sendLogout()
+    const handleBeforeUnload = () => sendLogout()
+
+    window.addEventListener('pagehide', handlePageHide)
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    return () => {
+      window.removeEventListener('pagehide', handlePageHide)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token])
+
   const handleProcessEntry = (gateNumber) => {
     console.log(`Processing entry for Gate ${gateNumber}`);
 
