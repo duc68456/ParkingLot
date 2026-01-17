@@ -110,31 +110,70 @@
 
 .table-actions {
   display: flex;
-  gap: 4px;
+  gap: 8px;
   justify-content: flex-end;
+  align-items: center;
+  min-width: 180px;
 }
 
 .action-btn {
   width: 32px;
   height: 32px;
-  padding: 8px;
+  padding: 0;
   background: transparent;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .action-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.action-btn img {
+.action-btn img,
+.action-btn svg {
   width: 16px;
   height: 16px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.action-btn--card {
+  background: #F0FDF4;
+}
+
+.action-btn--card:hover {
+  background: #DCFCE7;
+}
+
+.action-btn--view {
+  background: #EFF6FF;
+}
+
+.action-btn--view:hover {
+  background: #DBEAFE;
+}
+
+.action-btn--edit {
+  background: #F8FAFC;
+}
+
+.action-btn--edit:hover {
+  background: #F1F5F9;
+}
+
+.action-btn--delete {
+  background: #FEF2F2;
+}
+
+.action-btn--delete:hover {
+  background: #FEE2E2;
 }
 
 .subscriptions-cell {

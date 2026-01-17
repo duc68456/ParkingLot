@@ -1,0 +1,327 @@
+/* Edit Subscription Modal Overlay */
+.edit-subscription-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Modal Container */
+.edit-subscription-modal {
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1001;
+}
+
+/* Modal Header */
+.edit-subscription-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.edit-subscription-modal-header h3 {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 28px;
+  color: #0f172b;
+  margin: 0;
+}
+
+.edit-subscription-modal-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.edit-subscription-modal-close:hover {
+  background-color: #f1f5f9;
+}
+
+/* Modal Content */
+.edit-subscription-modal-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Info Box */
+.edit-subscription-info-box {
+  background-color: #eff6ff;
+  border: 1px solid #bedbff;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.edit-subscription-id {
+  font-family: 'Cousine', monospace;
+  font-size: 14px;
+  line-height: 20px;
+  color: #1447e6;
+  margin: 0;
+}
+
+.edit-subscription-customer {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+  color: #155dfc;
+  margin: 0;
+}
+
+/* Error Message */
+.edit-subscription-error {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #dc2626;
+}
+
+/* Form Grid */
+.edit-subscription-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+/* Form Field */
+.edit-subscription-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.edit-subscription-field-full {
+  grid-column: 1 / -1;
+}
+
+.edit-subscription-field label {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #314158;
+}
+
+/* Info Note */
+.edit-subscription-info-note {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: #eff6ff;
+  border: 1px solid #bedbff;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 13px;
+  line-height: 18px;
+  color: #155dfc;
+}
+
+.edit-subscription-info-note svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Input */
+.edit-subscription-input {
+  width: 100%;
+  height: 44px;
+  background-color: #ffffff;
+  border: 1px solid #cad5e2;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #0a0a0a;
+  outline: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.edit-subscription-input:focus {
+  border-color: #155dfc;
+}
+
+.edit-subscription-input::placeholder {
+  color: rgba(10, 10, 10, 0.5);
+}
+
+/* Checkbox Field */
+.edit-subscription-checkbox-field {
+  justify-content: flex-end;
+}
+
+.edit-subscription-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.edit-subscription-checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #155dfc;
+  cursor: pointer;
+}
+
+.edit-subscription-checkbox-label span {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #314158;
+}
+
+/* Modal Footer */
+.edit-subscription-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 24px;
+  background-color: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+/* Cancel Button */
+.edit-subscription-cancel-button {
+  height: 46px;
+  padding: 0 20px;
+  background-color: #ffffff;
+  border: 1px solid #cad5e2;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #314158;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-subscription-cancel-button:hover:not(:disabled) {
+  background-color: #f8fafc;
+  border-color: #155dfc;
+  color: #155dfc;
+}
+
+.edit-subscription-cancel-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Submit Button */
+.edit-subscription-submit-button {
+  height: 44px;
+  padding: 0 24px;
+  background-color: #155dfc;
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-subscription-submit-button:hover:not(:disabled) {
+  background-color: #1447e6;
+}
+
+.edit-subscription-submit-button:disabled {
+  background-color: #cad5e2;
+  cursor: not-allowed;
+}
+
+/* Scrollbar styling */
+.edit-subscription-modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.edit-subscription-modal-content::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.edit-subscription-modal-content::-webkit-scrollbar-thumb {
+  background: #cad5e2;
+  border-radius: 3px;
+}
+
+.edit-subscription-modal-content::-webkit-scrollbar-thumb:hover {
+  background: #155dfc;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .edit-subscription-modal {
+    max-width: 90%;
+    margin: 0 20px;
+  }
+
+  .edit-subscription-modal-header {
+    padding: 16px 20px;
+  }
+
+  .edit-subscription-modal-content {
+    padding: 20px;
+  }
+
+  .edit-subscription-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .edit-subscription-modal-footer {
+    flex-direction: column;
+    padding: 20px;
+    gap: 8px;
+  }
+
+  .edit-subscription-cancel-button,
+  .edit-subscription-submit-button {
+    width: 100%;
+  }
+}

@@ -104,7 +104,13 @@ export default function SubscriptionPriceHistoryModal({
                       <div key={item?.id || item?.ID} className="sphm-history-card">
                         <div className="sphm-history-header">
                           <span className="sphm-pill sphm-pill-date">{formatDate(item?.StartDateApply)}</span>
-                          <span className="sphm-history-by">by {item?.ChangedBy?.PersonID?.FullName || item?.ChangedBy?.ID || 'Unknown'}</span>
+                          <span className="sphm-history-by">
+                            by {
+                              (typeof item?.ChangedByEmployee?.PersonID === 'object' && item?.ChangedByEmployee?.PersonID?.FullName)
+                                ? item.ChangedByEmployee.PersonID.FullName
+                                : item?.ChangedBy || 'Unknown'
+                            }
+                          </span>
                         </div>
 
                         <div className="sphm-history-grid">

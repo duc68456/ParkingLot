@@ -4,12 +4,12 @@ import { useAuth } from '../contexts/AuthContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
-export default function AddSubscriptionPricingModal({ onClose, onSubmit }) {
+export default function AddSubscriptionPricingModal({ onClose, onSubmit, prefilledSubscriptionTypeId }) {
   const { authHeaders } = useAuth();
 
   const [cardCategoryId, setCardCategoryId] = useState('');
   const [vehicleTypeId, setVehicleTypeId] = useState('');
-  const [subscriptionTypeId, setSubscriptionTypeId] = useState('');
+  const [subscriptionTypeId, setSubscriptionTypeId] = useState(prefilledSubscriptionTypeId || '');
   const [price, setPrice] = useState('');
 
   const [categories, setCategories] = useState([]);
@@ -206,7 +206,7 @@ export default function AddSubscriptionPricingModal({ onClose, onSubmit }) {
                     className="add-subscription-pricing-select"
                     value={subscriptionTypeId}
                     onChange={(e) => setSubscriptionTypeId(e.target.value)}
-                    disabled={loadingLists || isSubmitting}
+                    disabled={loadingLists || isSubmitting || !!prefilledSubscriptionTypeId}
                   >
                     <option value="">Select type...</option>
                     {subscriptionTypes.map((t) => (

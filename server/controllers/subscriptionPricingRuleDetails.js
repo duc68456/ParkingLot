@@ -254,10 +254,29 @@ subscriptionPricingRuleDetailsRouter.get('/history/:subscriptionPricingRuleId', 
     const employees = await Employee.find({ ID: { $in: employeeIds } })
     const employeeById = new Map(employees.map((e) => [e.ID, e]))
 
+    const personIds = [...new Set(employees.map((e) => e.PersonID).filter(Boolean))]
+    const persons = personIds.length ? await Person.find({ ID: { $in: personIds } }) : []
+    const personById = new Map(persons.map((p) => [p.ID, p]))
+
     const items = history.map((h) => {
       const obj = h.toJSON ? h.toJSON() : h
       obj.SubscriptionPricingRule = rule
-      obj.ChangedByEmployee = employeeById.get(obj.ChangedBy) || null
+      const empRaw = employeeById.get(obj.ChangedBy)
+      if (empRaw) {
+        // Build employee object manually to avoid toJSON transform issues
+        const personBusinessId = empRaw.PersonID
+        const personDoc = personBusinessId ? personById.get(personBusinessId) : null
+
+        obj.ChangedByEmployee = {
+          ID: empRaw.ID,
+          PersonID: personDoc ? (personDoc.toJSON ? personDoc.toJSON() : personDoc) : personBusinessId,
+          EmployeeType: empRaw.EmployeeType,
+          HiredDate: empRaw.HiredDate,
+          Status: empRaw.Status
+        }
+      } else {
+        obj.ChangedByEmployee = null
+      }
       obj.SubscriptionPricingRuleDetailPrev = obj.SubscriptionPricingRuleDetailPrev
         ? (prevById.get(obj.SubscriptionPricingRuleDetailPrev) || null)
         : null

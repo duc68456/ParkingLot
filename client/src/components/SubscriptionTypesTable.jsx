@@ -2,7 +2,15 @@ import '../styles/components/SubscriptionTypesTable.css';
 
 const addIcon = "data:image/svg+xml,%3Csvg%20width%3D%2220%22height%3D%2220%22viewBox%3D%220%200%2020%2020%22fill%3D%22none%22xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M10%204.16667V15.8333M4.16667%2010H15.8333%22%20stroke%3D%22white%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E";
 
-export default function SubscriptionTypesTable({ subscriptionTypes, onAddType }) {
+// Inline View Icon
+const ViewIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M1 8C1 8 3.5 3 8 3C12.5 3 15 8 15 8C15 8 12.5 13 8 13C3.5 13 1 8 1 8Z" stroke="#314158" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="8" cy="8" r="2" stroke="#314158" strokeWidth="1.5" fill="none" />
+  </svg>
+);
+
+export default function SubscriptionTypesTable({ subscriptionTypes, onAddType, onViewPricingRules }) {
   return (
     <div className="subscription-types-container">
       {/* Add Type Button */}
@@ -22,6 +30,7 @@ export default function SubscriptionTypesTable({ subscriptionTypes, onAddType })
               <th>NAME</th>
               <th>DURATION (DAYS)</th>
               <th>DESCRIPTION</th>
+              <th className="text-right">ACTIONS</th>
             </tr>
           </thead>
           <tbody>
@@ -31,6 +40,17 @@ export default function SubscriptionTypesTable({ subscriptionTypes, onAddType })
                 <td>{type.name}</td>
                 <td>{type.duration}</td>
                 <td>{type.description}</td>
+                <td>
+                  <div className="action-buttons action-buttons-right">
+                    <button
+                      className="action-btn action-btn--view"
+                      onClick={() => onViewPricingRules?.(type)}
+                      title="View Pricing Rules"
+                    >
+                      <ViewIcon />
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>

@@ -336,7 +336,11 @@ export default function VehiclesPage() {
       try {
         const res = await fetch(`${API_BASE_URL}/api/vehicles/${id}`, {
           method: 'DELETE',
-          headers: { ...authHeaders }
+          headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders
+          },
+          body: JSON.stringify({ status: newStatus || 'Inactive' }),
         });
 
         const json = await res.json().catch(() => null);
@@ -346,8 +350,7 @@ export default function VehiclesPage() {
           throw new Error(msg);
         }
 
-        // Backend does soft-delete (IsActive=false). Reflect that in UI.
-        // Use the status from the modal selection
+        // Backend updates status; reflect in UI
         const isActive = newStatus === 'Active';
         const statusToSet = newStatus || 'Inactive';
         setVehicles((prev) =>

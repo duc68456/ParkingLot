@@ -773,7 +773,11 @@ export default function PeoplePage() {
 
         const res = await fetch(`${API_BASE_URL}/api/customers/${id}`, {
           method: "DELETE",
-          headers: { ...authHeaders },
+          headers: {
+            "Content-Type": "application/json",
+            ...authHeaders
+          },
+          body: JSON.stringify({ status: newStatus || "Inactive" }),
         });
 
         const json = await res.json();
@@ -783,8 +787,7 @@ export default function PeoplePage() {
           throw new Error(msg);
         }
 
-        // Backend soft-deletes by setting Status=INACTIVE; reflect in UI
-        // Use the status from the modal selection
+        // Backend updates status; reflect in UI
         const statusToSet = newStatus || "Inactive";
         setCustomers((prev) =>
           prev.map((c) =>
@@ -794,7 +797,7 @@ export default function PeoplePage() {
         handleCloseDeleteCustomerModal();
       } catch (error) {
         console.error("Delete customer error:", error);
-        window.alert(error?.message || "Failed to delete customer");
+        window.alert(error?.message || "Failed to update customer status");
       }
     })();
   };
@@ -878,35 +881,43 @@ export default function PeoplePage() {
     })();
   };
 
-  const handleDeleteEmployee = (employee) => {
-    (async () => {
-      try {
-        const id = employee?._id ?? employee?.id;
-        if (!id) return;
+  const handleDeleteEmployee = async (employee, newStatus) => {
+    try {
+      const id = employee?._id ?? employee?.id;
+      if (!id) return;
 
-        const res = await fetch(`${API_BASE_URL}/api/employees/${id}`, {
-          method: "DELETE",
-          headers: { ...authHeaders },
-        });
+      const res = await fetch(`${API_BASE_URL}/api/employees/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders
+        },
+        body: JSON.stringify({ status: newStatus || "Inactive" }),
+      });
 
-        const json = await res.json();
+      const json = await res.json();
 
-        if (!res.ok) {
-          const msg = json?.error?.message || `Delete failed (${res.status})`;
-          throw new Error(msg);
-        }
-
-        // Backend sets Status=TERMINATED; reflect as Inactive in UI
-        setEmployees((prev) =>
-          prev.map((e) =>
-            e._id === employee._id ? { ...e, status: "Inactive" } : e
-          )
-        );
-      } catch (error) {
-        console.error("Delete employee error:", error);
-        window.alert(error?.message || "Failed to delete employee");
+      if (!res.ok) {
+        const msg = json?.error?.message || `Delete failed (${res.status})`;
+        throw new Error(msg);
       }
-    })();
+
+      // Refetch employees from server to ensure data is in sync
+      const refetchRes = await fetch(`${API_BASE_URL}/api/employees?limit=100`, {
+        headers: { ...authHeaders },
+      });
+
+      if (refetchRes.ok) {
+        const refetchJson = await refetchRes.json();
+        const list = Array.isArray(refetchJson?.data?.employees)
+          ? refetchJson.data.employees
+          : [];
+        setEmployees(list.map(normalizeEmployee));
+      }
+    } catch (error) {
+      console.error("Delete employee error:", error);
+      window.alert(error?.message || "Failed to update employee status");
+    }
   };
 
   // Filter employees locally as their fetch doesn't support pagination/search yet
