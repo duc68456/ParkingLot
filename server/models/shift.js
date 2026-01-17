@@ -38,11 +38,6 @@ const shiftSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
-  TotalRevenue: {
-    type: Number,
-    default: 0,
-    min: 0
-  },
   Gate: {
     type: String,
     maxLength: 20,
@@ -61,7 +56,11 @@ const shiftSchema = new mongoose.Schema({
   timestamps: true
 })
 
-shiftSchema.index({ EmployeeID: 1, ShiftDate: 1 }, { unique: true })
+// NOTE: We intentionally do NOT enforce uniqueness on (EmployeeID, ShiftDate).
+// Requirement: create a new shift record every time staff logs in,
+// while still storing ShiftDate as the date (start-of-day) for reporting.
+// If you need to prevent duplicate shifts, handle it at the application level.
+shiftSchema.index({ EmployeeID: 1, ShiftDate: 1 })
 
 shiftSchema.pre('save', async function (next) {
   if (!this.ID) {

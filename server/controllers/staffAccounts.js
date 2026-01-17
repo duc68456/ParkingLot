@@ -2,6 +2,9 @@ const staffAccountsRouter = require('express').Router();
 const StaffAccount = require('../models/staffAccount');
 const Employee = require('../models/employee');
 const Shift = require('../models/shift');
+const ShiftReport = require('../models/shiftReport');
+const ShiftReportDetail = require('../models/shiftReportDetail');
+const VehicleType = require('../models/vehicleType');
 const { signToken } = require('../utils/auth');
 const middleware = require('../utils/middleware');
 
@@ -585,37 +588,102 @@ staffAccountsRouter.post('/verify-pin', async (request, response) => {
       { $set: { LastLoginAt: new Date() } }
     );
 
-    // Create (or reuse) today's shift for this staff.
-    // NOTE: ShiftDate is the day staff logs in (date-only semantics).
-    // The shift schema enforces uniqueness on (EmployeeID, ShiftDate).
-    try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+  // Create (or reuse) today's shift for this staff.
+  // NOTE: ShiftDate is the day staff logs in (date-only semantics).
+  // The shift schema enforces uniqueness on (EmployeeID, ShiftDate).
+  // Contract: if login succeeds, the shift MUST exist.
+  let ensuredShift = null;
+  let ensuredShiftReport = null;
+  try {
+      // Use a date RANGE instead of equality.
+      // Equality on Date fields can fail if ShiftDate isn't stored at exactly 00:00:00.000.
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      const startOfTomorrow = new Date(startOfToday);
+      startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
 
+      const now = new Date();
       const gate = String(Gate || '').trim();
 
-      let shift = await Shift.findOne({ EmployeeID: staffAccount.EmployeeID, ShiftDate: today });
+      // Requirement: create a NEW shift record on every login.
+      // At login time, CheckOutTime and DurationHours MUST be null.
+      // We'll store ShiftDate as start-of-day for reporting/date grouping.
+      ensuredShift = await new Shift({
+        EmployeeID: staffAccount.EmployeeID,
+        ShiftDate: startOfToday,
+        CheckInTime: now,
+        CheckOutTime: null,
+        DurationHours: null,
+        TotalVehicles: 0,
+        TotalRevenue: 0,
+        Gate: gate || null,
+        Status: 'IN_PROGRESS'
+      }).save();
 
-      // If a shift exists but is completed, start a new one.
-      // Because of the unique(EmployeeID, ShiftDate) constraint, we “re-open” by creating only when none exists,
-      // otherwise we leave the completed shift as-is.
-      if (!shift) {
-        shift = new Shift({
-          EmployeeID: staffAccount.EmployeeID,
-          ShiftDate: today,
-          CheckInTime: new Date(),
-          Status: 'IN_PROGRESS',
-          Gate: gate || null
-        });
-        await shift.save();
-      } else if (!shift.Gate && gate) {
-        // Backfill gate if missing.
-        shift.Gate = gate;
-        await shift.save();
+      // Ensure a ShiftReport exists for this shift.
+      // shiftReport.ShiftID is the shift business ID (SHF####), not Mongo _id.
+      if (ensuredShift?.ID) {
+        // IMPORTANT:
+        // Using findOneAndUpdate({ upsert:true }) does not run pre('save') hooks,
+        // which can lead to business ID fields (ID) remaining null in some cases.
+        // To guarantee ShiftReport.ID is generated, create it via save() when missing.
+        ensuredShiftReport = await ShiftReport.findOne({ ShiftID: ensuredShift.ID })
+        if (!ensuredShiftReport) {
+          ensuredShiftReport = await new ShiftReport({
+            ShiftID: ensuredShift.ID,
+            TotalVehicles: 0,
+            GeneratedAt: new Date()
+          }).save()
+        }
+
+        // Safety net: if historical data exists with missing ID, backfill it now.
+        if (ensuredShiftReport && !ensuredShiftReport.ID) {
+          await ensuredShiftReport.save()
+        }
+
+        if (!ensuredShiftReport?.ID) {
+          throw new Error('ShiftReport ID is missing after ensure/create')
+        }
+
+        // Ensure ShiftReportDetail rows exist for all VehicleTypes.
+        // New schema: ShiftReportDetail.ShiftReportID references ShiftReport.ID.
+        const vehicleTypes = await VehicleType.find({ IsActive: true }, { VehicleTypeID: 1 }).lean()
+        if (vehicleTypes?.length) {
+          for (const vt of vehicleTypes) {
+            await ShiftReportDetail.findOneAndUpdate(
+              { ShiftReportID: ensuredShiftReport.ID, VehicleTypeID: String(vt.VehicleTypeID).toUpperCase() },
+              {
+                $setOnInsert: {
+                  ShiftReportID: ensuredShiftReport.ID,
+                  VehicleTypeID: String(vt.VehicleTypeID).toUpperCase(),
+                  Count: 0
+                }
+              },
+              { new: true, upsert: true }
+            )
+          }
+        }
+      }
+      // Helpful debug log to confirm shift creation in server logs.
+      if (ensuredShift) {
+        console.log('[staff-verify-pin] ensured shift', {
+          employeeId: staffAccount.EmployeeID,
+          shiftId: ensuredShift.ID,
+          shiftDate: ensuredShift.ShiftDate,
+          gate: ensuredShift.Gate,
+          status: ensuredShift.Status
+        })
       }
     } catch (e) {
-      // Best-effort: login should still succeed even if shift creation fails.
       console.error('Shift create on staff login failed:', e);
+      return response.status(500).json({
+        success: false,
+        error: {
+          message: 'Failed to create shift for staff login',
+          code: 'SHIFT_CREATE_ON_LOGIN_FAILED',
+          details: e?.message
+        }
+      })
     }
 
     // StaffAccount.EmployeeID is an employee business ID string (EMP####).
@@ -633,7 +701,8 @@ staffAccountsRouter.post('/verify-pin', async (request, response) => {
         token,
         ID: staffAccount.ID,
         EmployeeID: staffAccount.EmployeeID,
-        LastLoginAt: staffAccount.LastLoginAt
+        LastLoginAt: staffAccount.LastLoginAt,
+        shift: ensuredShift ? (ensuredShift.toJSON ? ensuredShift.toJSON() : ensuredShift) : null
       }
     });
   } catch (error) {
@@ -682,22 +751,19 @@ staffAccountsRouter.post('/logout', middleware.authRequired, async (request, res
       })
     }
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
+    // Close the most recent active shift (we allow multiple shifts per day).
     const shift = await Shift.findOne({
       EmployeeID: employeeId,
-      ShiftDate: today,
       Status: { $in: ['IN_PROGRESS', 'ACTIVE'] }
-    })
+    }).sort({ CheckInTime: -1 })
 
     if (!shift) {
       return response.json({ success: true, data: { ended: false } })
     }
 
-    shift.CheckOutTime = new Date()
-    shift.Status = 'COMPLETED'
-    await shift.save()
+  shift.CheckOutTime = new Date()
+  shift.Status = 'COMPLETED'
+  await shift.save()
 
     return response.json({ success: true, data: { ended: true, shift: shift.toJSON ? shift.toJSON() : shift } })
   } catch (error) {
