@@ -5,6 +5,7 @@ const VehicleType = require('../models/vehicleType')
 const Card = require('../models/card')
 const CardCategory = require('../models/cardCategory')
 const Employee = require('../models/employee')
+const Person = require('../models/person')
 const Subscription = require('../models/subscription')
 const SinglePricingRule = require('../models/singlePricingRule')
 const Shift = require('../models/shift')
@@ -120,6 +121,13 @@ const resolveCardByBusinessId = async (cardId) => {
   if (!card) return null
   const category = await resolveCardCategory(card.CardCategoryID)
   if (category) card.CardCategoryID = category
+
+  // Populate OwnerID with Person data for customer name display
+  if (card.OwnerID) {
+    const owner = await Person.findOne({ ID: String(card.OwnerID).trim() }).select('ID FullName Phone').lean()
+    if (owner) card.OwnerID = owner
+  }
+
   return card
 }
 
@@ -421,41 +429,32 @@ entrySessionsRouter.get('/gate/query', async (req, res) => {
     }
 
     const vehicle = licensePlate
-      ? await Vehicle.findOne({ PlateNumber: licensePlate }).lean()
+      ? await Vehicle.findOne({ PlateNumber: licensePlate }).populate({
+        path: 'VehicleTypeID',
+        select: 'VehicleTypeID Name'
+      })
       : null
-
-    // Manually enrich vehicle type (avoid populate(ObjectId) cast errors)
-    if (vehicle?.VehicleTypeID) {
-      vehicle.VehicleTypeID = await resolveVehicleTypeCompat(vehicle.VehicleTypeID)
-    }
 
     const activeSession = cardId
       ? await EntrySession.findOne({ CardID: cardId, Status: 'IN_PARKING' })
-        // Avoid populating CardID/VehicleTypeID because those are business IDs, not ObjectId.
         .populate({
           path: 'VehicleID',
-          select: 'VehicleID PlateNumber VehicleTypeID'
+          select: 'VehicleID PlateNumber',
+          populate: { path: 'VehicleTypeID', select: 'VehicleTypeID Name' }
+        })
+        .populate('VehicleTypeID', 'VehicleTypeID Name')
+        .populate({
+          path: 'CardID',
+          select: 'CardID UID CardCategoryID',
+          populate: { path: 'CardCategoryID', select: 'ID Name' }
+        })
+        .populate({
+          path: 'ProcessedEntryBy',
+          select: 'ID',
+          populate: { path: 'PersonID', select: 'FullName' }
         })
         .lean()
       : null
-
-    // Manually resolve Card for activeSession
-    if (activeSession?.CardID) {
-      activeSession.CardID = await resolveCardCompat(activeSession.CardID)
-    }
-
-    // Manually resolve ProcessedEntryBy for activeSession
-    if (activeSession?.ProcessedEntryBy) {
-      activeSession.ProcessedEntryBy = await resolveEmployeeCompat(activeSession.ProcessedEntryBy)
-    }
-
-    // Manually enrich VehicleType for activeSession + nested Vehicle
-    if (activeSession?.VehicleTypeID) {
-      activeSession.VehicleTypeID = await resolveVehicleTypeCompat(activeSession.VehicleTypeID)
-    }
-    if (activeSession?.VehicleID?.VehicleTypeID) {
-      activeSession.VehicleID.VehicleTypeID = await resolveVehicleTypeCompat(activeSession.VehicleID.VehicleTypeID)
-    }
 
     if (activeSession?.CardID?.CardCategoryID) {
       const raw = String(activeSession.CardID.CardCategoryID)
@@ -482,10 +481,6 @@ entrySessionsRouter.get('/gate/query', async (req, res) => {
       subscriptionVehicle = await Vehicle
         .findOne({ VehicleID: String(subscription.VehicleID).trim() })
         .lean()
-
-      if (subscriptionVehicle?.VehicleTypeID) {
-        subscriptionVehicle.VehicleTypeID = await resolveVehicleTypeCompat(subscriptionVehicle.VehicleTypeID)
-      }
     }
 
     if (subscription?.VehicleTypeID) {
@@ -676,12 +671,19 @@ entrySessionsRouter.post('/gate/entry', async (req, res) => {
       })
     }
 
-    // Card.Status is the current field (replaces IsActive). Treat non-ACTIVE as not usable.
-    if (card.Status && card.Status !== 'ACTIVE') {
+    // Card.Status is the current field (replaces IsActive).
+    // Allow ACTIVE cards, or auto-activate PENDING_RFID cards (visitor cards being scanned)
+    if (card.Status && card.Status !== 'ACTIVE' && card.Status !== 'PENDING_RFID') {
       return res.status(403).json({
         success: false,
         error: { message: 'Card is not active', code: 'CARD_INACTIVE' }
       })
+    }
+
+    // Auto-activate PENDING_RFID cards when creating session (completes card scan workflow)
+    if (card.Status === 'PENDING_RFID') {
+      await Card.updateOne({ CardID }, { Status: 'ACTIVE' })
+      card.Status = 'ACTIVE'
     }
 
     // Check if card has expired
@@ -770,9 +772,9 @@ entrySessionsRouter.post('/gate/entry', async (req, res) => {
 
         const saved = await session.save()
 
-  // Update shift/report counters for this staff
-  let shiftCounters = null
-  try { shiftCounters = await incrementShiftCounters(ProcessedEntryBy, VehicleTypeID) } catch (e) { shiftCounters = { ok: false, skipped: false, reason: e.message } }
+        // Update shift/report counters for this staff
+        let shiftCounters = null
+        try { shiftCounters = await incrementShiftCounters(ProcessedEntryBy, VehicleTypeID) } catch (e) { shiftCounters = { ok: false, skipped: false, reason: e.message } }
 
         const enriched = await enrichSession(saved)
 
@@ -806,9 +808,9 @@ entrySessionsRouter.post('/gate/entry', async (req, res) => {
 
         const saved = await session.save()
 
-  // Update shift/report counters for this staff
-  let shiftCounters = null
-  try { shiftCounters = await incrementShiftCounters(ProcessedEntryBy, VehicleTypeID) } catch (e) { shiftCounters = { ok: false, skipped: false, reason: e.message } }
+        // Update shift/report counters for this staff
+        let shiftCounters = null
+        try { shiftCounters = await incrementShiftCounters(ProcessedEntryBy, VehicleTypeID) } catch (e) { shiftCounters = { ok: false, skipped: false, reason: e.message } }
 
         const enriched = await enrichSession(saved)
 
@@ -856,9 +858,9 @@ entrySessionsRouter.post('/gate/entry', async (req, res) => {
 
     const saved = await session.save()
 
-  // Update shift/report counters for this staff
-  let shiftCounters = null
-  try { shiftCounters = await incrementShiftCounters(ProcessedEntryBy, VehicleTypeID) } catch (e) { shiftCounters = { ok: false, skipped: false, reason: e.message } }
+    // Update shift/report counters for this staff
+    let shiftCounters = null
+    try { shiftCounters = await incrementShiftCounters(ProcessedEntryBy, VehicleTypeID) } catch (e) { shiftCounters = { ok: false, skipped: false, reason: e.message } }
 
     const enriched = await enrichSession(saved)
 
@@ -1126,10 +1128,10 @@ entrySessionsRouter.post('/entry', async (req, res) => {
       DiscountReason: subscription ? 'SUBSCRIPTION' : null
     })
 
-  const savedSession = await session.save()
+    const savedSession = await session.save()
 
-  // Update shift/report counters for this staff
-  try { await incrementShiftCounters(ProcessedEntryBy, VehicleTypeID) } catch (e) { /* swallow */ }
+    // Update shift/report counters for this staff
+    try { await incrementShiftCounters(ProcessedEntryBy, VehicleTypeID) } catch (e) { /* swallow */ }
     const populatedSession = await EntrySession
       .findById(savedSession._id)
       .populate({
@@ -1702,10 +1704,10 @@ entrySessionsRouter.post('/gate/entry-with-plate', async (req, res) => {
     })
 
 
-  const saved = await session.save()
+    const saved = await session.save()
 
-  // Update shift/report counters for this staff
-  try { await incrementShiftCounters(ProcessedEntryBy, VehicleTypeID) } catch (e) { /* swallow */ }
+    // Update shift/report counters for this staff
+    try { await incrementShiftCounters(ProcessedEntryBy, VehicleTypeID) } catch (e) { /* swallow */ }
 
     // Populate for response
     const enriched = await EntrySession.findById(saved._id)

@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState([]);
   const [capacity, setCapacity] = useState([]);
   const [revenueTrend, setRevenueTrend] = useState([]);
+  const [dailyDistribution, setDailyDistribution] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -39,7 +40,7 @@ export default function Dashboard() {
         const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
         // Fetch all dashboard data in parallel
-        const [statsRes, activityRes, alertsRes, capacityRes, revenueTrendRes] = await Promise.all([
+        const [statsRes, activityRes, alertsRes, capacityRes, revenueTrendRes, dailyDistRes] = await Promise.all([
           fetch(`${baseURL}/dashboard/stats`, {
             headers: { Authorization: `Bearer ${token}` }
           }),
@@ -54,6 +55,9 @@ export default function Dashboard() {
           }),
           fetch(`${baseURL}/dashboard/revenue-trend?hours=6`, {
             headers: { Authorization: `Bearer ${token}` }
+          }),
+          fetch(`${baseURL}/dashboard/vehicle-distribution-today`, {
+            headers: { Authorization: `Bearer ${token}` }
           })
         ]);
 
@@ -62,6 +66,7 @@ export default function Dashboard() {
         const alertsData = await alertsRes.json();
         const capacityData = await capacityRes.json();
         const revenueTrendData = await revenueTrendRes.json();
+        const dailyDistData = await dailyDistRes.json();
 
         if (statsData.success) {
           setStats(statsData.data);
@@ -77,6 +82,9 @@ export default function Dashboard() {
         }
         if (revenueTrendData.success) {
           setRevenueTrend(revenueTrendData.data);
+        }
+        if (dailyDistData.success) {
+          setDailyDistribution(dailyDistData.data);
         }
 
         setError(null);
@@ -98,9 +106,9 @@ export default function Dashboard() {
 
   // Format currency
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('vi-VN', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'VND'
+      currency: 'USD'
     }).format(amount);
   };
 
@@ -170,7 +178,8 @@ export default function Dashboard() {
     value: `${c.current} / ${c.max}`,
     percentLabel: `${c.percent}% Full`,
     percent: c.percent,
-    tone: c.tone
+    tone: c.tone,
+    current: c.current
   }));
 
   if (loading) {
@@ -292,6 +301,7 @@ export default function Dashboard() {
       percentLabel: '49% Full',
       percent: 49,
       tone: 'blue',
+      current: 245,
     },
     {
       id: 'motorcycles',
@@ -300,6 +310,7 @@ export default function Dashboard() {
       percentLabel: '32% Full',
       percent: 32,
       tone: 'purple',
+      current: 389,
     },
     {
       id: 'trucks',
@@ -308,6 +319,7 @@ export default function Dashboard() {
       percentLabel: '58% Full',
       percent: 58,
       tone: 'orange',
+      current: 87,
     },
     {
       id: 'vans',
@@ -316,6 +328,7 @@ export default function Dashboard() {
       percentLabel: '66% Full',
       percent: 66,
       tone: 'green',
+      current: 132,
     },
   ];
 
@@ -418,8 +431,8 @@ export default function Dashboard() {
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie
-                data={displayCapacity}
-                dataKey="current"
+                data={dailyDistribution}
+                dataKey="value"
                 nameKey="title"
                 cx="50%"
                 cy="50%"
@@ -429,7 +442,7 @@ export default function Dashboard() {
                 label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                 labelLine={false}
               >
-                {displayCapacity.map((entry, index) => {
+                {dailyDistribution.map((entry, index) => {
                   // Enhanced color mapping for different vehicle types
                   const colorMap = {
                     blue: '#3b82f6',    // Cars - Blue
@@ -450,16 +463,16 @@ export default function Dashboard() {
                   borderRadius: '6px',
                   fontSize: '12px'
                 }}
-                formatter={(value, name) => [`${value} vehicles`, name]}
+                formatter={(value, name) => [`${value} entries`, name]}
               />
             </PieChart>
           </ResponsiveContainer>
           <div className="dashboard-legend">
-            {displayCapacity.map((item) => (
+            {dailyDistribution.map((item) => (
               <div key={item.id} className="dashboard-legendItem">
                 <span className={`dashboard-dot dashboard-dot--${item.tone}`} />
                 <span>{item.title}:</span>
-                <span className="dashboard-legendValue">{item.current}</span>
+                <span className="dashboard-legendValue">{item.value}</span>
               </div>
             ))}
           </div>
@@ -487,7 +500,7 @@ export default function Dashboard() {
                     <span className={`dashboard-pill dashboard-pill--${a.tone}`}>{a.type}</span>
                     <span className="dashboard-activityPlate">{a.plate}</span>
                     {a.vehicleType && <span className="dashboard-activityVehicleType">• {a.vehicleType}</span>}
-                    {a.hasSubscription && <span className="dashboard-activitySubscription">🔄 Sub</span>}
+                    {a.hasSubscription && <span className="dashboard-activitySubscription">Subscription</span>}
                   </div>
                   <div className="dashboard-activityMeta">{a.meta}</div>
                 </div>

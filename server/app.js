@@ -120,6 +120,10 @@ app.use('/api/subscriptions', middleware.authRequired, middleware.adminOnly, sub
 // Route-level access control is handled inside the controller.
 app.use('/api/entry-sessions', middleware.authRequired, entrySessionsRouter)
 
+// Staff Gate Operations (for staff gate page - no adminOnly)
+const staffGateRouter = require('./controllers/staffGate')
+app.use('/api/staff-gate', middleware.authRequired, staffGateRouter)
+
 // Phase 9: Shift Management Routes
 app.use('/api/shifts', middleware.authRequired, middleware.adminOnly, shiftsRouter)
 

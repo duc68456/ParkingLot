@@ -220,24 +220,24 @@ const ShiftReportModal = ({ isOpen, onClose, gateType = 'entry', report }) => {
                 <thead className="shift-table-header">
                   <tr>
                     <th>Entry Time</th>
-                      <th>Exit Time</th>
+                    <th>Exit Time</th>
                     <th>License Plate</th>
                     <th>Card ID</th>
                     <th>Vehicle Type</th>
-                      <th>Duration</th>
-                      <th>Price</th>
+                    <th>Duration</th>
+                    <th>Price</th>
                   </tr>
                 </thead>
                 <tbody className="shift-table-body">
                   {reportData.sessions.map((session, index) => (
                     <tr key={index}>
                       <td>{session.entryTime}</td>
-                        <td>{session.exitTime || '-'}</td>
+                      <td>{session.exitTime || '-'}</td>
                       <td className="shift-license-plate">{session.licensePlate}</td>
                       <td>{session.cardId}</td>
                       <td className="shift-vehicle-type">{session.vehicleType}</td>
-                        <td>{session.duration || '-'}</td>
-                        <td className="shift-price">{normalizeMoney(session.price) || '-'}</td>
+                      <td>{session.duration || '-'}</td>
+                      <td className="shift-price">{normalizeMoney(session.price) || '-'}</td>
                     </tr>
                   ))}
                 </tbody>

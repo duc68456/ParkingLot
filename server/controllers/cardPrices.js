@@ -2,6 +2,7 @@ const cardPricesRouter = require('express').Router()
 const CardPrice = require('../models/cardPrice')
 const CardCategory = require('../models/cardCategory')
 const Employee = require('../models/employee')
+const Person = require('../models/person')
 
 const populateChangedByEmployee = {
   path: 'ChangedBy',
@@ -145,7 +146,7 @@ cardPricesRouter.get('/', async (req, res) => {
 
     const cardPrices = await CardPrice
       .find(filter)
-        // .populate('CardCategoryID', 'ID Name')
+      // .populate('CardCategoryID', 'ID Name')
       .populate(populateChangedByEmployee)
       .populate(populateCardPricePrev)
       .limit(parseInt(limit))
@@ -180,7 +181,7 @@ cardPricesRouter.get('/:id', async (req, res) => {
   try {
     const cardPrice = await CardPrice
       .findById(req.params.id)
-        // .populate('CardCategoryID', 'ID Name')
+      // .populate('CardCategoryID', 'ID Name')
       .populate(populateChangedByEmployee)
       .populate(populateCardPricePrev)
 
@@ -219,7 +220,7 @@ cardPricesRouter.get('/current/:cardCategoryId', async (req, res) => {
         CardCategoryID: req.params.cardCategoryId,
         StartDateApply: { $lte: now }
       })
-        // .populate('CardCategoryID', 'ID Name')
+      // .populate('CardCategoryID', 'ID Name')
       .populate(populateChangedByEmployee)
       .sort({ StartDateApply: -1 })
       .limit(1)
@@ -260,17 +261,60 @@ cardPricesRouter.get('/history/:cardCategoryId', async (req, res) => {
 
     const priceHistory = await CardPrice
       .find(filter)
-        // .populate('CardCategoryID', 'ID Name')
-      .populate(populateChangedByEmployee)
-      .populate(populateCardPricePrev)
       .limit(parseInt(limit))
       .skip(skip)
       .sort({ StartDateApply: -1 })
 
+    // Manually fetch CardPricePrev records
+    const prevIds = [...new Set(priceHistory.map((p) => p.CardPricePrev).filter(Boolean))]
+    const prevDocs = prevIds.length
+      ? await CardPrice.find({ ID: { $in: prevIds } }).select('ID Price StartDateApply Reason')
+      : []
+    const prevById = new Map(prevDocs.map((p) => [p.ID, (p.toJSON ? p.toJSON() : p)]))
+
+    // Manually fetch Employee records
+    const employeeIds = [...new Set(priceHistory.map((p) => p.ChangedBy).filter(Boolean))]
+    const employees = await Employee.find({ ID: { $in: employeeIds } })
+    const employeeById = new Map(employees.map((e) => [e.ID, e]))
+
+    // Manually fetch Person records
+    const personIds = [...new Set(employees.map((e) => e.PersonID).filter(Boolean))]
+    const persons = personIds.length ? await Person.find({ ID: { $in: personIds } }) : []
+    const personById = new Map(persons.map((p) => [p.ID, p]))
+
+    // Build response items with populated data
+    const items = priceHistory.map((p) => {
+      const obj = p.toJSON ? p.toJSON() : p
+
+      // Attach CardPricePrev
+      obj.CardPricePrev = obj.CardPricePrev
+        ? (prevById.get(obj.CardPricePrev) || null)
+        : null
+
+      // Attach ChangedByEmployee with Person data
+      const empRaw = employeeById.get(obj.ChangedBy)
+      if (empRaw) {
+        const personBusinessId = empRaw.PersonID
+        const personDoc = personBusinessId ? personById.get(personBusinessId) : null
+
+        obj.ChangedByEmployee = {
+          ID: empRaw.ID,
+          PersonID: personDoc ? (personDoc.toJSON ? personDoc.toJSON() : personDoc) : personBusinessId,
+          EmployeeType: empRaw.EmployeeType,
+          HiredDate: empRaw.HiredDate,
+          Status: empRaw.Status
+        }
+      } else {
+        obj.ChangedByEmployee = null
+      }
+
+      return obj
+    })
+
     res.json({
       success: true,
       data: {
-        items: priceHistory,
+        items,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -465,7 +509,7 @@ cardPricesRouter.post('/', async (req, res) => {
     })
 
     const savedCardPrice = await cardPrice.save()
-      const populatedCardPrice = savedCardPrice
+    const populatedCardPrice = savedCardPrice
 
     res.status(201).json({
       success: true,
@@ -524,7 +568,7 @@ cardPricesRouter.delete('/:id', async (req, res) => {
       })
     }
 
-  await CardPrice.deleteOne({ _id: cardPrice._id })
+    await CardPrice.deleteOne({ _id: cardPrice._id })
 
     res.json({
       success: true,

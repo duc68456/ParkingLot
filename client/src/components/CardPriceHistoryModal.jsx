@@ -18,9 +18,9 @@ function formatDateTime(value) {
 }
 
 function getChangedByName(record) {
-  const personName = record?.ChangedBy?.PersonID?.FullName;
+  const personName = record?.ChangedByEmployee?.PersonID?.FullName;
   if (personName) return personName;
-  return record?.ChangedBy?.ID || 'Unknown';
+  return record?.ChangedByEmployee?.ID || record?.ChangedBy || 'Unknown';
 }
 
 export default function CardPriceHistoryModal({
@@ -101,7 +101,7 @@ export default function CardPriceHistoryModal({
                             <span className="cphm-pill cphm-pill-date">
                               {formatDateTime(item?.StartDateApply)}
                             </span>
-                            <span className="cphm-history-by">by Admin {getChangedByName(item)}</span>
+                            <span className="cphm-history-by">by {getChangedByName(item)}</span>
                           </div>
 
                           <div className="cphm-history-grid">
