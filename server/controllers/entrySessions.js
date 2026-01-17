@@ -1178,6 +1178,95 @@ entrySessionsRouter.post('/entry', async (req, res) => {
   }
 })
 
+// POST - Process gate exit (for Staff Gate)
+entrySessionsRouter.post('/gate/exit', async (req, res) => {
+  try {
+    const { CardID, ProcessedExitBy } = req.body
+
+    if (!CardID || !ProcessedExitBy) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Missing required fields',
+          code: 'MISSING_REQUIRED_FIELDS'
+        }
+      })
+    }
+
+    // 1. Find active session
+    const session = await EntrySession.findOne({
+      CardID: CardID,
+      Status: { $in: ['IN_PARKING', 'Active', 'ACTIVE'] }
+    })
+      .populate('VehicleTypeID', 'VehicleTypeID Name')
+      .populate({
+        path: 'CardID',
+        select: 'CardID UID CardCategoryID',
+        populate: { path: 'CardCategoryID', select: 'ID Name' }
+      })
+
+    // 2. If no session found
+    if (!session) {
+      // Return a 200 OK but with a specific flag so frontend knows to show "Force Exit"
+      return res.status(200).json({
+        success: true,
+        data: {
+          decision: 'NO_SESSION_FOUND',
+          message: 'No active session found for this card'
+        }
+      })
+    }
+
+    // 3. Close session
+    const now = new Date()
+    const entryTime = new Date(session.EntryTime)
+    const durationMs = now - entryTime
+    const durationHours = Math.ceil(durationMs / (1000 * 60 * 60))
+
+    // Simple fee calculation mock
+    // If Subscription -> Free. Else -> 5000 * hours (Guest entry)
+    // We check DiscountReason or Card Category
+    const isSubscription = session.DiscountReason === 'SUBSCRIPTION' ||
+      session?.CardID?.CardCategoryID?.Name?.toLowerCase() === 'subscription'
+
+    let fee = 0
+    if (!isSubscription) {
+      fee = durationHours * 5000 // Mock rate
+    }
+
+    session.ExitTime = now
+    session.ProcessedExitBy = ProcessedExitBy
+    session.Status = 'EXITED'
+    session.CalculatedFee = fee
+    session.FinalFee = fee // Valid for now (no manual adjustment yet in this flow)
+
+    await session.save()
+
+    return res.json({
+      success: true,
+      data: {
+        decision: 'EXIT_PERMITTED',
+        session: session,
+        duration: {
+          hours: Math.floor(durationMs / (1000 * 60 * 60)),
+          minutes: Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60))
+        },
+        fee: fee
+      }
+    })
+
+  } catch (error) {
+    console.error('Gate Exit Error:', error)
+    return res.status(500).json({
+      success: false,
+      error: {
+        message: error.message,
+        code: 'GATE_EXIT_ERROR'
+      }
+    })
+  }
+})
+
 // POST - Process exit (calculate fee and close session)
 entrySessionsRouter.post('/exit/:id', async (req, res) => {
   try {

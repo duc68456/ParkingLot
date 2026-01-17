@@ -450,6 +450,15 @@ employeesRouter.delete("/:id", async (request, response) => {
     employee.Status = newStatus;
     await employee.save();
 
+    // Verify if we need to reactivate the Person record
+    if (newStatus === 'ACTIVE' && employee.PersonID) {
+      // Employee.PersonID stores the Business ID (e.g. PER0001)
+      await Person.findOneAndUpdate(
+        { ID: employee.PersonID },
+        { IsActive: true }
+      );
+    }
+
     response.json({
       success: true,
       message: "Employee status updated successfully",
