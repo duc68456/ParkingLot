@@ -1,0 +1,459 @@
+/* ExitGatePage.css - Mirrored from StaffGatePage.css */
+.exit-gate-page {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #f8fafc;
+  font-family: 'Arimo', sans-serif;
+}
+
+.staff-header {
+  width: 100%;
+  height: 80.8px;
+  background-color: white;
+  border-bottom: 0.8px solid #e2e8f0;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+  padding: 16px 32px 0.8px;
+  display: flex;
+  align-items: center;
+}
+
+.staff-header-container {
+  width: 100%;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.staff-info-section {
+  width: 187.512px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.staff-avatar {
+  width: 40px;
+  height: 40px;
+  background-color: #155dfc;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.staff-avatar img {
+  width: 24px;
+  height: 24px;
+}
+
+.staff-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.staff-role {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: #62748e;
+  white-space: nowrap;
+}
+
+.staff-id {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  color: #1d293d;
+  white-space: nowrap;
+}
+
+/* Gate type indicator */
+.gate-type-pill {
+  width: 136.188px;
+  height: 40px;
+  background-color: #f1f5f9;
+  border-radius: 10px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1d293d;
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  white-space: nowrap;
+}
+
+.gate-type-pill img {
+  width: 20px;
+  height: 20px;
+}
+
+.logout-btn {
+  width: 106.188px;
+  height: 40px;
+  background-color: #e7000b;
+  border: none;
+  border-radius: 10px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  color: white;
+  white-space: nowrap;
+  transition: opacity 0.2s ease;
+}
+
+.logout-btn:hover {
+  opacity: 0.9;
+}
+
+.logout-btn img {
+  width: 16px;
+  height: 16px;
+}
+
+.staff-main {
+  width: 100%;
+  padding: 16px 32px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.action-bar {
+  width: 100%;
+  height: 45.6px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.report-btn {
+  width: 177.613px;
+  height: 40px;
+  background-color: #155dfc;
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: white;
+  white-space: nowrap;
+  transition: opacity 0.2s ease;
+}
+
+.report-btn:hover {
+  opacity: 0.9;
+}
+
+.report-btn img {
+  width: 16px;
+  height: 16px;
+}
+
+.capacity-container {
+  flex: 1;
+  height: 45.6px;
+  background-color: white;
+  border: 0.8px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10.8px;
+}
+
+.capacity-inner {
+  width: 100%;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.capacity-numbers {
+  width: 164.825px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.capacity-label {
+  font-size: 14px;
+  line-height: 20px;
+  color: #314158;
+  white-space: nowrap;
+}
+
+.capacity-values {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.capacity-current {
+  font-size: 18px;
+  line-height: 28px;
+  color: #0f172b;
+  white-space: nowrap;
+}
+
+.capacity-total {
+  font-size: 12px;
+  line-height: 16px;
+  color: #62748e;
+  white-space: nowrap;
+}
+
+/* Gate Layout */
+.gate-panels {
+  width: 100%;
+  min-height: 542.35px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.gate-panel {
+  height: auto;
+  min-height: 542.35px;
+  background-color: white;
+  border: 1.6px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+  padding-bottom: 16px;
+}
+
+.gate-header {
+  width: 100%;
+  height: 50px;
+  padding: 10px 16px 0;
+  display: flex;
+  align-items: flex-start;
+}
+
+.gate-1-header {
+  background: linear-gradient(to right, #155dfc, #1447e6);
+}
+
+.gate-2-header {
+  background: linear-gradient(to right, #9810fa, #8200db);
+}
+
+.gate-title-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gate-title {
+  margin: 0;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 30px;
+  color: white;
+  white-space: nowrap;
+}
+
+.gate-status-badge {
+  padding: 4px 12px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-idle {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.status-active {
+  background: #00c950;
+  color: white;
+}
+
+.gate-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Exit Specific Styles (reusing existing structure) */
+
+.gate-new-entry-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-group input {
+  height: 48px;
+  padding: 0 16px;
+  border: 1.6px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 16px;
+}
+
+.input-group input:focus {
+  border-color: #155dfc;
+  outline: none;
+}
+
+.btn-primary {
+  height: 48px;
+  background: #155dfc;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary img {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) invert(1);
+}
+
+/* Details View */
+.gate-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.detail-row:last-of-type {
+  border-bottom: none;
+}
+
+.detail-row span {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.detail-row strong {
+  color: #0f172b;
+  font-size: 16px;
+}
+
+.fee-row {
+  background: #fffbeb;
+  margin: 0 -16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #fcd34d;
+  border-top: 1px solid #fcd34d;
+}
+
+.fee-value {
+  color: #b45309;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.btn-success {
+  height: 56px;
+  background: #00a63e;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.btn-success:hover {
+  opacity: 0.9;
+}
+
+/* Error State */
+.gate-error-state {
+  padding: 24px;
+  text-align: center;
+  background: #fef2f2;
+  border-radius: 10px;
+  border: 1px solid #fee2e2;
+}
+
+.error-message {
+  color: #b91c1c;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.error-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.btn-secondary {
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-danger {
+  padding: 8px 16px;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}

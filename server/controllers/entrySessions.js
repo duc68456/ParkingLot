@@ -1181,31 +1181,24 @@ entrySessionsRouter.post('/gate/exit', async (req, res) => {
   try {
     const { CardID, ProcessedExitBy } = req.body
 
-    if (!CardID || !ProcessedExitBy) {
+    if (!CardID) {
       return res.status(400).json({
         success: false,
         error: {
-          message: 'Missing required fields',
+          message: 'Missing required field: CardID',
           code: 'MISSING_REQUIRED_FIELDS'
         }
       })
     }
 
-    // 1. Find active session
+    // 1. Find active session (no populate to avoid ObjectId cast issues)
     const session = await EntrySession.findOne({
       CardID: CardID,
       Status: { $in: ['IN_PARKING', 'Active', 'ACTIVE'] }
     })
-      .populate('VehicleTypeID', 'VehicleTypeID Name')
-      .populate({
-        path: 'CardID',
-        select: 'CardID UID CardCategoryID',
-        populate: { path: 'CardCategoryID', select: 'ID Name' }
-      })
 
     // 2. If no session found
     if (!session) {
-      // Return a 200 OK but with a specific flag so frontend knows to show "Force Exit"
       return res.status(200).json({
         success: true,
         data: {
@@ -1215,28 +1208,65 @@ entrySessionsRouter.post('/gate/exit', async (req, res) => {
       })
     }
 
-    // 3. Close session
+    // 3. Manual lookups for related data
+    const VehicleType = require('../models/vehicleType')
+    const Card = require('../models/card')
+    const CardCategory = require('../models/cardCategory')
+    const SinglePricingRule = require('../models/singlePricingRule')
+    const SinglePricingRuleDetail = require('../models/singlePricingRuleDetail')
+
+    const vehicleType = await VehicleType.findOne({ VehicleTypeID: session.VehicleTypeID }).lean()
+    const card = await Card.findOne({ CardID: session.CardID }).lean()
+    let cardCategory = null
+    if (card?.CardCategoryID) {
+      cardCategory = await CardCategory.findOne({ ID: card.CardCategoryID }).lean()
+    }
+
+    // 4. Calculate duration
     const now = new Date()
     const entryTime = new Date(session.EntryTime)
     const durationMs = now - entryTime
-    const durationHours = Math.ceil(durationMs / (1000 * 60 * 60))
+    const durationHours = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60))) // At least 1 hour
 
-    // Simple fee calculation mock
-    // If Subscription -> Free. Else -> 5000 * hours (Guest entry)
-    // We check DiscountReason or Card Category
-    const isSubscription = session.DiscountReason === 'SUBSCRIPTION' ||
-      session?.CardID?.CardCategoryID?.Name?.toLowerCase() === 'subscription'
-
+    // 5. Calculate fee based on pricing rules
     let fee = 0
-    if (!isSubscription) {
-      fee = durationHours * 5000 // Mock rate
+    const isSubscription = session.DiscountReason === 'SUBSCRIPTION' ||
+      cardCategory?.Name?.toLowerCase() === 'subscription'
+
+    if (!isSubscription && cardCategory && vehicleType) {
+      // Look up pricing rule for this CardCategory + VehicleType
+      const pricingRule = await SinglePricingRule.findOne({
+        CardCategoryID: cardCategory.ID,
+        VehicleTypeID: vehicleType.VehicleTypeID
+      }).lean()
+
+      if (pricingRule) {
+        // Get the current effective pricing detail
+        const pricingDetail = await SinglePricingRuleDetail.findOne({
+          SinglePricingRuleID: pricingRule.ID,
+          StartDateApply: { $lte: now }
+        }).sort({ StartDateApply: -1, createdAt: -1 }).lean()
+
+        if (pricingDetail) {
+          // Calculate fee: 1st hour price + (remaining hours * next hour price)
+          const firstHourPrice = pricingDetail.HourPrice || 0
+          const nextHourPrice = pricingDetail.NextHourPrice || 0
+
+          if (durationHours <= 1) {
+            fee = firstHourPrice
+          } else {
+            fee = firstHourPrice + ((durationHours - 1) * nextHourPrice)
+          }
+        }
+      }
     }
 
+    // 6. Update and close session
     session.ExitTime = now
-    session.ProcessedExitBy = ProcessedExitBy
+    session.ProcessedExitBy = ProcessedExitBy || null
     session.Status = 'EXITED'
     session.CalculatedFee = fee
-    session.FinalFee = fee // Valid for now (no manual adjustment yet in this flow)
+    session.FinalFee = fee
 
     await session.save()
 
@@ -1244,7 +1274,15 @@ entrySessionsRouter.post('/gate/exit', async (req, res) => {
       success: true,
       data: {
         decision: 'EXIT_PERMITTED',
-        session: session,
+        session: {
+          ...session.toObject(),
+          VehicleTypeID: vehicleType || { VehicleTypeID: session.VehicleTypeID, Name: 'Unknown' },
+          CardID: {
+            CardID: card?.CardID || session.CardID,
+            OwnerID: card?.OwnerID ? { FullName: 'Customer' } : null,
+            CardCategoryID: cardCategory || null
+          }
+        },
         duration: {
           hours: Math.floor(durationMs / (1000 * 60 * 60)),
           minutes: Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60))
