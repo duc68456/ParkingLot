@@ -281,11 +281,19 @@ staffGateRouter.get('/shift-report', async (req, res) => {
     // Get check-in time for session filtering (use start of today if no shift)
     const sessionStartTime = shift?.CheckInTime || today
 
-    // Get all entry sessions created during this shift (by this staff)
+    // Get all sessions processed by this staff (either Entry or Exit) during this shift
     const sessions = await EntrySession.find({
-      ProcessedEntryBy: { $regex: new RegExp(`^${employeeId}$`, 'i') },
-      EntryTime: { $gte: sessionStartTime }
-    }).sort({ EntryTime: -1 }).lean()
+      $or: [
+        {
+          ProcessedEntryBy: { $regex: new RegExp(`^${employeeId}$`, 'i') },
+          EntryTime: { $gte: sessionStartTime }
+        },
+        {
+          ProcessedExitBy: { $regex: new RegExp(`^${employeeId}$`, 'i') },
+          ExitTime: { $gte: sessionStartTime }
+        }
+      ]
+    }).sort({ updatedAt: -1 }).lean()
 
     // Get all vehicle types for stats
     const vehicleTypes = await VehicleType.find({ IsActive: true }).lean()

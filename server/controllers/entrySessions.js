@@ -198,7 +198,7 @@ const resolveEmployeeCompat = async (raw) => {
 
 // Helper: increment shift/report counters for an employee's active shift.
 // Returns a small debug payload so entry endpoints can surface whether counters were updated.
-const incrementShiftCounters = async (employeeBusinessId, vehicleTypeId) => {
+const incrementShiftCounters = async (employeeBusinessId, vehicleTypeId, revenue = 0) => {
   const result = {
     ok: false,
     skipped: false,
@@ -235,11 +235,12 @@ const incrementShiftCounters = async (employeeBusinessId, vehicleTypeId) => {
   }
 
   result.shiftId = shift.ID
+  const rev = Number(revenue) || 0
 
-  // Increment Shift.TotalVehicles
-  await Shift.updateOne({ _id: shift._id }, { $inc: { TotalVehicles: 1 } })
+  // Increment Shift.TotalVehicles and TotalRevenue
+  await Shift.updateOne({ _id: shift._id }, { $inc: { TotalVehicles: 1, TotalRevenue: rev } })
 
-  // Ensure ShiftReport exists and increment its TotalVehicles atomically.
+  // Ensure ShiftReport exists and increment its TotalVehicles and TotalRevenue atomically.
   const report = await ShiftReport.findOneAndUpdate(
     { ShiftID: shift.ID },
     {
@@ -247,7 +248,7 @@ const incrementShiftCounters = async (employeeBusinessId, vehicleTypeId) => {
         ShiftID: shift.ID,
         GeneratedAt: new Date()
       },
-      $inc: { TotalVehicles: 1 }
+      $inc: { TotalVehicles: 1, TotalRevenue: rev }
     },
     { new: true, upsert: true }
   )
@@ -333,14 +334,42 @@ entrySessionsRouter.get('/', async (req, res) => {
       .sort({ EntryTime: -1 })
       .lean()
 
+    // Helper to resolve Employee from either EMP ID or STA ID
+    const resolveEmployee = async (id) => {
+      if (!id) return null
+      const idStr = String(id).trim().toUpperCase()
+
+      // If it's a StaffAccount ID (STA...), find the linked Employee
+      if (idStr.startsWith('STA')) {
+        const StaffAccount = require('../models/staffAccount') // Lazy loa
+        const account = await StaffAccount.findOne({ ID: idStr }).select('EmployeeID').lean()
+        if (account?.EmployeeID) {
+          return Employee.findOne({ ID: account.EmployeeID }).populate('person').lean()
+        }
+      }
+
+      // Default: Assume it's an Employee ID
+      return Employee.findOne({ ID: idStr }).populate('person').lean()
+    }
+
     const hydrateSession = async (s) => {
       const [vt, v, c, pe, px] = await Promise.all([
         s?.VehicleTypeID ? VehicleType.findOne({ VehicleTypeID: String(s.VehicleTypeID) }).select('VehicleTypeID Name').lean() : null,
         s?.VehicleID ? Vehicle.findOne({ VehicleID: String(s.VehicleID) }).select('VehicleID PlateNumber Color VehicleTypeID').lean() : null,
         s?.CardID ? resolveCardByBusinessId(s.CardID) : null,
-        s?.ProcessedEntryBy ? Employee.findOne({ ID: String(s.ProcessedEntryBy) }).populate({ path: 'PersonID', select: 'ID FullName' }).lean() : null,
-        s?.ProcessedExitBy ? Employee.findOne({ ID: String(s.ProcessedExitBy) }).populate({ path: 'PersonID', select: 'ID FullName' }).lean() : null
+        s?.ProcessedEntryBy ? resolveEmployee(s.ProcessedEntryBy) : null,
+        s?.ProcessedExitBy ? resolveEmployee(s.ProcessedExitBy) : null
       ])
+
+      // Map populated virtual 'person' back to 'PersonID' property for frontend compatibility
+      if (pe) {
+        if (pe.person) pe.PersonID = pe.person // Move virtual content to expected prop
+        s.ProcessedEntryBy = pe
+      }
+      if (px) {
+        if (px.person) px.PersonID = px.person // Move virtual content to expected prop
+        s.ProcessedExitBy = px
+      }
 
       if (vt) s.VehicleTypeID = vt
       if (v) {
@@ -834,14 +863,37 @@ entrySessionsRouter.post('/gate/entry', async (req, res) => {
       // Has subscription: must match vehicle.
       const subscriptionVehicleId = String(subscription.VehicleID || '')
       const inputVehicleId = vehicle ? String(vehicle.VehicleID || '') : ''
+      const confirmMismatch = req.body.confirmMismatch === true
 
-      if (subscriptionVehicleId && inputVehicleId && subscriptionVehicleId === inputVehicleId) {
-        // Create entry session, VehicleID is nullable but since we have it, include it.
+      // Mismatch detection: Subscription exists but differs from input vehicle (or input vehicle unknown)
+      const isMismatch = subscriptionVehicleId && subscriptionVehicleId !== inputVehicleId
+
+      if (isMismatch && !confirmMismatch) {
+        // Return warning requires confirmation
+        const subVehicle = await Vehicle.findOne({ VehicleID: subscription.VehicleID }).select('PlateNumber').lean()
+        return res.status(200).json({
+          success: true,
+          data: {
+            warning: true,
+            code: 'SUBSCRIPTION_PLATE_MISMATCH',
+            message: `Registered plate (${subVehicle?.PlateNumber || 'Unknown'}) does not match input plate (${LicensePlate || 'Unknown'}). Confirm entry?`,
+            subscription: {
+              PlateNumber: subVehicle?.PlateNumber,
+              VehicleTypeID: subscription.VehicleTypeID
+            }
+          }
+        })
+      }
+
+      if ((subscriptionVehicleId && inputVehicleId && subscriptionVehicleId === inputVehicleId) || (isMismatch && confirmMismatch)) {
+        // Create entry session
+        // If confirmed mismatch, we use the input vehicle (if exists) or null, and input plate.
+        // We still grant SUBSCRIPTION discount as staff confirmed it.
         const session = new EntrySession({
-          VehicleID: vehicle.VehicleID,
+          VehicleID: vehicle?.VehicleID || null,
           VehicleTypeID,
           CardID,
-          LicensePlate: LicensePlate || vehicle.PlateNumber || null,
+          LicensePlate: LicensePlate || vehicle?.PlateNumber || null,
           ProcessedEntryBy,
           EntryTime: new Date(),
           Status: 'IN_PARKING',
@@ -856,10 +908,26 @@ entrySessionsRouter.post('/gate/entry', async (req, res) => {
 
         const enriched = await enrichSession(saved)
 
+        // Log warning if it was a confirmed mismatch
+        if (isMismatch && confirmMismatch) {
+          try {
+            const warning = new GateWarning({
+              Type: 'SUBSCRIPTION_MISMATCH_ENTRY',
+              SessionID: saved.ID,
+              CardID,
+              GateNumber: 1, // ToDo: dynamic
+              Message: `Subscription Mismatch Entry Confirmed. Input: ${LicensePlate}, Registered: ${subscriptionVehicleId}`,
+              ProcessedBy: ProcessedEntryBy,
+              IsResolved: true // Auto-resolved by confirmation
+            })
+            await warning.save()
+          } catch (e) { console.error('Failed to log mismatch warning', e) }
+        }
+
         return res.status(201).json({
           success: true,
           data: {
-            decision: 'VISITOR_SUBSCRIPTION_MATCH',
+            decision: isMismatch ? 'VISITOR_SUBSCRIPTION_MISMATCH_CONFIRMED' : 'VISITOR_SUBSCRIPTION_MATCH',
             sessionId: saved.ID,
             session: enriched || saved,
             shiftCounters
@@ -867,22 +935,21 @@ entrySessionsRouter.post('/gate/entry', async (req, res) => {
         })
       }
 
-      // Subscription exists but doesn't match vehicle (or vehicle unknown) => instruct staff to issue visitor card & re-input.
+      // Fallback (should not be reached if checks above cover all cases, but good to keep instructions)
+      // Note: Logic above handles Mismatch+Unconfirmed (returns warning) and Mismatch+Confirmed (creates session).
+      // The only case left is if logic fails? 
+      // Actually, standard visitor flow without sub is handled above.
+
+      // If we are here, it means something unexpected or specific fallback?
+      // Revert to original visitor card instruction just in case?
+      // But we handled mismatch above.
+
+      // Let's keep the return as a failsafe for "Subscription exists but matching failed and not caught?"
+      // Ideally code above covers it.
+
       return res.status(200).json({
-        success: true,
-        data: {
-          decision: 'VISITOR_SUBSCRIPTION_MISMATCH',
-          nextAction: {
-            type: 'ISSUE_VISITOR_CARD',
-            message: 'Subscription exists but does not match this vehicle. Please issue a Visitor card and re-enter the Visitor Card ID.'
-          },
-          subscription: {
-            VehicleID: subscription.VehicleID,
-            VehicleTypeID: subscription.VehicleTypeID,
-            StartDate: subscription.StartDate,
-            EndDate: subscription.EndDate
-          }
-        }
+        success: false,
+        error: { message: 'Unexpected subscription state', code: 'UNKNOWN_STATE' }
       })
     }
 
@@ -1392,7 +1459,12 @@ entrySessionsRouter.post('/entry', async (req, res) => {
 // POST - Process gate exit (for Staff Gate)
 entrySessionsRouter.post('/gate/exit', async (req, res) => {
   try {
-    const { CardID, ProcessedExitBy } = req.body
+    let { CardID, ProcessedExitBy, LicensePlate, confirmMismatch } = req.body
+
+    // Auto-fill from staff token if missing or placeholder
+    if (!ProcessedExitBy || ProcessedExitBy === 'STAFF') {
+      ProcessedExitBy = String(req?.user?.employeeBusinessId || req?.user?.employeeId || '').trim()
+    }
 
     if (!CardID) {
       return res.status(400).json({
@@ -1419,6 +1491,41 @@ entrySessionsRouter.post('/gate/exit', async (req, res) => {
           message: 'No active session found for this card'
         }
       })
+    }
+
+    // 2.5 Check Plate Mismatch
+    // Only check if both plates are available
+    const sessionPlate = session.LicensePlate ? String(session.LicensePlate).trim().toUpperCase() : ''
+    const inputPlate = LicensePlate ? String(LicensePlate).trim().toUpperCase() : ''
+    const isMismatch = sessionPlate && inputPlate && sessionPlate !== inputPlate
+    const confirmed = confirmMismatch === true
+
+    if (isMismatch && !confirmed) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          warning: true,
+          code: 'EXIT_PLATE_MISMATCH',
+          message: `Entry plate (${sessionPlate}) differs from exit plate (${inputPlate}). Confirm exit?`,
+          session: { ID: session.ID, LicensePlate: sessionPlate, EntryTime: session.EntryTime }
+        }
+      })
+    }
+
+    if (isMismatch && confirmed) {
+      // Log warning for forced exit mismatch
+      try {
+        const warning = new GateWarning({
+          Type: 'MISMATCH_EXIT',
+          SessionID: session.ID,
+          CardID,
+          GateNumber: 2, // ToDo: dynamic
+          Message: `Exit Mismatch Confirmed. In: ${sessionPlate}, Out: ${inputPlate}`,
+          ProcessedBy: ProcessedExitBy || 'SYSTEM',
+          IsResolved: true
+        })
+        await warning.save()
+      } catch (e) { console.error('Failed to log exit mismatch', e) }
     }
 
     // 3. Manual lookups for related data
@@ -1482,6 +1589,15 @@ entrySessionsRouter.post('/gate/exit', async (req, res) => {
     session.FinalFee = fee
 
     await session.save()
+
+    // Update shift/report counters for this staff (Exit counts as a vehicle processed)
+    try {
+      if (ProcessedExitBy && vehicleType?.VehicleTypeID) {
+        await incrementShiftCounters(ProcessedExitBy, vehicleType.VehicleTypeID, fee)
+      }
+    } catch (e) {
+      console.error('Failed to increment shift counters on exit', e)
+    }
 
     return res.json({
       success: true,
@@ -2281,6 +2397,20 @@ entrySessionsRouter.post('/gate/exit-with-plate', async (req, res) => {
     session.ExitImageData = recognitionResult.croppedImage || null // Save cropped exit image
 
     const updated = await session.save()
+
+    // Update shift/report counters for this staff
+    try {
+      // Need vehicleType value for counters
+      let vTypeId = session.VehicleTypeID
+      // If populated (object), extract ID
+      if (vTypeId && typeof vTypeId === 'object') vTypeId = vTypeId.VehicleTypeID
+
+      if (ProcessedExitBy && vTypeId) {
+        await incrementShiftCounters(ProcessedExitBy, vTypeId, finalFee)
+      }
+    } catch (e) {
+      console.error('Failed to increment shift counters on exit-with-plate', e)
+    }
 
     // Populate for response
     const enriched = await EntrySession.findById(updated._id)

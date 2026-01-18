@@ -41,7 +41,7 @@ const ExitGatePage = () => {
 
   const authHeaders = () => (ctxAuthHeaders || (token ? { Authorization: `Bearer ${token}` } : {}))
 
-  const staffEmployeeId = user?.employeeId || user?.id || 'STAFF'
+  const staffEmployeeId = user?.employeeId || user?.id || ''
 
   const [vehicleTypes, setVehicleTypes] = useState([])
 
@@ -167,7 +167,7 @@ const ExitGatePage = () => {
       entryTime: session?.EntryTime ? new Date(session.EntryTime).toLocaleTimeString() : '',
       exitTime: session?.ExitTime ? new Date(session.ExitTime).toLocaleTimeString() : 'Pending',
       customer,
-      price: fee !== undefined ? `$${(fee / 1000).toFixed(2)}` : '',
+      price: fee !== undefined ? `$${Number(fee).toFixed(2)}` : '',
       duration: duration ? `${duration.hours}h ${duration.minutes}m` : '',
       hasVehicle: true,
       sessionId: session?.ID || session?.id
@@ -309,7 +309,8 @@ const ExitGatePage = () => {
     }
   };
 
-  const handleQueryPlate = async (gateNumber) => {
+  /* Updated to support options for confirmMismatch */
+  const handleQueryPlate = async (gateNumber, options = {}) => {
     const gateState = gateNumber === 1 ? gate1NewExit : gate2NewExit
     const setBusy = gateNumber === 1 ? setGate1Busy : setGate2Busy
     const setErr = gateNumber === 1 ? setGate1Error : setGate2Error
@@ -334,13 +335,26 @@ const ExitGatePage = () => {
         },
         body: JSON.stringify({
           CardID: cardId,
-          ProcessedExitBy: staffEmployeeId
+          LicensePlate: licensePlate,
+          ProcessedExitBy: staffEmployeeId,
+          ...options
         })
       })
 
       const json = await res.json().catch(() => null)
       if (!res.ok) {
         throw new Error(json?.error?.message || `Exit query failed (${res.status})`)
+      }
+
+      /* Handle Exit Plate Mismatch Warning */
+      if (json?.data?.warning === true && json?.data?.code === 'EXIT_PLATE_MISMATCH') {
+        const warningMsg = json?.data?.message || 'Plate Mismatch!'
+        if (window.confirm(`${warningMsg}\n\nDo you want to confirm exit anyway? (This will log a warning)`)) {
+          handleQueryPlate(gateNumber, { confirmMismatch: true })
+        } else {
+          setBusy(false)
+        }
+        return
       }
 
       const decision = json?.data?.decision
@@ -361,6 +375,9 @@ const ExitGatePage = () => {
         setData(gateData)
         setMode('processing')
         setHasQueried(false)
+        if (options?.confirmMismatch) {
+          window.alert('Exit confirmed with Mismatch via system override.')
+        }
       }
     } catch (e) {
       setErr(e.message)

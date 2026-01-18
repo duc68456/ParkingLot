@@ -56,8 +56,8 @@ const mapEntrySession = (session) => {
     finalFee: typeof session?.FinalFee === 'number' ? session.FinalFee : Number(session?.FinalFee || 0),
     staff: getPersonNameFromEmployee(session?.ProcessedEntryBy) || '-',
     inSubscription: session?.DiscountReason === 'SUBSCRIPTION',
-    processedByEntry: getPersonNameFromEmployee(session?.ProcessedEntryBy) || '-',
-    processedByExit: getPersonNameFromEmployee(session?.ProcessedExitBy) || null,
+    processedByEntry: getPersonNameFromEmployee(session?.ProcessedEntryBy),
+    processedByExit: getPersonNameFromEmployee(session?.ProcessedExitBy),
     // Modal extras
     cardType: cardCategoryName || '—',
     vehicleType: vehicleTypeName || '—',
@@ -170,7 +170,7 @@ export default function EntrySessionsPage() {
         <div className="entry-sessions-loading">Loading…</div>
       )}
 
-      <EntrySessionsTable 
+      <EntrySessionsTable
         sessions={filteredSessions}
         onViewSession={handleViewSession}
       />

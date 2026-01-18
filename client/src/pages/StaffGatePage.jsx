@@ -642,7 +642,8 @@ const StaffGatePage = () => {
     }
   }
 
-  const handleAddEntry = (gateNumber) => {
+  /* Updated to support options for confirmation flags */
+  const handleAddEntry = (gateNumber, options = {}) => {
     const gateState = gateNumber === 1 ? gate1NewEntry : gate2NewEntry
     const setBusy = gateNumber === 1 ? setGate1Busy : setGate2Busy
     const setErr = gateNumber === 1 ? setGate1Error : setGate2Error
@@ -667,13 +668,25 @@ const StaffGatePage = () => {
         CardID,
         VehicleTypeID,
         LicensePlate,
-        ProcessedEntryBy: staffEmployeeId
+        ProcessedEntryBy: staffEmployeeId,
+        ...options // Pass flags like confirmMismatch
       })
     })
       .then(async (res) => {
         const json = await res.json().catch(() => null)
         if (!res.ok) {
           throw new Error(json?.error?.message || `Add entry failed (${res.status})`)
+        }
+
+        /* Handle Subscription Plate Mismatch Warning */
+        if (json?.data?.warning === true && json?.data?.code === 'SUBSCRIPTION_PLATE_MISMATCH') {
+          const warningMsg = json?.data?.message || 'Subscription Plate Mismatch!'
+          if (window.confirm(`${warningMsg}\n\nDo you want to confirm entry anyway? (This will log a warning)`)) {
+            handleAddEntry(gateNumber, { confirmMismatch: true })
+          } else {
+            setBusy(false)
+          }
+          return
         }
 
         // Handle active session warning - ask for confirmation

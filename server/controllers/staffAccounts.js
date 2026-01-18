@@ -588,13 +588,13 @@ staffAccountsRouter.post('/verify-pin', async (request, response) => {
       { $set: { LastLoginAt: new Date() } }
     );
 
-  // Create (or reuse) today's shift for this staff.
-  // NOTE: ShiftDate is the day staff logs in (date-only semantics).
-  // The shift schema enforces uniqueness on (EmployeeID, ShiftDate).
-  // Contract: if login succeeds, the shift MUST exist.
-  let ensuredShift = null;
-  let ensuredShiftReport = null;
-  try {
+    // Create (or reuse) today's shift for this staff.
+    // NOTE: ShiftDate is the day staff logs in (date-only semantics).
+    // The shift schema enforces uniqueness on (EmployeeID, ShiftDate).
+    // Contract: if login succeeds, the shift MUST exist.
+    let ensuredShift = null;
+    let ensuredShiftReport = null;
+    try {
       // Use a date RANGE instead of equality.
       // Equality on Date fields can fail if ShiftDate isn't stored at exactly 00:00:00.000.
       const startOfToday = new Date();
@@ -701,6 +701,8 @@ staffAccountsRouter.post('/verify-pin', async (request, response) => {
         token,
         ID: staffAccount.ID,
         EmployeeID: staffAccount.EmployeeID,
+        PersonID: staffAccount.employee?.PersonID,
+        FullName: staffAccount.employee?.person?.FullName,
         LastLoginAt: staffAccount.LastLoginAt,
         shift: ensuredShift ? (ensuredShift.toJSON ? ensuredShift.toJSON() : ensuredShift) : null
       }
@@ -761,9 +763,9 @@ staffAccountsRouter.post('/logout', middleware.authRequired, async (request, res
       return response.json({ success: true, data: { ended: false } })
     }
 
-  shift.CheckOutTime = new Date()
-  shift.Status = 'COMPLETED'
-  await shift.save()
+    shift.CheckOutTime = new Date()
+    shift.Status = 'COMPLETED'
+    await shift.save()
 
     return response.json({ success: true, data: { ended: true, shift: shift.toJSON ? shift.toJSON() : shift } })
   } catch (error) {

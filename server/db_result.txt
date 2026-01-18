@@ -1,0 +1,31 @@
+--- Last 5 Exited Sessions ---
+Session: ENT0020
+  Plate: 61B3-282724
+  Status: EXITED
+  ProcessedExitBy: 'STA0005'
+  ExitTime: Sun Jan 18 2026 11:22:47 GMT+0700 (Indochina Time)
+------------------------------
+Session: ENT0017
+  Plate: 90B1-90909
+  Status: EXITED
+  ProcessedExitBy: 'STA0005'
+  ExitTime: Sun Jan 18 2026 10:57:00 GMT+0700 (Indochina Time)
+------------------------------
+Session: ENT0001
+  Plate: ABC-1234
+  Status: EXITED
+  ProcessedExitBy: 'STA0005'
+  ExitTime: Sun Jan 18 2026 10:46:18 GMT+0700 (Indochina Time)
+------------------------------
+Session: ENT0002
+  Plate: XXX
+  Status: EXITED
+  ProcessedExitBy: 'STA0005'
+  ExitTime: Sun Jan 18 2026 10:37:50 GMT+0700 (Indochina Time)
+------------------------------
+Session: ENT0003
+  Plate: AA-09726
+  Status: EXITED
+  ProcessedExitBy: 'STA0005'
+  ExitTime: Sun Jan 18 2026 10:36:31 GMT+0700 (Indochina Time)
+------------------------------

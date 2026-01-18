@@ -35,6 +35,10 @@ const shiftSchema = new mongoose.Schema({
   },
   TotalVehicles: {
     type: Number,
+    min: 0
+  },
+  TotalRevenue: {
+    type: Number,
     default: 0,
     min: 0
   },

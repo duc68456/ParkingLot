@@ -11,7 +11,7 @@ const gateWarningSchema = new mongoose.Schema({
   Type: {
     type: String,
     required: true,
-    enum: ['ENTRY', 'EXIT', 'OTHER'],
+    enum: ['ENTRY', 'EXIT', 'OTHER', 'MISMATCH_EXIT', 'SUBSCRIPTION_MISMATCH_ENTRY', 'DUPLICATE_ENTRY'],
     default: 'OTHER'
   },
   Message: {

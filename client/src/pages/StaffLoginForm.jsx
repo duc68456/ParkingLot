@@ -45,7 +45,7 @@ export default function StaffLoginForm({ type }) {
         const data = json?.data
         const token = data?.token
 
-        const fullName = data?.EmployeeID?.PersonID?.FullName || 'Staff'
+        const fullName = data?.FullName || 'Staff'
         const initials = fullName
           ? fullName
             .trim()
@@ -63,9 +63,10 @@ export default function StaffLoginForm({ type }) {
             name: fullName,
             email: 'staff',
             initials,
-            id: data?.ID,
-            employeeId: data?.EmployeeID?.ID,
-            employeeMongoId: data?.EmployeeID?.id,
+            id: data?.ID, // This is STA...
+            employeeId: data?.EmployeeID, // This is EMP... (Fix: direct access)
+            employeeMongoId: null, // Not needed or not available
+            personId: data?.PersonID, // Added for reference
             type: 'staff'
           },
           'staff',
