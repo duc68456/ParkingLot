@@ -3,7 +3,7 @@ import '../styles/components/EditEmployeeModal.css';
 import infoIcon from '../assets/icons/dashboard/alert-info.svg';
 
 const EMPLOYEE_TYPE_OPTIONS = [
-  { value: 'GATE_STAFF', label: 'Gate Staff' },
+  { value: 'STAFF', label: 'Staff' },
   { value: 'ADMIN', label: 'Admin' },
   { value: 'MANAGER', label: 'Manager' }
 ];

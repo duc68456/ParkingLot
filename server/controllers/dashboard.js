@@ -342,7 +342,7 @@ dashboardRouter.get('/alerts', async (request, response, next) => {
 
     response.json({
       success: true,
-      data: alerts.slice(0, 5) // Return top 5 alerts
+      data: alerts.slice(0, 10) // Return top 10 alerts
     })
   } catch (error) {
     next(error)

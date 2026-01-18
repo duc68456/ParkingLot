@@ -73,7 +73,7 @@ staffGateRouter.post('/create-visitor-card', async (req, res) => {
       ActiveDay: new Date(),
       ExpireDay: null,
       UID: null, // UID will be assigned when card is scanned
-      Status: 'PENDING_RFID',
+      Status: 'ACTIVE',
       UIDScannedAt: null,
       UIDScannedBy: null
     })

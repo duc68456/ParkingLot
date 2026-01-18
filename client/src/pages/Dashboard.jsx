@@ -45,7 +45,7 @@ export default function Dashboard() {
           fetch(`${baseURL}/dashboard/stats`, {
             headers: { Authorization: `Bearer ${token}` }
           }),
-          fetch(`${baseURL}/dashboard/recent-activity?limit=4`, {
+          fetch(`${baseURL}/dashboard/recent-activity?limit=10`, {
             headers: { Authorization: `Bearer ${token}` }
           }),
           fetch(`${baseURL}/dashboard/alerts`, {
@@ -367,7 +367,7 @@ export default function Dashboard() {
 
   // Use gate warnings for alerts if available, fallback to regular alerts or mock data
   const displayAlerts = gateWarnings.length > 0
-    ? gateWarnings.slice(0, 5).map(w => ({
+    ? gateWarnings.slice(0, 10).map(w => ({
       id: w.ID || w._id || w.id,
       tone: w.Type === 'ENTRY' ? 'warning' : w.Type === 'EXIT' ? 'danger' : 'info',
       title: w.Message || 'Gate warning',

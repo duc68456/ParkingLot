@@ -261,53 +261,18 @@ const StaffGatePage = () => {
     hasVehicle: true
   });
 
+  /* 
+   * Removed auto-fetch of "latest active session" to prevent sticky state on refresh/re-login.
+   * Entry gate should start fresh.
+   */
   useEffect(() => {
-    let cancelled = false
-    const run = async () => {
-      if (!token) return
-
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/entry-sessions/gate/active-latest`, {
-          headers: { ...authHeaders() }
-        })
-        const json = await res.json().catch(() => null)
-        if (!res.ok) {
-          throw new Error(json?.error?.message || `Failed to load gate state (${res.status})`)
-        }
-
-        const session = json?.data?.session
-
-        if (cancelled) return
-
-        if (session) {
-          // For now: show the latest active session on Gate 2 and keep Gate 1 idle.
-          // When you add a real "gate" identifier on EntrySession, we can map by gate.
-          setGate2Data(sessionToGateData(2, session))
-          setGate2Mode('processing')
-
-          setGate1Data(sessionToGateData(1, null))
-          setGate1Mode('idle')
-        } else {
-          setGate1Data(sessionToGateData(1, null))
-          setGate1Mode('idle')
-          setGate2Data(sessionToGateData(2, null))
-          setGate2Mode('idle')
-        }
-      } catch (e) {
-        console.error(e)
-        // Fail-open to idle so staff can still operate.
-        if (!cancelled) {
-          setGate1Mode('idle')
-          setGate2Mode('idle')
-        }
-      }
+    // Reset gates to idle on mount/token change
+    if (token) {
+      setGate1Mode('idle')
+      setGate1Data(sessionToGateData(1, null))
+      setGate2Mode('idle')
+      setGate2Data(sessionToGateData(2, null))
     }
-
-    run()
-    return () => {
-      cancelled = true
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
   // Fetch parking capacity from API

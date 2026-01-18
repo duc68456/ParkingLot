@@ -1,6 +1,8 @@
 const shiftsRouter = require('express').Router()
 
 const Shift = require('../models/shift')
+const Employee = require('../models/employee')
+const Person = require('../models/person')
 
 const isAdmin = (req) => req?.user?.type === 'admin'
 
@@ -79,7 +81,34 @@ shiftsRouter.get('/', async (req, res) => {
       .sort({ ShiftDate: -1, CheckInTime: -1, createdAt: -1 })
       .skip(skip)
       .limit(limitN)
+      .limit(limitN)
       .lean()
+
+    // Populate Employee Name
+    const employeeIds = [...new Set(items.map(s => s.EmployeeID).filter(Boolean))]
+    if (employeeIds.length > 0) {
+      const employees = await Employee.find({ ID: { $in: employeeIds } }).select('ID PersonID').lean()
+      const personIds = [...new Set(employees.map(e => e.PersonID).filter(Boolean))]
+
+      const persons = await Person.find({ ID: { $in: personIds } }).select('ID FullName').lean()
+
+      // Map PersonID -> FullName
+      const personMap = {}
+      persons.forEach(p => { personMap[p.ID] = p.FullName })
+
+      // Map EmployeeID -> FullName
+      const empNameMap = {}
+      employees.forEach(e => {
+        empNameMap[e.ID] = personMap[e.PersonID] || 'Unknown'
+      })
+
+      // Attach to items
+      items.forEach(item => {
+        if (item.EmployeeID) {
+          item.EmployeeName = empNameMap[item.EmployeeID] || item.EmployeeID
+        }
+      })
+    }
 
     res.json({
       success: true,
@@ -123,6 +152,17 @@ shiftsRouter.get('/:shiftId', async (req, res) => {
         success: false,
         error: { message: 'Shift not found', code: 'SHIFT_NOT_FOUND' }
       })
+    }
+
+    // Populate Employee Name
+    if (shift.EmployeeID) {
+      const employee = await Employee.findOne({ ID: shift.EmployeeID }).select('ID PersonID').lean()
+      if (employee?.PersonID) {
+        const person = await Person.findOne({ ID: employee.PersonID }).select('FullName').lean()
+        if (person) {
+          shift.EmployeeName = person.FullName
+        }
+      }
     }
 
     res.json({ success: true, data: { item: shift } })
