@@ -381,6 +381,9 @@ export default function Dashboard() {
         time: formatRelativeTime(al.timestamp)
       }))
       : alertsToDisplay;
+  // Calculate total for percentage in tooltip
+  const totalDailyVehicles = dailyDistribution.reduce((sum, item) => sum + item.value, 0);
+
   const displayCapacity = capacityCards.length > 0 ? capacityCards : capacityToDisplay;
 
   return (
@@ -464,8 +467,6 @@ export default function Dashboard() {
                 innerRadius={50}
                 outerRadius={80}
                 paddingAngle={3}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                labelLine={false}
               >
                 {dailyDistribution.map((entry, index) => {
                   // Enhanced color mapping for different vehicle types
@@ -488,7 +489,10 @@ export default function Dashboard() {
                   borderRadius: '6px',
                   fontSize: '12px'
                 }}
-                formatter={(value, name) => [`${value} entries`, name]}
+                formatter={(value, name) => {
+                  const percent = totalDailyVehicles > 0 ? ((value / totalDailyVehicles) * 100).toFixed(1) : 0;
+                  return [`${value} entries (${percent}%)`, name];
+                }}
               />
             </PieChart>
           </ResponsiveContainer>

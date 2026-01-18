@@ -148,14 +148,36 @@ function SubscriptionsPage() {
   const [showViewTypesModal, setShowViewTypesModal] = useState(false);
   const [selectedTypeForView, setSelectedTypeForView] = useState(null);
 
-  const fetchSubscriptions = async ({ query } = {}) => {
+  // Pagination & Filter State
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const [totalItems, setTotalItems] = useState(0); // New state for total items from server
+
+  const fetchSubscriptions = async () => {
     setSubsLoading(true);
     setSubsError('');
 
     try {
-      // Server currently supports filtering by IDs; it doesn't have a generic 'search' yet.
-      // We'll still fetch a reasonable limit and do client-side filter by text.
-      const qs = new URLSearchParams({ limit: '200' });
+      const qs = new URLSearchParams({
+        limit: itemsPerPage.toString(),
+        page: currentPage.toString()
+      });
+
+      if (searchQuery) qs.append('search', searchQuery);
+      if (statusFilter !== 'all') {
+        if (statusFilter === 'Active') qs.append('isActive', 'true');
+        if (statusFilter === 'Paused') qs.append('isSuspended', 'true');
+      }
+      // Map typeFilter (name) to SubscriptionTypeID (mongoId) if a type is selected
+      if (typeFilter !== 'all') {
+        const selectedType = subscriptionTypes.find(t => t.name === typeFilter);
+        if (selectedType) {
+          qs.append('subscriptionTypeId', selectedType.mongoId);
+        }
+      }
+
       const res = await fetch(`${API_BASE_URL}/api/subscriptions?${qs.toString()}`, {
         headers: { ...authHeaders }
       });
@@ -166,29 +188,16 @@ function SubscriptionsPage() {
         throw new Error(msg);
       }
 
-      const list = Array.isArray(json?.data?.items)
-        ? json.data.items
-        : Array.isArray(json?.data)
-          ? json.data
-          : [];
+      const list = Array.isArray(json?.data?.items) ? json.data.items : [];
+      const pagination = json?.data?.pagination || {};
 
-      const normalized = list.map(normalizeSubscription).filter(Boolean);
-      const q = String(query ?? '').trim().toLowerCase();
-      if (!q) {
-        setSubscriptions(normalized);
-      } else {
-        setSubscriptions(
-          normalized.filter((s) =>
-            String(s?.subscriptionId || '').toLowerCase().includes(q) ||
-            String(s?.customerName || '').toLowerCase().includes(q) ||
-            String(s?.vehiclePlate || '').toLowerCase().includes(q)
-          )
-        );
-      }
+      setSubscriptions(list.map(normalizeSubscription).filter(Boolean));
+      setTotalItems(pagination.total || 0); // Update total items from server response
     } catch (err) {
       console.error('Fetch subscriptions error:', err);
       setSubscriptions([]);
       setSubsError(err?.message || 'Failed to load subscriptions');
+      setTotalItems(0);
     } finally {
       setSubsLoading(false);
     }
@@ -234,9 +243,20 @@ function SubscriptionsPage() {
 
   useEffect(() => {
     if (activeTab !== 'subscriptions') return;
-    fetchSubscriptions({ query: searchQuery });
+
+    const timeoutId = setTimeout(() => {
+      fetchSubscriptions();
+    }, 300); // Debounce search input
+
+    return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, authHeaders]);
+  }, [activeTab, authHeaders, currentPage, searchQuery, statusFilter, typeFilter, subscriptionTypes]); // Added subscriptionTypes to deps for typeFilter mapping
+
+  useEffect(() => {
+    // Reset page to 1 when filters or search query change
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, typeFilter]);
+
 
   const tabs = [
     { id: 'subscriptions', label: 'Subscriptions' },
@@ -298,7 +318,7 @@ function SubscriptionsPage() {
       }
 
       setShowRegisterModal(false);
-      await fetchSubscriptions({ query: searchQuery });
+      await fetchSubscriptions(); // Re-fetch after registration
     } catch (err) {
       alert(err?.message || 'Failed to register subscription');
     }
@@ -348,7 +368,7 @@ function SubscriptionsPage() {
 
       setShowPauseModal(false);
       setSelectedSubscriptionForPause(null);
-      await fetchSubscriptions({ query: searchQuery });
+      await fetchSubscriptions(); // Re-fetch after pause
     } catch (err) {
       alert(err?.message || 'Failed to suspend subscription');
     }
@@ -385,7 +405,7 @@ function SubscriptionsPage() {
 
       setShowContinueModal(false);
       setSelectedSubscriptionForContinue(null);
-      await fetchSubscriptions({ query: searchQuery });
+      await fetchSubscriptions(); // Re-fetch after continue
     } catch (err) {
       alert(err?.message || 'Failed to resume subscription');
     }
@@ -419,7 +439,7 @@ function SubscriptionsPage() {
       throw new Error(msg);
     }
 
-    await fetchSubscriptions({ query: searchQuery });
+    await fetchSubscriptions(); // Re-fetch after edit
   };
 
   const handleDeleteSubscription = async (subscriptionId) => {
@@ -435,21 +455,31 @@ function SubscriptionsPage() {
         const msg = json?.error?.message || `Failed to delete subscription (${res.status})`;
         throw new Error(msg);
       }
-      await fetchSubscriptions({ query: searchQuery });
+      await fetchSubscriptions(); // Re-fetch after delete
     } catch (err) {
       alert(err?.message || 'Failed to delete subscription');
     }
   };
 
-  const filteredSubscriptions = useMemo(() => {
-    const q = String(searchQuery || '').trim().toLowerCase();
-    if (!q) return subscriptions;
-    return subscriptions.filter((sub) =>
-      String(sub?.subscriptionId || '').toLowerCase().includes(q) ||
-      String(sub?.customerName || '').toLowerCase().includes(q) ||
-      String(sub?.vehiclePlate || '').toLowerCase().includes(q)
-    );
-  }, [subscriptions, searchQuery]);
+  const totalPages = Math.ceil(totalItems / itemsPerPage); // Calculate total pages based on totalItems from server
+
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setTypeFilter('all');
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+  // Derive unique subscription types for the filter dropdown
+  const uniqueTypes = useMemo(() => {
+    const types = new Set(subscriptions.map(s => s.type).filter(Boolean));
+    return Array.from(types).sort();
+  }, [subscriptions]);
 
   return (
     <div className="subscriptions-page">
@@ -475,27 +505,71 @@ function SubscriptionsPage() {
       {/* Subscriptions Tab Content */}
       {activeTab === 'subscriptions' && (
         <div className="subscriptions-content">
-          {/* Register Subscription Button */}
-          <div className="register-section">
-            <button className="btn-register" onClick={handleRegisterSubscription}>
-              <AddIcon />
-              Register Subscription
-            </button>
-          </div>
+          <div className="subscriptions-controls">
+            {/* Top Row: Search and Register Action */}
+            <div className="controls-top">
+              <div className="search-container">
+                <svg className="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M7.33333 12.6667C10.2789 12.6667 12.6667 10.2789 12.6667 7.33333C12.6667 4.38781 10.2789 2 7.33333 2C4.38781 2 2 4.38781 2 7.33333C2 10.2789 4.38781 12.6667 7.33333 12.6667Z" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M14 14L11.1 11.1" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Search subscriptions..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button
+                    className="search-clear-btn"
+                    onClick={() => setSearchQuery('')}
+                    aria-label="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
 
-          {/* Search Bar */}
-          <div className="search-container">
-            <svg className="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M7.33333 12.6667C10.2789 12.6667 12.6667 10.2789 12.6667 7.33333C12.6667 4.38781 10.2789 2 7.33333 2C4.38781 2 2 4.38781 2 7.33333C2 10.2789 4.38781 12.6667 7.33333 12.6667Z" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M14 14L11.1 11.1" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Search subscriptions..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+              <button className="btn-register" onClick={handleRegisterSubscription}>
+                <AddIcon />
+                Register Subscription
+              </button>
+            </div>
+
+            {/* Bottom Row: Filters */}
+            <div className="filters-row">
+              <div className="filter-group">
+                <label className="filter-label">Status:</label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="all">All Status</option>
+                  <option value="Active">Active</option>
+                  <option value="Paused">Paused</option>
+                </select>
+              </div>
+
+              <div className="filter-group">
+                <label className="filter-label">Type:</label>
+                <select
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="all">All Types</option>
+                  {uniqueTypes.map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+
+              <button className="clear-filters-btn" onClick={handleClearFilters}>
+                Clear Filters
+              </button>
+            </div>
           </div>
 
           {/* Data Table */}
@@ -530,82 +604,105 @@ function SubscriptionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredSubscriptions.map((subscription) => (
-                  <tr key={subscription.id}>
-                    <td className="subscription-id-cell">{subscription.subscriptionId || subscription.id}</td>
-                    <td className="customer-cell">
-                      <div className="customer-info">
-                        <div className="customer-name">{subscription.customerName}</div>
-                        <div className="vehicle-plate">{subscription.vehiclePlate}</div>
-                      </div>
-                    </td>
-                    <td className="type-cell">{subscription.type}</td>
-                    <td className="period-cell">
-                      <div className="period-info">
-                        <div className="start-date">{subscription.startDate}</div>
-                        <div className="end-date">to {subscription.endDate}</div>
-                      </div>
-                    </td>
-                    <td className="status-cell">
-                      <span className={`status-badge ${subscription.status === 'Paused' ? 'status-paused' : 'status-active'}`}>
-                        {subscription.status}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="action-buttons action-buttons-right">
-                        <button
-                          className="action-btn action-btn--view"
-                          onClick={() => handleViewSubscription(subscription.id)}
-                          title="View"
-                        >
-                          <ViewIcon />
-                        </button>
-                        <button
-                          className="action-btn action-btn--edit"
-                          onClick={() => handleEditSubscription(subscription.id)}
-                          title="Edit"
-                        >
-                          <EditIcon />
-                        </button>
-                        {subscription.status === 'Paused' ? (
-                          <button
-                            className="action-btn action-btn--continue"
-                            onClick={() => handleContinueSubscription(subscription.id)}
-                            title="Resume"
-                          >
-                            <ContinueIcon />
-                          </button>
-                        ) : (
-                          <button
-                            className="action-btn action-btn--pause"
-                            onClick={() => handlePauseSubscription(subscription.id)}
-                            title="Pause"
-                          >
-                            <PauseIcon />
-                          </button>
-                        )}
-                        <button
-                          className="action-btn action-btn--delete"
-                          onClick={() => handleDeleteSubscription(subscription.subscriptionId || subscription.id)}
-                          title="Delete"
-                        >
-                          <DeleteIcon />
-                        </button>
-                      </div>
+                {subscriptions.length === 0 && !subsLoading && !subsError ? (
+                  <tr>
+                    <td colSpan="6" style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
+                      No subscriptions found matching your filters.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  subscriptions.map((subscription) => (
+                    <tr key={subscription.id}>
+                      <td className="subscription-id-cell">{subscription.subscriptionId || subscription.id}</td>
+                      <td className="customer-cell">
+                        <div className="customer-info">
+                          <div className="customer-name">{subscription.customerName}</div>
+                          <div className="vehicle-plate">{subscription.vehiclePlate}</div>
+                        </div>
+                      </td>
+                      <td className="type-cell">{subscription.type}</td>
+                      <td className="period-cell">
+                        <div className="period-info">
+                          <div className="start-date">{subscription.startDate}</div>
+                          <div className="end-date">to {subscription.endDate}</div>
+                        </div>
+                      </td>
+                      <td className="status-cell">
+                        <span className={`status-badge ${subscription.status === 'Paused' ? 'status-paused' : 'status-active'}`}>
+                          {subscription.status}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="action-buttons action-buttons-right">
+                          <button
+                            className="action-btn action-btn--view"
+                            onClick={() => handleViewSubscription(subscription.id)}
+                            title="View"
+                          >
+                            <ViewIcon />
+                          </button>
+                          <button
+                            className="action-btn action-btn--edit"
+                            onClick={() => handleEditSubscription(subscription.id)}
+                            title="Edit"
+                          >
+                            <EditIcon />
+                          </button>
+                          {subscription.status === 'Paused' ? (
+                            <button
+                              className="action-btn action-btn--continue"
+                              onClick={() => handleContinueSubscription(subscription.id)}
+                              title="Resume"
+                            >
+                              <ContinueIcon />
+                            </button>
+                          ) : (
+                            <button
+                              className="action-btn action-btn--pause"
+                              onClick={() => handlePauseSubscription(subscription.id)}
+                              title="Pause"
+                            >
+                              <PauseIcon />
+                            </button>
+                          )}
+                          <button
+                            className="action-btn action-btn--delete"
+                            onClick={() => handleDeleteSubscription(subscription.subscriptionId || subscription.id)}
+                            title="Delete"
+                          >
+                            <DeleteIcon />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
 
             {/* Pagination Footer */}
             <div className="table-footer">
               <p className="results-text">
-                Showing <span className="results-count">{filteredSubscriptions.length}</span> results
+                Showing <span className="results-count">{subscriptions.length}</span> of <span className="results-count">{totalItems}</span> results
               </p>
               <div className="pagination-buttons">
-                <button className="pagination-btn">Previous</button>
-                <button className="pagination-btn">Next</button>
+                <button
+                  className="pagination-btn"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                >
+                  Previous
+                </button>
+                <span style={{ fontSize: '14px', alignSelf: 'center', color: '#64748b', margin: '0 8px' }}>
+                  Page {currentPage} of {totalPages || 1}
+                </span>
+                <button
+                  className="pagination-btn"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage >= totalPages}
+                >
+                  Next
+                </button>
               </div>
             </div>
           </div>

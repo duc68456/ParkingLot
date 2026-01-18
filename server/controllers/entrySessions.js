@@ -324,6 +324,15 @@ entrySessionsRouter.get('/', async (req, res) => {
       }
     }
 
+    // General search (CardID or LicensePlate)
+    if (req.query.search) {
+      const searchRegex = { $regex: req.query.search, $options: 'i' }
+      filter.$or = [
+        { CardID: searchRegex },
+        { LicensePlate: searchRegex }
+      ]
+    }
+
     const skip = (parseInt(page) - 1) * parseInt(limit)
     const total = await EntrySession.countDocuments(filter)
 

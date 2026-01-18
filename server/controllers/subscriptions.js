@@ -127,6 +127,31 @@ subscriptionsRouter.get('/', async (req, res) => {
       }
     }
 
+    // Generic search (ID, CardID, Plate, Customer Name)
+    if (req.query.search) {
+      const searchRegex = { $regex: req.query.search, $options: 'i' }
+
+      // Resolve Vehicle IDs matching Plate
+      const matchingVehicles = await Vehicle.find({ PlateNumber: searchRegex }).select('VehicleID').lean()
+      const matchingVehicleIds = matchingVehicles.map(v => v.VehicleID)
+
+      // Resolve Customer IDs matching Name (requires lookup Person -> Customer)
+      // For simplicity/perf, let's search ID, CardID, and Vehicle Plate for now.
+
+      const searchConditions = [
+        { ID: searchRegex },
+        { CardID: searchRegex },
+        { VehicleID: { $in: matchingVehicleIds } }
+      ]
+
+      if (filter.$or) {
+        filter.$and = [{ $or: filter.$or }, { $or: searchConditions }]
+        delete filter.$or
+      } else {
+        filter.$or = searchConditions
+      }
+    }
+
     const skip = (parseInt(page) - 1) * parseInt(limit)
     const total = await Subscription.countDocuments(filter)
 
