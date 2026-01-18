@@ -385,7 +385,8 @@ cardPricesRouter.post('/change', async (req, res) => {
       })
     }
 
-    const employee = await Employee.findById(employeeObjectId)
+    // employeeId from JWT is a business ID (e.g., EMP0002), not MongoDB ObjectId
+    const employee = await Employee.findOne({ ID: employeeObjectId })
     if (!employee) {
       return res.status(404).json({
         success: false,

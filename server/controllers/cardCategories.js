@@ -40,7 +40,47 @@ cardCategoriesRouter.get('/', async (request, response) => {
     const cardCategories = await CardCategory.find(filter)
       .skip(skip)
       .limit(parseInt(limit))
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Fetch current prices for all categories
+    const categoryIds = cardCategories.map(c => c.ID);
+    const now = new Date();
+
+    // Get the latest price for each category
+    const priceAggregation = await CardPrice.aggregate([
+      {
+        $match: {
+          CardCategoryID: { $in: categoryIds },
+          StartDateApply: { $lte: now }
+        }
+      },
+      { $sort: { StartDateApply: -1 } },
+      {
+        $group: {
+          _id: '$CardCategoryID',
+          currentPrice: { $first: '$Price' },
+          priceId: { $first: '$ID' },
+          lastUpdated: { $first: '$StartDateApply' }
+        }
+      }
+    ]);
+
+    // Map prices by category ID
+    const priceMap = new Map(priceAggregation.map(p => [p._id, {
+      price: p.currentPrice,
+      priceId: p.priceId,
+      lastUpdated: p.lastUpdated
+    }]));
+
+    // Attach price to each category
+    const categoriesWithPrice = cardCategories.map(cat => ({
+      ...cat,
+      id: cat._id.toString(),
+      currentPrice: priceMap.get(cat.ID)?.price ?? null,
+      priceId: priceMap.get(cat.ID)?.priceId ?? null,
+      priceLastUpdated: priceMap.get(cat.ID)?.lastUpdated ?? null
+    }));
 
     // Get total count for pagination
     const total = await CardCategory.countDocuments(filter);
@@ -48,7 +88,7 @@ cardCategoriesRouter.get('/', async (request, response) => {
     response.json({
       success: true,
       data: {
-        cardCategories,
+        cardCategories: categoriesWithPrice,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -363,6 +403,77 @@ cardCategoriesRouter.delete('/:id', async (request, response) => {
       success: false,
       error: {
         message: 'Failed to delete card category',
+        details: error.message
+      }
+    });
+  }
+});
+
+/**
+ * GET /api/card-categories/:id/cards
+ * Get all cards belonging to a specific category
+ */
+cardCategoriesRouter.get('/:id/cards', async (request, response) => {
+  try {
+    const { page = 1, limit = 20 } = request.query;
+    const categoryId = request.params.id;
+
+    // Find the category first (support both MongoDB _id and business ID)
+    let cardCategory = null;
+    if (mongoose.Types.ObjectId.isValid(categoryId)) {
+      cardCategory = await CardCategory.findById(categoryId);
+    }
+    if (!cardCategory) {
+      cardCategory = await CardCategory.findOne({ ID: categoryId });
+    }
+
+    if (!cardCategory) {
+      return response.status(404).json({
+        success: false,
+        error: {
+          message: 'Card category not found',
+          code: 'CARD_CATEGORY_NOT_FOUND'
+        }
+      });
+    }
+
+    // Fetch cards with this category
+    const Card = require('../models/card');
+    const filter = { CardCategoryID: cardCategory.ID };
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const total = await Card.countDocuments(filter);
+
+    const cards = await Card.find(filter)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ createdAt: -1 })
+      .lean();
+
+    response.json({
+      success: true,
+      data: {
+        category: {
+          id: cardCategory._id,
+          ID: cardCategory.ID,
+          Name: cardCategory.Name,
+          IsActive: cardCategory.IsActive
+        },
+        cards,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get cards by category error:', error);
+    response.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to get cards for category',
         details: error.message
       }
     });

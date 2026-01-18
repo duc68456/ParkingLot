@@ -56,7 +56,7 @@ export default function AddSubscriptionPricingModal({ onClose, onSubmit, prefill
       setError('');
       try {
         const [catsRes, vtsRes, stsRes] = await Promise.all([
-          fetchJson('/api/card-categories?page=1&limit=200'),
+          fetchJson('/api/card-categories?page=1&limit=200&isActive=true'),
           fetchJson('/api/vehicle-types?page=1&limit=200'),
           fetchJson('/api/subscription-types?page=1&limit=200')
         ]);

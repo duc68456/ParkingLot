@@ -59,7 +59,63 @@
   padding: 4px;
   display: inline-flex;
   gap: 4px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
+}
+
+.reports-quickFilters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.reports-quickBtn {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 1.6px solid #e2e8f0;
+  background: #fff;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #45556c;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.reports-quickBtn:hover {
+  border-color: #155dfc;
+  color: #155dfc;
+}
+
+.reports-quickBtn.active {
+  background: #155dfc;
+  border-color: #155dfc;
+  color: #fff;
+}
+
+.reports-loading {
+  padding: 40px;
+  text-align: center;
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  color: #62748e;
+}
+
+.reports-error {
+  padding: 16px 24px;
+  margin-bottom: 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  color: #dc2626;
+}
+
+.reports-staffType {
+  font-size: 12px;
+  line-height: 16px;
+  color: #62748e;
 }
 
 .reports-tab {

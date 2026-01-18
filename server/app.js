@@ -50,6 +50,9 @@ const shiftReportDetailsRouter = require('./controllers/shiftReportDetails')
 // Dashboard
 const dashboardRouter = require('./controllers/dashboard')
 
+// Reports
+const reportsRouter = require('./controllers/reports')
+
 const app = express()
 
 logger.info('connecting to', config.MONGODB_URI)
@@ -130,6 +133,9 @@ app.use('/api/shifts', middleware.authRequired, middleware.adminOnly, shiftsRout
 // Shift report routes (admin or staff)
 app.use('/api/shift-reports', middleware.authRequired, shiftReportsRouter)
 app.use('/api/shift-report-details', middleware.authRequired, shiftReportDetailsRouter)
+
+// Reports Routes (admin only)
+app.use('/api/reports', middleware.authRequired, middleware.adminOnly, reportsRouter)
 
 // Dashboard Routes
 app.use('/api/dashboard', middleware.authRequired, dashboardRouter)

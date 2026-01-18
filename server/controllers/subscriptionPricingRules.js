@@ -13,7 +13,7 @@ const attachRuleRelations = async (ruleDocOrObj) => {
   if (!rule) return rule
 
   const [cardCategory, vehicleType, subscriptionType] = await Promise.all([
-    rule.CardCategoryID ? CardCategory.findOne({ ID: rule.CardCategoryID }).select('ID Name') : null,
+    rule.CardCategoryID ? CardCategory.findOne({ ID: rule.CardCategoryID }).select('ID Name IsActive') : null,
     rule.VehicleTypeID ? VehicleType.findOne({ VehicleTypeID: rule.VehicleTypeID }).select('VehicleTypeID Name') : null,
     rule.SubscriptionTypeID ? SubscriptionType.findOne({ ID: rule.SubscriptionTypeID }).select('ID TypeName DurationDays Description') : null
   ])
@@ -77,15 +77,26 @@ subscriptionPricingRulesRouter.get('/', async (req, res) => {
 
     const hydrated = await Promise.all(rules.map((r) => attachRuleRelations(r)))
 
+    // Filter out rules where CardCategory is inactive or missing
+    const filteredItems = hydrated.filter((item) => {
+      // Exclude if CardCategory is inactive
+      if (item?.CardCategory && item.CardCategory.IsActive === false) return false;
+      // Exclude if CardCategory/VehicleType/SubscriptionType is missing (invalid rule)
+      if (!item?.CardCategory) return false;
+      if (!item?.VehicleType) return false;
+      if (!item?.SubscriptionType) return false;
+      return true;
+    });
+
     res.json({
       success: true,
       data: {
-        items: hydrated,
+        items: filteredItems,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / parseInt(limit))
+          total: filteredItems.length,
+          pages: Math.ceil(filteredItems.length / parseInt(limit))
         }
       }
     })

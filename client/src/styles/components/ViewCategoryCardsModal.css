@@ -1,0 +1,202 @@
+.vccm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.vccm-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.vccm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.vccm-header h3 {
+  margin: 0;
+  font-family: 'Arimo', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1d293d;
+}
+
+.vccm-close {
+  padding: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.vccm-close:hover {
+  background: #f1f5f9;
+}
+
+.vccm-body {
+  flex: 1;
+  padding: 20px 24px;
+  overflow-y: auto;
+}
+
+.vccm-loading,
+.vccm-error,
+.vccm-empty {
+  padding: 40px 20px;
+  text-align: center;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  color: #62748e;
+}
+
+.vccm-error {
+  color: #dc2626;
+  background: #fef2f2;
+  border-radius: 8px;
+}
+
+.vccm-count {
+  margin-bottom: 16px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  color: #62748e;
+}
+
+.vccm-tableWrap {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.vccm-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.vccm-table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #45556c;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.vccm-table td {
+  padding: 12px 16px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  color: #1d293d;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.vccm-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.vccm-mono {
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: 13px;
+}
+
+.vccm-status {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.vccm-status--active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.vccm-status--inactive {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.vccm-status--unassigned {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.vccm-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.vccm-pageBtn {
+  padding: 8px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  font-family: 'Arimo', sans-serif;
+  font-size: 13px;
+  color: #45556c;
+  cursor: pointer;
+}
+
+.vccm-pageBtn:hover:not(:disabled) {
+  border-color: #155dfc;
+  color: #155dfc;
+}
+
+.vccm-pageBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.vccm-pageInfo {
+  font-family: 'Arimo', sans-serif;
+  font-size: 13px;
+  color: #62748e;
+}
+
+.vccm-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.vccm-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.vccm-btn-secondary {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #45556c;
+}
+
+.vccm-btn-secondary:hover {
+  background: #f8fafc;
+}

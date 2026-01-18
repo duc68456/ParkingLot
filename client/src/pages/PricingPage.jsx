@@ -239,8 +239,8 @@ export default function PricingPage() {
     setCardPricingError('');
 
     try {
-      // 1) Load card categories
-      const categoriesRes = await fetchJson('/api/card-categories?page=1&limit=200');
+      // 1) Load card categories (Active only)
+      const categoriesRes = await fetchJson('/api/card-categories?page=1&limit=200&isActive=true');
       const categoriesRaw = categoriesRes?.data?.cardCategories;
       const categories = Array.isArray(categoriesRaw)
         ? categoriesRaw
@@ -302,7 +302,17 @@ export default function PricingPage() {
     try {
       const rulesRes = await fetchJson('/api/subscription-pricing-rules?page=1&limit=200');
       const raw = rulesRes?.data?.items;
-      const rules = Array.isArray(raw) ? raw : [];
+      const allRules = Array.isArray(raw) ? raw : [];
+
+      // Filter to only include rules where the card category is active
+      const rules = allRules.filter((rule) => {
+        const cardCategory = rule?.CardCategory || rule?.CardCategoryID;
+        // If CardCategory is populated object, check IsActive; otherwise assume active
+        if (typeof cardCategory === 'object' && cardCategory !== null) {
+          return cardCategory.IsActive !== false;
+        }
+        return true; // If not populated, include (can't filter without data)
+      });
 
       // Enrich with current price per rule.
       const rows = await Promise.all(

@@ -99,6 +99,13 @@ export default function ViewSubscriptionTypesModal({
           })
         );
 
+        // Sort by currentPrice descending (highest first)
+        rulesWithPrices.sort((a, b) => {
+          const priceA = a.currentPrice?.Price ?? 0;
+          const priceB = b.currentPrice?.Price ?? 0;
+          return priceB - priceA;
+        });
+
         setPricingRules(rulesWithPrices);
       } catch (err) {
         console.error('Failed to fetch pricing rules:', err);
@@ -255,6 +262,8 @@ export default function ViewSubscriptionTypesModal({
             }
           })
         );
+        // Sort by currentPrice descending
+        rulesWithPrices.sort((a, b) => (b.currentPrice?.Price ?? 0) - (a.currentPrice?.Price ?? 0));
         setPricingRules(rulesWithPrices);
       }
 
@@ -336,6 +345,8 @@ export default function ViewSubscriptionTypesModal({
             }
           })
         );
+        // Sort by currentPrice descending
+        rulesWithPrices.sort((a, b) => (b.currentPrice?.Price ?? 0) - (a.currentPrice?.Price ?? 0));
         setPricingRules(rulesWithPrices);
       }
 

@@ -3,6 +3,8 @@ import AssignCardModal from '../components/AssignCardModal';
 import AddCategoryModal from '../components/AddCategoryModal';
 import EditCategoryModal from '../components/EditCategoryModal';
 import ViewCardModal from '../components/ViewCardModal';
+import ViewCategoryCardsModal from '../components/ViewCategoryCardsModal';
+import DeleteCategoryModal from '../components/DeleteCategoryModal';
 import { useAuth } from '../contexts/AuthContext';
 import {
   CardsActionEditIcon,
@@ -35,14 +37,16 @@ const gradientForStatus = (status) => {
 };
 
 const normalizeCategory = (c) => {
-  // Server model: { id (mongo), ID: "CCG0001", Name, IsActive }
+  // Server model: { id (mongo), ID: "CCG0001", Name, IsActive, currentPrice }
   const isActive = c?.IsActive !== undefined ? c.IsActive : true;
   return {
     id: c?.id ?? c?._id ?? c?.ID,
     CategoryID: c?.ID ?? c?.CategoryID ?? c?.categoryId,
     name: c?.Name ?? c?.name,
     status: isActive ? 'Active' : 'Inactive',
-    IsActive: isActive
+    IsActive: isActive,
+    currentPrice: c?.currentPrice ?? null,
+    priceLastUpdated: c?.priceLastUpdated ?? null
   };
 };
 
@@ -100,6 +104,10 @@ function CardsPage() {
   const [categoryToEdit, setCategoryToEdit] = useState(null);
   const [showViewCardModal, setShowViewCardModal] = useState(false);
   const [cardToView, setCardToView] = useState(null);
+  const [showViewCategoryCardsModal, setShowViewCategoryCardsModal] = useState(false);
+  const [categoryToViewCards, setCategoryToViewCards] = useState(null);
+  const [showDeleteCategoryModal, setShowDeleteCategoryModal] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
 
   // Purchase invoices (Cards -> Invoices tab)
   const [purchaseInvoices, setPurchaseInvoices] = useState([]);
@@ -508,28 +516,34 @@ function CardsPage() {
     }
   };
 
-  const handleDeleteCategory = (categoryId) => {
-    const ok = window.confirm('Delete this category?');
-    if (!ok) return;
+  const handleDeleteCategory = (category) => {
+    setCategoryToDelete(category);
+    setShowDeleteCategoryModal(true);
+  };
 
-    (async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/card-categories/${categoryId}`, {
-          method: 'DELETE',
-          headers: { ...authHeaders }
-        });
-        const json = await res.json().catch(() => null);
-        if (!res.ok) {
-          const msg = json?.error?.message || `Delete failed (${res.status})`;
-          throw new Error(msg);
-        }
-
-        setCategories((prev) => prev.filter((c) => c.id !== categoryId));
-      } catch (err) {
-        console.error('Delete category error:', err);
-        window.alert(err?.message || 'Failed to delete category');
+  const handleConfirmDeleteCategory = async (category, newStatus) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/card-categories/${category.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        body: JSON.stringify({
+          IsActive: newStatus === 'Active'
+        })
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = json?.error?.message || `Update failed (${res.status})`;
+        throw new Error(msg);
       }
-    })();
+
+      const saved = json?.data;
+      const normalized = saved ? normalizeCategory(saved) : { ...category, status: newStatus, IsActive: newStatus === 'Active' };
+      setCategories((prev) => prev.map((c) => (c.id === category.id ? { ...c, ...normalized } : c)));
+    } catch (err) {
+      console.error('Update category status error:', err);
+      window.alert(err?.message || 'Failed to update category status');
+      throw err;
+    }
   };
 
   const handleEditCategory = (categoryId) => {
@@ -975,6 +989,7 @@ function CardsPage() {
                 <tr>
                   <th>ID</th>
                   <th>NAME</th>
+                  <th>PRICE</th>
                   <th>STATUS</th>
                   <th className="text-right">ACTIONS</th>
                 </tr>
@@ -984,11 +999,24 @@ function CardsPage() {
                   <tr key={category.id}>
                     <td className="category-id-cell">{category.CategoryID || category.id}</td>
                     <td className="category-name-cell">{category.name}</td>
+                    <td className="category-price-cell">
+                      {category.currentPrice !== null ? `$${Number(category.currentPrice).toFixed(2)}` : '-'}
+                    </td>
                     <td className="category-status-cell">
                       <span className={getStatusBadgeClass(category.status)}>{category.status}</span>
                     </td>
                     <td>
                       <div className="action-buttons action-buttons-right">
+                        <button
+                          className="action-btn"
+                          onClick={() => {
+                            setCategoryToViewCards(category);
+                            setShowViewCategoryCardsModal(true);
+                          }}
+                          title="View Cards"
+                        >
+                          <CardsActionViewIcon aria-hidden="true" />
+                        </button>
                         <button
                           className="action-btn"
                           onClick={() => handleEditCategory(category.id)}
@@ -998,7 +1026,7 @@ function CardsPage() {
                         </button>
                         <button
                           className="action-btn action-btn-delete"
-                          onClick={() => handleDeleteCategory(category.id)}
+                          onClick={() => handleDeleteCategory(category)}
                           title="Delete"
                         >
                           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -1355,10 +1383,11 @@ function CardsPage() {
       {/* Edit Category Modal */}
       {showEditCategoryModal && categoryToEdit && (
         <EditCategoryModal
+          isOpen={showEditCategoryModal}
           key={categoryToEdit.id}
           category={categoryToEdit}
           onClose={handleCloseEditCategoryModal}
-          onUpdate={handleUpdateCategory}
+          onSave={handleUpdateCategory}
         />
       )}
 
@@ -1367,6 +1396,31 @@ function CardsPage() {
         <ViewCardModal
           card={cardToView}
           onClose={handleCloseViewCardModal}
+        />
+      )}
+
+      {/* View Category Cards Modal */}
+      {showViewCategoryCardsModal && categoryToViewCards && (
+        <ViewCategoryCardsModal
+          isOpen={showViewCategoryCardsModal}
+          category={categoryToViewCards}
+          authHeaders={authHeaders}
+          onClose={() => {
+            setShowViewCategoryCardsModal(false);
+            setCategoryToViewCards(null);
+          }}
+        />
+      )}
+
+      {/* Delete Category Modal */}
+      {showDeleteCategoryModal && categoryToDelete && (
+        <DeleteCategoryModal
+          category={categoryToDelete}
+          onClose={() => {
+            setShowDeleteCategoryModal(false);
+            setCategoryToDelete(null);
+          }}
+          onConfirm={handleConfirmDeleteCategory}
         />
       )}
     </div>
