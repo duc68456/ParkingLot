@@ -17,7 +17,7 @@ const attachSubscriptionRelations = async (subscriptionDoc) => {
   const obj = subscriptionDoc?.toJSON ? subscriptionDoc.toJSON() : subscriptionDoc
   if (!obj) return obj
 
-  const [employeeRaw, customerRaw, vehicle, vehicleType, cardRaw  , subscriptionType] = await Promise.all([
+  const [employeeRaw, customerRaw, vehicle, vehicleType, cardRaw, subscriptionType] = await Promise.all([
     obj.ProcessedBy ? Employee.findOne({ ID: obj.ProcessedBy }).lean() : null,
     obj.CustomerID ? Customer.findOne({ ID: obj.CustomerID }).lean() : null,
     obj.VehicleID ? Vehicle.findOne({ VehicleID: obj.VehicleID }).lean() : null,
@@ -40,8 +40,8 @@ const attachSubscriptionRelations = async (subscriptionDoc) => {
   //   card = { ...cardRaw, CardCategory: category };
   // }
 
-  const card = cardRaw 
-    ? {...cardRaw, CardCategoryID: cardCategory || cardRaw.CardCategoryID}
+  const card = cardRaw
+    ? { ...cardRaw, CardCategoryID: cardCategory || cardRaw.CardCategoryID }
     : null
   const employee = employeeRaw
     ? { ...employeeRaw, PersonID: employeePerson || employeeRaw.PersonID }
@@ -353,6 +353,18 @@ subscriptionsRouter.post('/', authRequired, async (req, res) => {
         error: {
           message: 'Card not found',
           code: 'CARD_NOT_FOUND'
+        }
+      })
+    }
+
+    // Check if Card already has a subscription (regardless of status)
+    const existingSubscription = await Subscription.findOne({ CardID })
+    if (existingSubscription) {
+      return res.status(409).json({
+        success: false,
+        error: {
+          message: `Card ${CardID} already has a subscription (${existingSubscription.ID}). Each card can only have one subscription.`,
+          code: 'CARD_ALREADY_HAS_SUBSCRIPTION'
         }
       })
     }

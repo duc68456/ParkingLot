@@ -143,8 +143,24 @@ cardsRouter.get('/', async (req, res) => {
       ]
     }
 
+    // Filter by subscription status
+    const { hasSubscription } = req.query
+    let cardIdsWithSubscription = null
+    if (hasSubscription !== undefined) {
+      // Get all CardIDs that have subscriptions
+      const subscriptions = await Subscription.find({}).select('CardID').lean()
+      cardIdsWithSubscription = new Set(subscriptions.map(s => s.CardID))
+
+      if (hasSubscription === 'false') {
+        // Only cards WITHOUT subscriptions - will filter after query
+      } else if (hasSubscription === 'true') {
+        // Only cards WITH subscriptions
+        filter.CardID = { $in: Array.from(cardIdsWithSubscription) }
+      }
+    }
+
     const skip = (parseInt(page) - 1) * parseInt(limit)
-    const total = await Card.countDocuments(filter)
+    let total = await Card.countDocuments(filter)
 
     const cards = await Card
       .find(filter)
@@ -167,7 +183,7 @@ cardsRouter.get('/', async (req, res) => {
     const ownerById = new Map(owners.map(p => [p.ID, p]))
 
     // Get vehicle info from active subscriptions
-    const hydratedCards = await Promise.all(cards.map(async (card) => {
+    let hydratedCards = await Promise.all(cards.map(async (card) => {
       const vehicleInfo = await getVehicleFromSubscription(card.CardID)
       return {
         ...card.toJSON(),
@@ -177,10 +193,17 @@ cardsRouter.get('/', async (req, res) => {
       }
     }))
 
+    // Filter out cards WITH subscriptions if hasSubscription=false
+    if (hasSubscription === 'false' && cardIdsWithSubscription) {
+      hydratedCards = hydratedCards.filter(c => !cardIdsWithSubscription.has(c.CardID))
+      total = hydratedCards.length
+    }
+
     res.json({
       success: true,
       data: {
         items: hydratedCards,
+        filtered: hasSubscription !== undefined, // Flag to indicate filtering was applied
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),

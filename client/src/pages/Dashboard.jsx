@@ -29,6 +29,7 @@ export default function Dashboard() {
   const [capacity, setCapacity] = useState([]);
   const [revenueTrend, setRevenueTrend] = useState([]);
   const [dailyDistribution, setDailyDistribution] = useState([]);
+  const [gateWarnings, setGateWarnings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -40,7 +41,7 @@ export default function Dashboard() {
         const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
         // Fetch all dashboard data in parallel
-        const [statsRes, activityRes, alertsRes, capacityRes, revenueTrendRes, dailyDistRes] = await Promise.all([
+        const [statsRes, activityRes, alertsRes, capacityRes, revenueTrendRes, dailyDistRes, gateWarningsRes] = await Promise.all([
           fetch(`${baseURL}/dashboard/stats`, {
             headers: { Authorization: `Bearer ${token}` }
           }),
@@ -58,6 +59,9 @@ export default function Dashboard() {
           }),
           fetch(`${baseURL}/dashboard/vehicle-distribution-today`, {
             headers: { Authorization: `Bearer ${token}` }
+          }),
+          fetch(`${baseURL}/dashboard/gate-warnings`, {
+            headers: { Authorization: `Bearer ${token}` }
           })
         ]);
 
@@ -67,6 +71,7 @@ export default function Dashboard() {
         const capacityData = await capacityRes.json();
         const revenueTrendData = await revenueTrendRes.json();
         const dailyDistData = await dailyDistRes.json();
+        const gateWarningsData = await gateWarningsRes.json();
 
         if (statsData.success) {
           setStats(statsData.data);
@@ -85,6 +90,9 @@ export default function Dashboard() {
         }
         if (dailyDistData.success) {
           setDailyDistribution(dailyDistData.data);
+        }
+        if (gateWarningsData.success) {
+          setGateWarnings(gateWarningsData.data?.warnings || []);
         }
 
         setError(null);
@@ -122,7 +130,15 @@ export default function Dashboard() {
     if (diffInMinutes < 60) return `${diffInMinutes} mins ago`;
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) return `${diffInHours} hours ago`;
-    return time.toLocaleDateString();
+
+    // Format as YYYY-MM-DD-HH-mm-ss for older dates
+    const year = time.getFullYear();
+    const month = String(time.getMonth() + 1).padStart(2, '0');
+    const day = String(time.getDate()).padStart(2, '0');
+    const hours = String(time.getHours()).padStart(2, '0');
+    const minutes = String(time.getMinutes()).padStart(2, '0');
+    const seconds = String(time.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day}-${hours}-${minutes}-${seconds}`;
   };
 
   // Build stats cards from API data
@@ -348,14 +364,23 @@ export default function Dashboard() {
       amount: a.amount > 0 ? `+${formatCurrency(a.amount)}` : null
     }))
     : recentActivityToDisplay;
-  const displayAlerts = alerts.length > 0
-    ? alerts.map(al => ({
-      id: al.id,
-      tone: al.tone,
-      title: al.title,
-      time: formatRelativeTime(al.timestamp)
+
+  // Use gate warnings for alerts if available, fallback to regular alerts or mock data
+  const displayAlerts = gateWarnings.length > 0
+    ? gateWarnings.slice(0, 5).map(w => ({
+      id: w.ID || w._id || w.id,
+      tone: w.Type === 'ENTRY' ? 'warning' : w.Type === 'EXIT' ? 'danger' : 'info',
+      title: w.Message || 'Gate warning',
+      time: formatRelativeTime(w.createdAt)
     }))
-    : alertsToDisplay;
+    : alerts.length > 0
+      ? alerts.map(al => ({
+        id: al.id,
+        tone: al.tone,
+        title: al.title,
+        time: formatRelativeTime(al.timestamp)
+      }))
+      : alertsToDisplay;
   const displayCapacity = capacityCards.length > 0 ? capacityCards : capacityToDisplay;
 
   return (

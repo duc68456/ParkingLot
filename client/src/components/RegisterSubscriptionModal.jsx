@@ -105,10 +105,36 @@ function RegisterSubscriptionModal({ onClose, onRegister, defaultCard = null }) 
         const vTypesJson = await vTypesRes.json().catch(() => null);
         const vTypesItems = Array.isArray(vTypesJson?.data?.vehicleTypes) ? vTypesJson.data.vehicleTypes : [];
 
-        // Fetch 5 latest cards (sorted by createdAt desc)
-        const cardsRes = await fetch(`${API_BASE_URL}/api/cards?limit=5`, { headers: { ...authHeaders } });
+        // Fetch 5 latest cards without subscriptions (only available cards)
+        const cardsRes = await fetch(`${API_BASE_URL}/api/cards?limit=5&hasSubscription=false`, { headers: { ...authHeaders } });
         const cardsJson = await cardsRes.json().catch(() => null);
-        const cardsItems = Array.isArray(cardsJson?.data?.items) ? cardsJson.data.items : [];
+        let cardsItems = Array.isArray(cardsJson?.data?.items) ? cardsJson.data.items : [];
+
+        // Fallback: if hasSubscription filter not supported by backend, fetch all cards and filter client-side
+        // by checking if card has subscription
+        if (cardsItems.length === 0 && !cardsJson?.data?.filtered) {
+          // Fetch subscriptions to get list of CardIDs that already have subscriptions
+          const subsRes = await fetch(`${API_BASE_URL}/api/subscriptions?limit=1000`, { headers: { ...authHeaders } });
+          const subsJson = await subsRes.json().catch(() => null);
+          const subsItems = Array.isArray(subsJson?.data?.items) ? subsJson.data.items : [];
+          const cardsWithSubs = new Set(subsItems.map(s => s.CardID));
+
+          // Fetch all cards and filter
+          const allCardsRes = await fetch(`${API_BASE_URL}/api/cards?limit=100`, { headers: { ...authHeaders } });
+          const allCardsJson = await allCardsRes.json().catch(() => null);
+          const allCardsItems = Array.isArray(allCardsJson?.data?.items) ? allCardsJson.data.items : [];
+          cardsItems = allCardsItems.filter(c => !cardsWithSubs.has(c?.CardID)).slice(0, 5);
+        }
+
+        // Latest 5 cards (without subscriptions)
+        setLatestCards(
+          cardsItems.map((c) => ({
+            id: c?.CardID,
+            uid: c?.UID,
+            category: c?.CardCategoryID?.Name || c?.CardCategoryID?.name || '',
+            categoryId: c?.CardCategoryID?.ID || c?.CardCategoryID?.id || ''
+          })).filter((c) => c.id)
+        );
 
         // Fetch 5 latest vehicles (sorted by createdAt desc)
         const vehiclesRes = await fetch(`${API_BASE_URL}/api/vehicles?limit=5`, { headers: { ...authHeaders } });
@@ -134,16 +160,6 @@ function RegisterSubscriptionModal({ onClose, onRegister, defaultCard = null }) 
             name: vt?.Name || vt?.name,
             IsActive: vt?.IsActive ?? true
           })).filter((vt) => vt.id)
-        );
-
-        // Latest 5 cards
-        setLatestCards(
-          cardsItems.map((c) => ({
-            id: c?.CardID,
-            uid: c?.UID,
-            category: c?.CardCategoryID?.Name || c?.CardCategoryID?.name || '',
-            categoryId: c?.CardCategoryID?.ID || c?.CardCategoryID?.id || ''
-          })).filter((c) => c.id)
         );
 
         // Latest 5 vehicles
@@ -187,7 +203,7 @@ function RegisterSubscriptionModal({ onClose, onRegister, defaultCard = null }) 
 
     const t = setTimeout(async () => {
       try {
-        const qs = new URLSearchParams({ search: q, limit: '20' });
+        const qs = new URLSearchParams({ search: q, limit: '20', hasSubscription: 'false' });
         const res = await fetch(`${API_BASE_URL}/api/cards?${qs.toString()}`, { headers: { ...authHeaders } });
         const json = await res.json().catch(() => null);
         if (thisReq !== cardReqId.current) return;

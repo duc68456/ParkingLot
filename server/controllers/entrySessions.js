@@ -11,6 +11,7 @@ const SinglePricingRule = require('../models/singlePricingRule')
 const Shift = require('../models/shift')
 const ShiftReport = require('../models/shiftReport')
 const ShiftReportDetail = require('../models/shiftReportDetail')
+const GateWarning = require('../models/gateWarning')
 const { getLPClient } = require('../utils/lpClient')
 const config = require('../utils/config')
 
@@ -428,42 +429,73 @@ entrySessionsRouter.get('/gate/query', async (req, res) => {
       }
     }
 
-    const vehicle = licensePlate
-      ? await Vehicle.findOne({ PlateNumber: licensePlate }).populate({
-        path: 'VehicleTypeID',
-        select: 'VehicleTypeID Name'
-      })
-      : null
+    // Manual lookup for vehicle since VehicleTypeID is string, not ObjectId
+    let vehicle = null
+    if (licensePlate) {
+      vehicle = await Vehicle.findOne({ PlateNumber: licensePlate }).lean()
+      if (vehicle?.VehicleTypeID) {
+        const vt = await VehicleType.findOne({ VehicleTypeID: String(vehicle.VehicleTypeID) })
+          .select('VehicleTypeID Name')
+          .lean()
+        if (vt) vehicle.VehicleTypeID = vt
+      }
+    }
 
-    const activeSession = cardId
-      ? await EntrySession.findOne({ CardID: cardId, Status: 'IN_PARKING' })
-        .populate({
-          path: 'VehicleID',
-          select: 'VehicleID PlateNumber',
-          populate: { path: 'VehicleTypeID', select: 'VehicleTypeID Name' }
-        })
-        .populate('VehicleTypeID', 'VehicleTypeID Name')
-        .populate({
-          path: 'CardID',
-          select: 'CardID UID CardCategoryID',
-          populate: { path: 'CardCategoryID', select: 'ID Name' }
-        })
-        .populate({
-          path: 'ProcessedEntryBy',
-          select: 'ID',
-          populate: { path: 'PersonID', select: 'FullName' }
-        })
-        .lean()
-      : null
+    // Manual lookup for active session - avoid populate on VehicleTypeID (it's a string business ID)
+    let activeSession = null
+    if (cardId) {
+      activeSession = await EntrySession.findOne({ CardID: cardId, Status: 'IN_PARKING' }).lean()
 
-    if (activeSession?.CardID?.CardCategoryID) {
-      const raw = String(activeSession.CardID.CardCategoryID)
-      const byIdField = await CardCategory.findOne({ ID: raw }).select('ID Name').lean()
-      if (byIdField) {
-        activeSession.CardID.CardCategoryID = byIdField
-      } else if (raw.match(/^[0-9a-fA-F]{24}$/)) {
-        const byObjectId = await CardCategory.findById(raw).select('ID Name').lean()
-        if (byObjectId) activeSession.CardID.CardCategoryID = byObjectId
+      if (activeSession) {
+        // Manually resolve VehicleTypeID
+        if (activeSession.VehicleTypeID) {
+          const vt = await VehicleType.findOne({ VehicleTypeID: String(activeSession.VehicleTypeID) })
+            .select('VehicleTypeID Name')
+            .lean()
+          if (vt) activeSession.VehicleTypeID = vt
+        }
+
+        // Manually resolve VehicleID
+        if (activeSession.VehicleID) {
+          const v = await Vehicle.findOne({ VehicleID: String(activeSession.VehicleID) })
+            .select('VehicleID PlateNumber VehicleTypeID')
+            .lean()
+          if (v) {
+            if (v.VehicleTypeID) {
+              const vvt = await VehicleType.findOne({ VehicleTypeID: String(v.VehicleTypeID) })
+                .select('VehicleTypeID Name')
+                .lean()
+              if (vvt) v.VehicleTypeID = vvt
+            }
+            activeSession.VehicleID = v
+          }
+        }
+
+        // Manually resolve CardID
+        if (activeSession.CardID) {
+          const c = await Card.findOne({ CardID: String(activeSession.CardID) })
+            .select('CardID UID CardCategoryID')
+            .lean()
+          if (c) {
+            if (c.CardCategoryID) {
+              const cc = await CardCategory.findOne({ ID: String(c.CardCategoryID) })
+                .select('ID Name')
+                .lean()
+              if (cc) c.CardCategoryID = cc
+            }
+            activeSession.CardID = c
+          }
+        }
+
+        // Manually resolve ProcessedEntryBy
+        if (activeSession.ProcessedEntryBy) {
+          const emp = await Employee.findOne({ ID: String(activeSession.ProcessedEntryBy) }).lean()
+          if (emp) {
+            const person = emp.PersonID ? await Person.findOne({ ID: String(emp.PersonID) }).select('FullName').lean() : null
+            emp.PersonID = person
+            activeSession.ProcessedEntryBy = emp
+          }
+        }
       }
     }
 
@@ -655,11 +687,21 @@ entrySessionsRouter.post('/gate/entry', async (req, res) => {
     }
 
     // EntrySession stores CardID as business id. Matching on the raw input is correct.
-    const existingSession = await EntrySession.findOne({ CardID, Status: 'IN_PARKING' })
+    const existingSession = await EntrySession.findOne({ CardID, Status: 'IN_PARKING' }).lean()
     if (existingSession) {
-      return res.status(409).json({
-        success: false,
-        error: { message: 'Card already has an active parking session', code: 'ACTIVE_SESSION_EXISTS' }
+      // Return warning with session data instead of error - frontend can confirm re-entry
+      return res.status(200).json({
+        success: true,
+        warning: true,
+        code: 'ACTIVE_SESSION_EXISTS',
+        message: 'Card already has an active parking session. Confirm to update entry time.',
+        existingSession: {
+          ID: existingSession.ID,
+          CardID: existingSession.CardID,
+          EntryTime: existingSession.EntryTime,
+          VehicleTypeID: existingSession.VehicleTypeID,
+          LicensePlate: existingSession.LicensePlate
+        }
       })
     }
 
@@ -877,6 +919,177 @@ entrySessionsRouter.post('/gate/entry', async (req, res) => {
     return res.status(500).json({
       success: false,
       error: { message: error.message, code: 'GATE_ENTRY_ERROR' }
+    })
+  }
+})
+
+/**
+ * POST /api/entry-sessions/gate/entry/confirm-reentry
+ * Confirm re-entry for a card that already has an active session.
+ * Updates the existing session's EntryTime and ProcessedEntryBy,
+ * and creates a GateWarning record.
+ */
+entrySessionsRouter.post('/gate/entry/confirm-reentry', async (req, res) => {
+  try {
+    if (!requireAdminOrStaff(req, res)) return
+
+    const SessionID = String(req.body.SessionID || '').trim()
+    const CardID = String(req.body.CardID || '').trim()
+    const GateNumber = parseInt(req.body.GateNumber) || 1
+    const LicensePlate = String(req.body.LicensePlate || '').trim()
+    let ProcessedEntryBy = String(req.body.ProcessedEntryBy || '').trim()
+
+    if (!ProcessedEntryBy) {
+      ProcessedEntryBy = String(req?.user?.employeeBusinessId || req?.user?.employeeId || '').trim()
+    }
+
+    if (!SessionID || !CardID || !ProcessedEntryBy) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'SessionID, CardID, and ProcessedEntryBy are required',
+          code: 'MISSING_REQUIRED_FIELDS'
+        }
+      })
+    }
+
+    // Find the existing session
+    const existingSession = await EntrySession.findOne({ ID: SessionID, CardID, Status: 'IN_PARKING' })
+    if (!existingSession) {
+      return res.status(404).json({
+        success: false,
+        error: { message: 'Active session not found', code: 'SESSION_NOT_FOUND' }
+      })
+    }
+
+    const employee = await Employee.findOne({ ID: ProcessedEntryBy })
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        error: { message: 'Employee not found', code: 'EMPLOYEE_NOT_FOUND' }
+      })
+    }
+
+    const originalEntryTime = existingSession.EntryTime
+    const newEntryTime = new Date()
+
+    // Update the existing session
+    existingSession.EntryTime = newEntryTime
+    existingSession.ProcessedEntryBy = ProcessedEntryBy
+    await existingSession.save()
+
+    // Helper to format date in requested format: YYYY-MM-DD-HH-mm-ss
+    const formatVnDateTime = (date) => {
+      const d = new Date(date)
+      const year = d.getFullYear()
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      const hours = String(d.getHours()).padStart(2, '0')
+      const minutes = String(d.getMinutes()).padStart(2, '0')
+      const seconds = String(d.getSeconds()).padStart(2, '0')
+      return `${year}-${month}-${day}-${hours}-${minutes}-${seconds}`
+    }
+
+    // Create a GateWarning record with simplified structure
+    const warning = new GateWarning({
+      Type: 'ENTRY',
+      Message: `Card ${CardID} re-entered with active session (${existingSession.ID}) at Gate ${GateNumber}. ${LicensePlate ? `(Plate: ${LicensePlate}) ` : ''}Entry time updated from ${formatVnDateTime(originalEntryTime)} to ${formatVnDateTime(newEntryTime)}.`,
+      Gate: GateNumber,
+      ProcessedBy: ProcessedEntryBy
+    })
+    await warning.save()
+
+    // Enrich session for response - use shared helpers to ensure OwnerID/Customer is populated
+    const enrichedSession = await EntrySession.findById(existingSession._id).lean()
+
+    // Enrich VehicleTypeID
+    if (enrichedSession?.VehicleTypeID) {
+      const vt = await VehicleType.findOne({ VehicleTypeID: String(enrichedSession.VehicleTypeID) })
+        .select('VehicleTypeID Name').lean()
+      if (vt) enrichedSession.VehicleTypeID = vt
+    }
+
+    // Enrich CardID with Owner info using shared helper
+    if (enrichedSession?.CardID) {
+      const c = await resolveCardByBusinessId(enrichedSession.CardID)
+      enrichedSession.CardID = c
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Re-entry confirmed. Entry time updated.',
+      data: {
+        session: enrichedSession || existingSession,
+        warning: {
+          ID: warning.ID,
+          Type: warning.Type,
+          Message: warning.Message
+        }
+      }
+    })
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: { message: error.message, code: 'CONFIRM_REENTRY_ERROR' }
+    })
+  }
+})
+
+/**
+ * POST /gate/exit/force
+ * Force exit without active session - logs GateWarning for audit
+ * Used when card needs to exit but no session exists
+ */
+entrySessionsRouter.post('/gate/exit/force', async (req, res) => {
+  // Check permission manually since requireAdminOrStaff is not a middleware
+  if (!requireAdminOrStaff(req, res)) return
+
+  try {
+    const { CardID, GateNumber, LicensePlate, ProcessedBy, Reason } = req.body
+
+    if (!CardID || !GateNumber || !ProcessedBy) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'CardID, GateNumber, and ProcessedBy are required', code: 'MISSING_REQUIRED_FIELDS' }
+      })
+    }
+
+    // Helper to format date
+    const formatDateTime = (date) => {
+      const d = new Date(date)
+      const year = d.getFullYear()
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      const hours = String(d.getHours()).padStart(2, '0')
+      const minutes = String(d.getMinutes()).padStart(2, '0')
+      const seconds = String(d.getSeconds()).padStart(2, '0')
+      return `${year}-${month}-${day}-${hours}-${minutes}-${seconds}`
+    }
+
+    // Create GateWarning record for force exit
+    const warning = new GateWarning({
+      Type: 'EXIT',
+      Message: `Force Exit: Card ${CardID}${LicensePlate ? ` (Plate: ${LicensePlate})` : ''} exited without active session at Gate ${GateNumber}. ${Reason ? `Reason: ${Reason}` : 'No session found.'} Time: ${formatDateTime(new Date())}.`,
+      Gate: GateNumber,
+      ProcessedBy: ProcessedBy
+    })
+    await warning.save()
+
+    return res.status(200).json({
+      success: true,
+      message: 'Force exit logged successfully.',
+      data: {
+        warning: {
+          ID: warning.ID,
+          Type: warning.Type,
+          Message: warning.Message
+        }
+      }
+    })
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: { message: error.message, code: 'FORCE_EXIT_ERROR' }
     })
   }
 })

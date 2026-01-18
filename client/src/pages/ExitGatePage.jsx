@@ -369,20 +369,91 @@ const ExitGatePage = () => {
     }
   };
 
-  const handleForceExit = (gateNumber) => {
-    // Force exit without session - just reset gate
-    if (gateNumber === 1) {
-      setGate1Mode('idle');
-      setGate1HasQueried(false);
-      setGate1NewExit({ cardId: '', licensePlate: '', queriedPlate: '', vehicleType: '', queriedPlateMismatch: false, queriedPlateMode: 'INSTANT' });
-      setGate1Error('');
-    } else {
-      setGate2Mode('idle');
-      setGate2HasQueried(false);
-      setGate2NewExit({ cardId: '', licensePlate: '', queriedPlate: '', vehicleType: '', queriedPlateMismatch: false, queriedPlateMode: 'INSTANT' });
-      setGate2Error('');
+  const handleForceExit = async (gateNumber) => {
+    const newExit = gateNumber === 1 ? gate1NewExit : gate2NewExit;
+    const setBusy = gateNumber === 1 ? setGate1Busy : setGate2Busy;
+    const setErr = gateNumber === 1 ? setGate1Error : setGate2Error;
+    const setMode = gateNumber === 1 ? setGate1Mode : setGate2Mode;
+    const setData = gateNumber === 1 ? setGate1Data : setGate2Data;
+    const setHasQueried = gateNumber === 1 ? setGate1HasQueried : setGate2HasQueried;
+
+    console.log(`[ForceExit] Clicked for Gate ${gateNumber}`, newExit);
+
+    const CardID = String(newExit.cardId || '').trim();
+    const LicensePlate = String(newExit.licensePlate || '').trim();
+
+    if (!CardID) {
+      console.warn('[ForceExit] Missing CardID');
+      setErr('Card ID is required for Force Exit');
+      return;
     }
-    // In production, you might want to log this forced exit
+
+    // Confirm with user
+    const confirmMsg = `⚠️ FORCE EXIT\n\nCard: ${CardID}\nPlate: ${LicensePlate || 'N/A'}\nGate: ${gateNumber}\n\nNo active session found. This will log a warning for audit purposes.\n\nProceed with Force Exit?`;
+    if (!window.confirm(confirmMsg)) {
+      console.log('[ForceExit] User cancelled');
+      return;
+    }
+
+    try {
+      setBusy(true);
+      setErr('');
+      console.log('[ForceExit] Sending request...');
+
+      const payload = {
+        CardID,
+        GateNumber: gateNumber,
+        LicensePlate: LicensePlate || null,
+        ProcessedBy: staffEmployeeId,
+        Reason: 'No active session found'
+      };
+
+      const res = await fetch(`${API_BASE_URL}/api/entry-sessions/gate/exit/force`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders()
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const json = await res.json().catch(() => null);
+      console.log('[ForceExit] Response:', json);
+
+      if (!res.ok) {
+        throw new Error(json?.error?.message || `Force exit failed (${res.status})`);
+      }
+
+      // Success - show result instead of resetting
+      const now = new Date();
+      const forceExitData = {
+        gateNumber,
+        vehicleType: 'Force Exit',
+        cardId: CardID,
+        licensePlate: LicensePlate || 'N/A',
+        plateQueried: LicensePlate || 'Instant',
+        plateInput: LicensePlate,
+        entryTime: 'N/A',
+        exitTime: now.toLocaleTimeString(),
+        customer: 'Warning Logged',
+        price: 'By Staff',
+        duration: 'N/A',
+        hasVehicle: true,
+        sessionId: 'FORCE-EXIT'
+      };
+
+      setData(forceExitData);
+      setMode('processing'); // Show result view
+      setHasQueried(false);
+      console.log('[ForceExit] View switched to processing');
+
+    } catch (e) {
+      console.error('[ForceExit] Error:', e);
+      setErr(e.message);
+      window.alert(`Force Exit Error: ${e.message}`);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleCaptureClick = (gateNumber) => {

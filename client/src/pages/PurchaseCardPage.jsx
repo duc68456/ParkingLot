@@ -507,8 +507,8 @@ export default function PurchaseCardPage() {
         setCategoriesLoading(true);
         setCategoriesError('');
 
-        // 1) Load categories
-        const categoriesRes = await fetch(`${API_BASE_URL}/api/card-categories`, {
+        // 1) Load categories (only active ones)
+        const categoriesRes = await fetch(`${API_BASE_URL}/api/card-categories?isActive=true`, {
           signal: controller.signal,
           headers: { ...authHeaders }
         });

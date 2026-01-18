@@ -36,6 +36,7 @@ const subscriptionSchema = new mongoose.Schema({
   CardID: {
     type: String,
     required: true,
+    unique: true, // Each card can only have ONE subscription
     ref: 'Card'
   },
   SubscriptionTypeID: {

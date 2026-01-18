@@ -7,6 +7,7 @@ const Card = require('../models/card')
 const Customer = require('../models/customer')
 const Employee = require('../models/employee')
 const Person = require('../models/person')
+const GateWarning = require('../models/gateWarning')
 
 /**
  * GET /api/dashboard/stats
@@ -472,6 +473,43 @@ dashboardRouter.get('/vehicle-distribution-today', async (request, response, nex
     response.json({
       success: true,
       data: distribution
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+/**
+ * GET /api/dashboard/gate-warnings
+ * Returns today's gate warnings
+ */
+dashboardRouter.get('/gate-warnings', async (request, response, next) => {
+  try {
+    const now = new Date()
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0)
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59)
+
+    // Get today's warnings
+    const todayWarnings = await GateWarning.find({
+      createdAt: { $gte: startOfToday, $lte: endOfToday }
+    })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean()
+
+    const todayCount = await GateWarning.countDocuments({
+      createdAt: { $gte: startOfToday, $lte: endOfToday }
+    })
+
+    const totalCount = await GateWarning.countDocuments({})
+
+    response.json({
+      success: true,
+      data: {
+        warnings: todayWarnings,
+        todayCount,
+        totalCount
+      }
     })
   } catch (error) {
     next(error)

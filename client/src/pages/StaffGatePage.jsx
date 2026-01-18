@@ -376,7 +376,7 @@ const StaffGatePage = () => {
         fetch(url, {
           method: 'POST',
           keepalive: true
-        }).catch(() => {})
+        }).catch(() => { })
 
         // Secondary attempt: Beacon API.
         try {
@@ -709,6 +709,73 @@ const StaffGatePage = () => {
         const json = await res.json().catch(() => null)
         if (!res.ok) {
           throw new Error(json?.error?.message || `Add entry failed (${res.status})`)
+        }
+
+        // Handle active session warning - ask for confirmation
+        if (json?.warning === true && json?.code === 'ACTIVE_SESSION_EXISTS') {
+          const existingSession = json?.existingSession
+          const originalTime = existingSession?.EntryTime
+            ? new Date(existingSession.EntryTime).toLocaleString()
+            : 'unknown'
+
+          const confirmMsg = `⚠️ WARNING: This card already has an active parking session.\n\n` +
+            `Session ID: ${existingSession?.ID || 'N/A'}\n` +
+            `Original Entry Time: ${originalTime}\n\n` +
+            `Do you want to update the entry time to NOW?\n` +
+            `(This will reset the parking duration and log a warning)`
+
+          if (window.confirm(confirmMsg)) {
+            // Call confirm-reentry endpoint
+            setBusy(true)
+            fetch(`${API_BASE_URL}/api/entry-sessions/gate/entry/confirm-reentry`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...authHeaders()
+              },
+              body: JSON.stringify({
+                SessionID: existingSession?.ID,
+                CardID,
+                GateNumber: gateNumber,
+                LicensePlate,
+                ProcessedEntryBy: staffEmployeeId
+              })
+            })
+              .then(async (reentryRes) => {
+                const reentryJson = await reentryRes.json().catch(() => null)
+                if (!reentryRes.ok) {
+                  throw new Error(reentryJson?.error?.message || 'Failed to confirm re-entry')
+                }
+
+                const session = reentryJson?.data?.session
+                const displayPlate = (session?.LicensePlate || LicensePlate || '').toUpperCase()
+
+                setData((prev) => ({
+                  ...prev,
+                  hasVehicle: true,
+                  cardId: CardID,
+                  vehicleType: vehicleTypeDisplayLabel(VehicleTypeID) || VehicleTypeID,
+                  licensePlate: displayPlate,
+                  plateInput: LicensePlate,
+                  plateQueried: 'Re-entry',
+                  entryTime: session?.EntryTime ? new Date(session.EntryTime).toLocaleTimeString() : prev.entryTime,
+                  customer: session?.CardID?.OwnerID?.FullName || 'Guest'
+                }))
+                setMode('processing')
+                setHasQueried(false)
+                window.alert('Re-entry confirmed. Entry time has been updated. Warning logged.')
+              })
+              .catch((e) => {
+                setErr(e.message)
+              })
+              .finally(() => {
+                setBusy(false)
+              })
+          } else {
+            // User cancelled - do nothing
+            setErr('Re-entry cancelled by user')
+          }
+          return
         }
 
         const decision = json?.data?.decision
