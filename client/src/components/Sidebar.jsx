@@ -31,6 +31,7 @@ export default function Sidebar({ currentPage = 'Dashboard', onLogout, isCollaps
     { id: 'Returns', label: 'Returns', icon: ReturnsIcon },
     { id: 'Pricing', label: 'Pricing', icon: PricingIcon },
     { id: 'Shifts', label: 'Shifts', icon: ShiftsIcon },
+    { id: 'Roles', label: 'Roles', icon: ReportsIcon },
     { id: 'Reports', label: 'Reports', icon: ReportsIcon },
   ];
 

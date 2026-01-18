@@ -16,6 +16,14 @@
   border-radius: 16px;
   box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
   overflow: hidden;
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+}
+
+.employee-account-modal--hub {
+  width: 672px;
+  max-width: min(760px, calc(100vw - 32px));
 }
 
 .employee-account-modal__header {
@@ -25,6 +33,7 @@
   justify-content: space-between;
   padding: 0 24px;
   border-bottom: 0.8px solid #E2E8F0;
+  flex: 0 0 auto;
 }
 
 .employee-account-modal__title {
@@ -53,12 +62,75 @@
 
 .employee-account-modal__body {
   padding: 24px;
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+
+.employee-account-modal__body--hub {
+  padding: 24px;
 }
 
 .employee-account-modal__top {
   display: flex;
   gap: 16px;
   align-items: center;
+}
+
+.employee-account-modal__hubTop {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.employee-account-modal__hubWho {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.employee-account-modal__hubName {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 28px;
+  color: #0F172B;
+}
+
+.employee-account-modal__hubSub {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #45556C;
+}
+
+.employee-account-modal__hubPills {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.employee-account-modal__pill {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  border: 0.8px solid transparent;
+}
+
+.employee-account-modal__pill--role {
+  background: #DBEAFE;
+  border-color: #BEDBFF;
+  color: #193CB8;
+}
+
+.employee-account-modal__pill--status {
+  background: #DCFCE7;
+  border-color: #B9F8CF;
+  color: #016630;
 }
 
 .employee-account-modal__avatar {
@@ -105,6 +177,433 @@
   margin: 24px 0;
 }
 
+.employee-account-modal__sectionTitle {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.employee-account-modal__sectionIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #615FFF 0%, #AD46FF 100%);
+  box-shadow: 0px 4px 6px -1px rgba(0,0,0,0.1), 0px 2px 4px -2px rgba(0,0,0,0.1);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.employee-account-modal__sectionText {
+  display: flex;
+  flex-direction: column;
+}
+
+.employee-account-modal__sectionHeading {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 20px;
+  color: #0F172B;
+}
+
+.employee-account-modal__sectionSub {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  color: #45556C;
+}
+
+.employee-account-modal__roleGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.employee-account-modal__roleCard {
+  width: 100%;
+  text-align: left;
+  background: #FFFFFF;
+  border: 1.6px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.employee-account-modal__roleCard:hover {
+  border-color: #CAD5E2;
+}
+
+.employee-account-modal__roleCard--selected {
+  border-color: #BEDBFF;
+  background: #F8FAFF;
+}
+
+.employee-account-modal__roleCardText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.employee-account-modal__roleCardTitle {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 20px;
+  color: #0F172B;
+}
+
+.employee-account-modal__roleCardDesc {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 19.5px;
+  color: #45556C;
+}
+
+/* Admin Account panel (Access Management Hub) */
+.employee-account-modal__adminHub {
+  margin-top: 16px;
+}
+
+.employee-account-modal__adminCard {
+  border-radius: 14px;
+  border: 1.6px solid #BEDBFF;
+  background: linear-gradient(144.143deg, #EFF6FF 0%, #EEF2FF 100%);
+  padding: 24px;
+}
+
+.employee-account-modal__adminCardHeader {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.employee-account-modal__adminCardIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: #DBEAFE;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #155DFC;
+  flex-shrink: 0;
+}
+
+.employee-account-modal__adminCardHeading {
+  display: flex;
+  flex-direction: column;
+}
+
+.employee-account-modal__adminTitle {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 28px;
+  color: #0F172B;
+}
+
+.employee-account-modal__adminSub {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+
+.employee-account-modal__adminMiniMeta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.employee-account-modal__adminMiniMetaItem {
+  border: 0.8px solid #E2E8F0;
+  border-radius: 12px;
+  background: #F8FAFC;
+  padding: 12px 14px;
+}
+
+.employee-account-modal__adminMiniMetaK {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #45556C;
+  text-transform: uppercase;
+}
+
+.employee-account-modal__adminMiniMetaV {
+  margin-top: 6px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+  color: #0F172B;
+}
+
+.employee-account-modal__label--caps {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+}
+
+.employee-account-modal__readonly {
+  margin-top: 8px;
+  border: 0.8px solid #E2E8F0;
+  border-radius: 12px;
+  background: #FFFFFF;
+  padding: 12px 14px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+  color: #0F172B;
+}
+
+.employee-account-modal__readonly--masked {
+  letter-spacing: 0.18em;
+  color: #45556C;
+}
+
+.employee-account-modal__adminPrimaryBtn {
+  margin-top: 12px;
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #2563EB;
+  color: #FFFFFF;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.employee-account-modal__adminPrimaryBtn:hover {
+  background: #1D4ED8;
+}
+
+.employee-account-modal__adminPasswordPanel {
+  margin-top: 10px;
+  border: 0.8px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 12px;
+  background: #F8FAFC;
+}
+
+.employee-account-modal__subField {
+  display: block;
+  margin-top: 10px;
+}
+
+.employee-account-modal__subField:first-child {
+  margin-top: 0;
+}
+
+.employee-account-modal__subLabel {
+  display: block;
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+  color: #45556C;
+  margin-bottom: 6px;
+}
+
+.employee-account-modal__passwordWrap--sm {
+  height: 44px;
+}
+
+.employee-account-modal__eyeBtn--sm {
+  width: 40px;
+  height: 40px;
+}
+
+.employee-account-modal__input--panel {
+  height: 44px;
+  background: #FFFFFF;
+}
+
+.employee-account-modal__adminBtnRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.employee-account-modal__adminSaveBtn {
+  border: none;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #16A34A;
+  color: #FFFFFF;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.employee-account-modal__adminSaveBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.employee-account-modal__adminCancelBtn {
+  border: 0.8px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #FFFFFF;
+  color: #0F172B;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.employee-account-modal__adminCancelBtn:hover {
+  background: rgba(15, 23, 43, 0.04);
+}
+  color: #45556C;
+}
+
+.employee-account-modal__adminForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.employee-account-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.employee-account-modal__label {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #314158;
+}
+
+.employee-account-modal__passwordWrap {
+  position: relative;
+}
+
+.employee-account-modal__input {
+  width: 100%;
+  height: 46px;
+  border: 0.8px solid #CAD5E2;
+  border-radius: 10px;
+  background: #FFFFFF;
+  padding: 12px 16px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #0F172B;
+}
+
+.employee-account-modal__input::placeholder {
+  color: rgba(10, 10, 10, 0.5);
+}
+
+.employee-account-modal__input:focus {
+  outline: none;
+  border-color: #155DFC;
+  box-shadow: 0 0 0 3px rgba(21, 93, 252, 0.15);
+}
+
+.employee-account-modal__input--password {
+  padding-right: 44px;
+}
+
+.employee-account-modal__eyeBtn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #45556C;
+  font-size: 16px;
+}
+
+.employee-account-modal__eyeBtn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.employee-account-modal__radio {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1.6px solid #CAD5E2;
+  background: #FFFFFF;
+  margin-left: 12px;
+  flex-shrink: 0;
+}
+
+.employee-account-modal__radio--checked {
+  border-color: #155DFC;
+  box-shadow: inset 0 0 0 5px #155DFC;
+}
+
+.employee-account-modal__tabSwitch {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 16px;
+  background: #F1F5F9;
+  border-radius: 10px;
+  padding: 4px;
+  display: flex;
+  gap: 4px;
+  box-shadow: inset 0px 2px 4px rgba(0,0,0,0.05);
+}
+
+.employee-account-modal__tab {
+  height: 40px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #45556C;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.employee-account-modal__tab--active {
+  background: #FFFFFF;
+  box-shadow: 0px 1px 3px rgba(0,0,0,0.1), 0px 1px 2px -1px rgba(0,0,0,0.1);
+  color: #9810FA;
+}
+
+.employee-account-modal__tabIcon {
+  font-size: 14px;
+  line-height: 1;
+}
+
 .employee-account-modal__form {
   display: flex;
   flex-direction: column;
@@ -124,8 +623,34 @@
   color: #314158;
 }
 
+/* Note: legacy EmployeeAccountModal previously used .__input for a readonly field.
+   Keep it simple and valid to avoid CSS parse errors. */
 .employee-account-modal__input {
   height: 41.6px;
+  border-radius: 10px;
+  border: 0.8px solid #CAD5E2;
+  background: #FFFFFF;
+  padding: 10px 16px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #0F172B;
+}
+
+.employee-account-modal__input--readonly {
+  background: #F8FAFC;
+  border-color: #E2E8F0;
+  color: #45556C;
+}
+
+.employee-account-modal__pinHub {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.employee-account-modal__primaryGradientBtn {
+  height: 56px;
   border: none;
   border-radius: 10px;
   cursor: pointer;
@@ -140,16 +665,78 @@
   line-height: 24px;
   color: #FFFFFF;
   background: linear-gradient(90deg, #155DFC 0%, #4F39F6 100%);
-  box-shadow: 0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -4px rgba(0, 0, 0, 0.1);
-  color: #45556C;
+  box-shadow: 0px 10px 15px -3px rgba(0,0,0,0.1), 0px 4px 6px -4px rgba(0,0,0,0.1);
+}
 
-.employee-account-modal__pinBtn:hover {
+.employee-account-modal__primaryGradientBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.employee-account-modal__primaryGradientBtn:hover:not(:disabled) {
   filter: brightness(0.98);
 }
 
-.employee-account-modal__pinBtn:active {
+.employee-account-modal__primaryGradientBtn:active:not(:disabled) {
   transform: translateY(0.5px);
 }
+
+.employee-account-modal__generatedPin {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 0.8px solid #E9D4FF;
+}
+
+.employee-account-modal__generatedPinLabel {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #8200DB;
+  margin-bottom: 6px;
+}
+
+.employee-account-modal__generatedPinValue {
+  font-family: 'Cousine', monospace;
+  font-size: 24px;
+  line-height: 28px;
+  letter-spacing: 2px;
+  color: #1D293D;
+  margin-bottom: 10px;
+}
+
+.employee-account-modal__adminPlaceholder {
+  border-radius: 14px;
+  border: 0.8px solid #E2E8F0;
+  background: #F8FAFC;
+  padding: 16px;
+}
+
+.employee-account-modal__adminTitle {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 20px;
+  color: #0F172B;
+}
+
+.employee-account-modal__adminSub {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  color: #45556C;
+  margin-top: 4px;
+}
+
+@media (max-width: 720px) {
+  .employee-account-modal--hub {
+    width: 100%;
+  }
+
+  .employee-account-modal__roleGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .employee-account-modal__textInput {

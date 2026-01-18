@@ -23,24 +23,52 @@ function getEmployeeInitials(employee) {
 
 export default function EmployeeAccountModal({ employee, onClose }) {
   const { authHeaders } = useAuth();
-  const initials = useMemo(() => getEmployeeInitials(employee), [employee]);
-  const name = useMemo(() => getEmployeeDisplayName(employee), [employee]);
-  const employeeType = useMemo(() => normalizeEmployeeType(employee), [employee]);
+  const initials = getEmployeeInitials(employee);
+  const name = getEmployeeDisplayName(employee);
+  const employeeType = normalizeEmployeeType(employee);
 
-  const [isChanging, setIsChanging] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  // Hub state
+  const [activeTab, setActiveTab] = useState('pin'); // 'pin' | 'admin'
+  const [selectedRole, setSelectedRole] = useState('superadmin');
+
+  // PIN actions state
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [generatedPin, setGeneratedPin] = useState('');
   const [copyMessage, setCopyMessage] = useState('');
 
+  // Admin account state (UI only for now)
+  // NOTE: Admin username is displayed from employee/admin data (read-only) in the new design.
+  const [adminIsChangingPassword, setAdminIsChangingPassword] = useState(false);
+  const [adminNewPassword, setAdminNewPassword] = useState('');
+  const [adminNewConfirmPassword, setAdminNewConfirmPassword] = useState('');
+  const [adminShowNewPassword, setAdminShowNewPassword] = useState(false);
+  const [adminShowNewConfirmPassword, setAdminShowNewConfirmPassword] = useState(false);
+  const [adminPasswordPanelError, setAdminPasswordPanelError] = useState('');
+  const [adminStatus, setAdminStatus] = useState('');
+
   if (!employee) return null;
 
-  const isAdmin = employeeType === 'ADMIN';
   const isStaff = employeeType === 'STAFF' || employeeType === 'GATE_STAFF';
   const username = employee?.id || employee?.ID || '';
+
+  const status = employee?.Status || employee?.status || 'Active';
+
+  const isAdminPasswordPanelValid = useMemo(() => {
+    if (!adminNewPassword) return false;
+    if (!adminNewConfirmPassword) return false;
+    if (adminNewPassword !== adminNewConfirmPassword) return false;
+    return true;
+  }, [adminNewPassword, adminNewConfirmPassword]);
+
+  const roleOptions = [
+    { key: 'superadmin', title: 'SuperAdmin', description: 'Full system access' },
+    { key: 'gateguard', title: 'GateGuard', description: 'Gate management only' },
+    { key: 'accountant', title: 'Accountant', description: 'Financial reports access' },
+    { key: 'hr', title: 'HR Manager', description: 'Employee management' },
+    { key: 'customer-service', title: 'Customer Service', description: 'Customer support' }
+  ];
 
   const handleOverlayMouseDown = (e) => {
     if (e.target === e.currentTarget) onClose?.();
@@ -50,59 +78,63 @@ export default function EmployeeAccountModal({ employee, onClose }) {
     // Clear any sensitive, one-time display data on close.
     setGeneratedPin('');
     setCopyMessage('');
+    setError('');
+    setStatusMessage('');
+
+    // Clear admin fields on close as well.
+    setAdminIsChangingPassword(false);
+    setAdminNewPassword('');
+    setAdminNewConfirmPassword('');
+    setAdminShowNewPassword(false);
+    setAdminShowNewConfirmPassword(false);
+    setAdminPasswordPanelError('');
+    setAdminStatus('');
     onClose?.();
   };
 
-  const handleStartChangePassword = () => {
-    if (!isAdmin) return;
-    setIsChanging(true);
-    setNewPassword('');
-    setConfirmPassword('');
-    setError('');
-    setStatusMessage('');
-    setGeneratedPin('');
-    setCopyMessage('');
+  const handleAdminOpenChangePassword = () => {
+    setAdminPasswordPanelError('');
+    setAdminStatus('');
+    setAdminIsChangingPassword(true);
   };
 
-  const validate = () => {
-    if (!newPassword || !confirmPassword) return 'Please enter and confirm the new password.';
-    if (newPassword.length < 6) return 'Password must be at least 6 characters.';
-    if (newPassword !== confirmPassword) return 'Passwords do not match.';
-    return '';
+  const handleAdminCancelChangePassword = () => {
+    setAdminIsChangingPassword(false);
+    setAdminNewPassword('');
+    setAdminNewConfirmPassword('');
+    setAdminShowNewPassword(false);
+    setAdminShowNewConfirmPassword(false);
+    setAdminPasswordPanelError('');
   };
 
-  const handleSubmitPassword = async () => {
-    const validationError = validate();
-    if (validationError) {
-      setError(validationError);
+  const handleAdminSavePassword = async () => {
+    setAdminPasswordPanelError('');
+    setAdminStatus('');
+
+    if (!adminNewPassword) {
+      setAdminPasswordPanelError('New password is required.');
+      return;
+    }
+    if (adminNewPassword.length < 6) {
+      setAdminPasswordPanelError('Password must be at least 6 characters.');
+      return;
+    }
+    if (adminNewPassword !== adminNewConfirmPassword) {
+      setAdminPasswordPanelError('Passwords do not match.');
       return;
     }
 
-    setSubmitting(true);
-    setError('');
-  setStatusMessage('');
-
-    try {
-      // TODO: wire real API call. For now we just close after a tiny delay.
-      await new Promise((r) => setTimeout(r, 300));
-      setIsChanging(false);
-      setNewPassword('');
-      setConfirmPassword('');
-      setStatusMessage('Password updated.');
-    } catch (e) {
-      setError(e?.message || 'Failed to change password.');
-    } finally {
-      setSubmitting(false);
-    }
+    // UI-only placeholder for now.
+    setAdminStatus('Password updated (UI-only). Backend wiring pending.');
+    setAdminIsChangingPassword(false);
+    setAdminNewPassword('');
+    setAdminNewConfirmPassword('');
+    setAdminShowNewPassword(false);
+    setAdminShowNewConfirmPassword(false);
   };
 
-  const handleCancelChange = () => {
-    setIsChanging(false);
-    setNewPassword('');
-    setConfirmPassword('');
-    setError('');
-    setStatusMessage('');
-  };
+  // Admin account creation is not part of the current Figma flow; keep the panel focused on
+  // managing credentials (change password) to avoid conflicting forms.
 
   const handleGenerateNewPin = async () => {
     if (!isStaff) return;
@@ -166,27 +198,83 @@ export default function EmployeeAccountModal({ employee, onClose }) {
 
   return (
     <div className="employee-account-modal-overlay" onMouseDown={handleOverlayMouseDown}>
-      <div className="employee-account-modal" role="dialog" aria-modal="true" aria-label="Employee Account">
+      <div className="employee-account-modal employee-account-modal--hub" role="dialog" aria-modal="true" aria-label="Access Management Hub">
         <div className="employee-account-modal__header">
-          <div className="employee-account-modal__title">Employee Account</div>
+          <div className="employee-account-modal__title">Access Management Hub</div>
           <button className="employee-account-modal__close" onClick={handleClose} aria-label="Close">
             ×
           </button>
         </div>
 
-        <div className="employee-account-modal__body">
-          <div className="employee-account-modal__top">
+        <div className="employee-account-modal__body employee-account-modal__body--hub">
+          <div className="employee-account-modal__hubTop">
             <div className="employee-account-modal__avatar" aria-hidden="true">{initials}</div>
-            <div className="employee-account-modal__who">
-              <div className="employee-account-modal__name">{name}</div>
-              <div className="employee-account-modal__role">{employeeType || '—'}</div>
+            <div className="employee-account-modal__hubWho">
+              <div className="employee-account-modal__hubName">{name}</div>
+              <div className="employee-account-modal__hubSub">{username || '—'}</div>
+              <div className="employee-account-modal__hubPills">
+                <span className="employee-account-modal__pill employee-account-modal__pill--role">{employeeType || '—'}</span>
+                <span className="employee-account-modal__pill employee-account-modal__pill--status">{status}</span>
+              </div>
             </div>
           </div>
 
           <div className="employee-account-modal__divider" />
 
-          {isStaff ? (
-            <div className="employee-account-modal__pinWrap">
+          <div className="employee-account-modal__sectionTitle">
+            <span className="employee-account-modal__sectionIcon" aria-hidden="true">▢</span>
+            <span className="employee-account-modal__sectionText">
+              <span className="employee-account-modal__sectionHeading">Role Management</span>
+              <span className="employee-account-modal__sectionSub">Assign permissions and access levels</span>
+            </span>
+          </div>
+
+          <div className="employee-account-modal__roleGrid" role="radiogroup" aria-label="Role Management">
+            {roleOptions.map((opt) => {
+              const checked = selectedRole === opt.key;
+              return (
+                <button
+                  key={opt.key}
+                  type="button"
+                  className={`employee-account-modal__roleCard ${checked ? 'employee-account-modal__roleCard--selected' : ''}`}
+                  onClick={() => setSelectedRole(opt.key)}
+                  aria-pressed={checked}
+                >
+                  <div className="employee-account-modal__roleCardText">
+                    <div className="employee-account-modal__roleCardTitle">{opt.title}</div>
+                    <div className="employee-account-modal__roleCardDesc">{opt.description}</div>
+                  </div>
+                  <span className={`employee-account-modal__radio ${checked ? 'employee-account-modal__radio--checked' : ''}`} aria-hidden="true" />
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="employee-account-modal__tabSwitch" role="tablist" aria-label="Account Type">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'pin'}
+              className={`employee-account-modal__tab ${activeTab === 'pin' ? 'employee-account-modal__tab--active' : ''}`}
+              onClick={() => setActiveTab('pin')}
+            >
+              <span className="employee-account-modal__tabIcon" aria-hidden="true">🔑</span>
+              PIN Account
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'admin'}
+              className={`employee-account-modal__tab ${activeTab === 'admin' ? 'employee-account-modal__tab--active' : ''}`}
+              onClick={() => setActiveTab('admin')}
+            >
+              <span className="employee-account-modal__tabIcon" aria-hidden="true">👤</span>
+              Admin Account
+            </button>
+          </div>
+
+          {activeTab === 'pin' ? (
+            <div className="employee-account-modal__pinHub" role="tabpanel" aria-label="PIN Account">
               <div className="employee-account-modal__pinCard">
                 <div className="employee-account-modal__pinHeader">
                   <div>
@@ -205,55 +293,28 @@ export default function EmployeeAccountModal({ employee, onClose }) {
                   </div>
                   <div className="employee-account-modal__pinMetaItem">
                     <div className="employee-account-modal__pinMetaK">Account Status</div>
-                    <div className="employee-account-modal__pinMetaV">{employee?.Status || employee?.status || 'Active'}</div>
+                    <div className="employee-account-modal__pinMetaV">{status}</div>
                   </div>
                 </div>
+
+                {generatedPin ? (
+                  <div className="employee-account-modal__generatedPin">
+                    <div className="employee-account-modal__generatedPinLabel">NEW PIN</div>
+                    <div className="employee-account-modal__generatedPinValue">{generatedPin}</div>
+                    <div className="employee-account-modal__pinActions">
+                      <button className="employee-account-modal__copyBtn" type="button" onClick={handleCopyPin}>
+                        Copy
+                      </button>
+                      <button className="employee-account-modal__clearBtn" type="button" onClick={handleClearPin}>
+                        Clear
+                      </button>
+                    </div>
+                    {copyMessage ? (
+                      <div className="employee-account-modal__success" role="status">{copyMessage}</div>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
-
-              {generatedPin ? (
-                <div className="employee-account-modal__newPinWrap">
-                  <div className="employee-account-modal__newPinHeader">
-                    <div>
-                      <div className="employee-account-modal__newPinTitle">New PIN Generated</div>
-                      <div className="employee-account-modal__newPinSub">Share this code securely with the employee</div>
-                    </div>
-                    <div className="employee-account-modal__newPinIcon" aria-hidden="true">🔑</div>
-                  </div>
-
-                  <div className="employee-account-modal__newPinCard">
-                    <div className="employee-account-modal__newPinLabel">PIN CODE</div>
-                    <div className="employee-account-modal__pinDigits" aria-label="Generated PIN">
-                      {generatedPin.padEnd(6, '•').slice(0, 6).split('').map((d, idx) => (
-                        <div key={idx} className="employee-account-modal__pinDigit" aria-hidden="true">
-                          {d}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="employee-account-modal__pinActions">
-                    <button
-                      className="employee-account-modal__copyBtn"
-                      type="button"
-                      onClick={handleCopyPin}
-                    >
-                      Copy PIN
-                    </button>
-                    <button
-                      className="employee-account-modal__clearBtn"
-                      type="button"
-                      onClick={handleClearPin}
-                    >
-                      Clear
-                    </button>
-                  </div>
-
-                  <div className="employee-account-modal__pinWarning" role="note">
-                    <div className="employee-account-modal__pinWarningTitle">Important:</div>
-                    <div>Save this PIN before closing. It will not be shown again.</div>
-                  </div>
-                </div>
-              ) : null}
 
               {error ? (
                 <div className="employee-account-modal__error" role="alert">{error}</div>
@@ -261,91 +322,146 @@ export default function EmployeeAccountModal({ employee, onClose }) {
               {statusMessage ? (
                 <div className="employee-account-modal__success" role="status">{statusMessage}</div>
               ) : null}
-              {copyMessage ? (
-                <div className="employee-account-modal__success" role="status">{copyMessage}</div>
-              ) : null}
 
               <button
-                className="employee-account-modal__pinBtn"
                 type="button"
-                disabled={submitting}
+                className="employee-account-modal__primaryGradientBtn"
                 onClick={handleGenerateNewPin}
+                disabled={!isStaff || submitting}
+                title={!isStaff ? 'PIN is only available for staff accounts' : 'Generate new PIN'}
               >
-                {submitting ? 'Generating…' : 'Generate New PIN Code'}
+                <span aria-hidden="true">🔑</span>
+                Generate New PIN Code
+                <span aria-hidden="true">→</span>
               </button>
             </div>
-          ) : !isAdmin ? (
-            <div className="employee-account-modal__hint">This employee does not have an admin account.</div>
           ) : (
-            <div className="employee-account-modal__form">
-              <div className="employee-account-modal__field">
-                <div className="employee-account-modal__label">Username</div>
-                <div className="employee-account-modal__input employee-account-modal__input--readonly" aria-readonly="true">
-                  {username || '—'}
+            <div className="employee-account-modal__adminHub" role="tabpanel" aria-label="Admin Account">
+              <div className="employee-account-modal__adminMiniMeta">
+                <div className="employee-account-modal__adminMiniMetaItem">
+                  <div className="employee-account-modal__adminMiniMetaK">Employee ID</div>
+                  <div className="employee-account-modal__adminMiniMetaV">{username || '—'}</div>
+                </div>
+                <div className="employee-account-modal__adminMiniMetaItem">
+                  <div className="employee-account-modal__adminMiniMetaK">Account Status</div>
+                  <div className="employee-account-modal__adminMiniMetaV">{status}</div>
                 </div>
               </div>
 
-              <div className="employee-account-modal__field">
-                <div className="employee-account-modal__label">Password</div>
+              <div className="employee-account-modal__adminCard employee-account-modal__adminCard--change">
+                <div className="employee-account-modal__adminCardHeader">
+                  <div className="employee-account-modal__adminCardIcon" aria-hidden="true">🔒</div>
+                  <div className="employee-account-modal__adminCardHeading">
+                    <div className="employee-account-modal__adminTitle">Admin Account</div>
+                    <div className="employee-account-modal__adminSub">Manage admin credentials</div>
+                  </div>
+                </div>
 
-                {!isChanging ? (
-                  <>
-                    <div className="employee-account-modal__input employee-account-modal__input--readonly" aria-readonly="true">
-                      ••••••••
-                    </div>
-                    <button
-                      className="employee-account-modal__primaryBtn"
-                      type="button"
-                      onClick={handleStartChangePassword}
-                    >
-                      Change Password
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <input
-                      className="employee-account-modal__textInput"
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="New password"
-                      autoFocus
-                    />
-                    <input
-                      className="employee-account-modal__textInput"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Confirm new password"
-                    />
+                <div className="employee-account-modal__adminForm">
+                  <div className="employee-account-modal__field employee-account-modal__field--readonly">
+                    <span className="employee-account-modal__label employee-account-modal__label--caps">USERNAME</span>
+                    <div className="employee-account-modal__readonly">{username || '—'}</div>
+                  </div>
 
-                    {error ? (
-                      <div className="employee-account-modal__error" role="alert">{error}</div>
-                    ) : null}
+                  <div className="employee-account-modal__field">
+                    <span className="employee-account-modal__label employee-account-modal__label--caps">PASSWORD</span>
 
-                    {statusMessage ? (
-                      <div className="employee-account-modal__success" role="status">{statusMessage}</div>
-                    ) : null}
+                    {!adminIsChangingPassword ? (
+                      <>
+                        <div className="employee-account-modal__readonly employee-account-modal__readonly--masked" aria-label="Masked password">••••••••••••</div>
+                        <button
+                          type="button"
+                          className="employee-account-modal__adminPrimaryBtn"
+                          onClick={handleAdminOpenChangePassword}
+                        >
+                          Change Password
+                        </button>
+                      </>
+                    ) : (
+                      <div className="employee-account-modal__adminPasswordPanel">
+                        <label className="employee-account-modal__subField">
+                          <span className="employee-account-modal__subLabel">New Password</span>
+                          <div className="employee-account-modal__passwordWrap employee-account-modal__passwordWrap--sm">
+                            <input
+                              className="employee-account-modal__input employee-account-modal__input--panel"
+                              type={adminShowNewPassword ? 'text' : 'password'}
+                              value={adminNewPassword}
+                              onChange={(e) => {
+                                setAdminNewPassword(e.target.value);
+                                setAdminPasswordPanelError('');
+                                setAdminStatus('');
+                              }}
+                              placeholder="Enter new password"
+                              autoComplete="new-password"
+                            />
+                            <button
+                              type="button"
+                              className="employee-account-modal__eyeBtn employee-account-modal__eyeBtn--sm"
+                              onClick={() => setAdminShowNewPassword((v) => !v)}
+                              aria-label={adminShowNewPassword ? 'Hide new password' : 'Show new password'}
+                              title={adminShowNewPassword ? 'Hide new password' : 'Show new password'}
+                            >
+                              {adminShowNewPassword ? '🙈' : '👁️'}
+                            </button>
+                          </div>
+                        </label>
 
-                    <button
-                      className="employee-account-modal__primaryBtn"
-                      type="button"
-                      disabled={submitting}
-                      onClick={handleSubmitPassword}
-                    >
-                      {submitting ? 'Saving…' : 'Save Password'}
-                    </button>
+                        <label className="employee-account-modal__subField">
+                          <span className="employee-account-modal__subLabel">Confirm Password</span>
+                          <div className="employee-account-modal__passwordWrap employee-account-modal__passwordWrap--sm">
+                            <input
+                              className="employee-account-modal__input employee-account-modal__input--panel"
+                              type={adminShowNewConfirmPassword ? 'text' : 'password'}
+                              value={adminNewConfirmPassword}
+                              onChange={(e) => {
+                                setAdminNewConfirmPassword(e.target.value);
+                                setAdminPasswordPanelError('');
+                                setAdminStatus('');
+                              }}
+                              placeholder="Confirm new password"
+                              autoComplete="new-password"
+                            />
+                            <button
+                              type="button"
+                              className="employee-account-modal__eyeBtn employee-account-modal__eyeBtn--sm"
+                              onClick={() => setAdminShowNewConfirmPassword((v) => !v)}
+                              aria-label={adminShowNewConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                              title={adminShowNewConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                            >
+                              {adminShowNewConfirmPassword ? '🙈' : '👁️'}
+                            </button>
+                          </div>
+                        </label>
 
-                    <button
-                      className="employee-account-modal__secondaryBtn"
-                      type="button"
-                      disabled={submitting}
-                      onClick={handleCancelChange}
-                    >
-                      Cancel
-                    </button>
-                  </>
-                )}
+                        {adminPasswordPanelError ? (
+                          <div className="employee-account-modal__error" role="alert">{adminPasswordPanelError}</div>
+                        ) : null}
+
+                        <div className="employee-account-modal__adminBtnRow">
+                          <button
+                            type="button"
+                            className="employee-account-modal__adminSaveBtn"
+                            onClick={handleAdminSavePassword}
+                            disabled={!isAdminPasswordPanelValid}
+                          >
+                            Save Password
+                          </button>
+                          <button
+                            type="button"
+                            className="employee-account-modal__adminCancelBtn"
+                            onClick={handleAdminCancelChangePassword}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {adminStatus ? (
+                    <div className="employee-account-modal__success" role="status">{adminStatus}</div>
+                  ) : null}
+                </div>
               </div>
             </div>
           )}
