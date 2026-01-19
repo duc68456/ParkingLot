@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
 import "../styles/pages/RolesPage.css";
 import ManagePermissionsModal from "../components/ManagePermissionsModal";
+import CreateRoleModal from "../components/CreateRoleModal";
+import EditRoleModal from "../components/EditRoleModal";
+import ViewPermissionsModal from "../components/ViewPermissionsModal";
 
 function Icon({ name, size = 16, className = "" }) {
   const common = {
@@ -15,6 +18,23 @@ function Icon({ name, size = 16, className = "" }) {
   };
 
   switch (name) {
+    case "eye":
+      return (
+        <svg {...common}>
+          <path
+            d="M2.5 12s3.5-7 9.5-7 9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
     case "lock":
       return (
         <svg {...common}>
@@ -131,6 +151,9 @@ export default function RolesPage() {
   const pageSize = 5;
 
   const [isPermissionsOpen, setIsPermissionsOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [activeRole, setActiveRole] = useState(null);
   const [rolePermissions, setRolePermissions] = useState(() => ({
     ROLE001: ["view_dashboard", "manage_entry_exit", "view_sessions"],
@@ -140,8 +163,9 @@ export default function RolesPage() {
     ROLE005: [],
   }));
 
+  const [roles, setRoles] = useState(SAMPLE_ROLES);
+
   // UI-only for now.
-  const roles = SAMPLE_ROLES;
 
   const { items, total } = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -159,8 +183,32 @@ export default function RolesPage() {
     setIsPermissionsOpen(true);
   };
 
+  const openViewPermissions = (role) => {
+    setActiveRole(role);
+    setIsViewOpen(true);
+  };
+
+  const openEdit = (role) => {
+    setActiveRole(role);
+    setIsEditOpen(true);
+  };
+
   const closePermissions = () => {
     setIsPermissionsOpen(false);
+    setActiveRole(null);
+  };
+
+  const closeViewPermissions = () => {
+    setIsViewOpen(false);
+    setActiveRole(null);
+  };
+
+  const closeCreate = () => {
+    setIsCreateOpen(false);
+  };
+
+  const closeEdit = () => {
+    setIsEditOpen(false);
     setActiveRole(null);
   };
 
@@ -170,11 +218,52 @@ export default function RolesPage() {
     closePermissions();
   };
 
+  const handleCreateRole = (payload) => {
+    const name = payload?.name?.trim();
+    const description = payload?.description?.trim();
+    if (!name || !description) {
+      closeCreate();
+      return;
+    }
+
+    const id = `ROLE${String(roles.length + 1).padStart(3, "0")}`;
+    const newRole = {
+      id,
+      name,
+      description,
+      assignedUsers: 0,
+      status: "Active",
+      lastUpdatedBy: "Admin User",
+    };
+
+    setRoles((prev) => [newRole, ...prev]);
+    setRolePermissions((prev) => ({ ...prev, [id]: [] }));
+    closeCreate();
+  };
+
+  const handleSaveRole = (updatedRole) => {
+    if (!updatedRole?.id) {
+      closeEdit();
+      return;
+    }
+    setRoles((prev) => prev.map((r) => (r.id === updatedRole.id ? { ...r, ...updatedRole } : r)));
+    closeEdit();
+  };
+
   return (
     <div className="roles-page" data-node-id="363:2488">
-      <div className="roles-page__header">
-        <div className="roles-page__title">Roles &amp; Permissions</div>
-        <div className="roles-page__subtitle">Manage user roles and access control</div>
+      <div className="roles-page__top">
+        <div className="roles-page__header">
+          <div className="roles-page__title">Roles &amp; Permissions</div>
+          <div className="roles-page__subtitle">Manage user roles and access control</div>
+        </div>
+
+        <button type="button" className="roles-page__addBtn" onClick={() => setIsCreateOpen(true)}>
+          <span className="roles-page__addIcon" aria-hidden="true">
+            +
+          </span>
+          Add New Role
+        </button>
       </div>
 
       <ManagePermissionsModal
@@ -184,6 +273,16 @@ export default function RolesPage() {
         onClose={closePermissions}
         onSave={handleSavePermissions}
       />
+
+      <ViewPermissionsModal
+        open={isViewOpen}
+        role={activeRole}
+        permissions={activeRole ? rolePermissions[activeRole.id] : []}
+        onClose={closeViewPermissions}
+      />
+
+      <CreateRoleModal open={isCreateOpen} onClose={closeCreate} onCreate={handleCreateRole} />
+      <EditRoleModal open={isEditOpen} role={activeRole} onClose={closeEdit} onSave={handleSaveRole} />
 
       <section className="roles-page__tableCard" aria-label="Roles table">
         <div className="roles-page__tableWrap">
@@ -227,13 +326,28 @@ export default function RolesPage() {
                       <button
                         type="button"
                         className="roles-page__iconBtn"
+                        title="View permissions"
+                        aria-label="View permissions"
+                        onClick={() => openViewPermissions(r)}
+                      >
+                        <Icon name="eye" />
+                      </button>
+                      <button
+                        type="button"
+                        className="roles-page__iconBtn"
                         title="Manage permissions"
                         aria-label="Manage permissions"
                         onClick={() => openPermissions(r)}
                       >
                         <Icon name="lock" />
                       </button>
-                      <button type="button" className="roles-page__iconBtn" title="Edit" aria-label="Edit">
+                      <button
+                        type="button"
+                        className="roles-page__iconBtn"
+                        title="Edit"
+                        aria-label="Edit"
+                        onClick={() => openEdit(r)}
+                      >
                         <Icon name="edit" />
                       </button>
                       <button type="button" className="roles-page__iconBtn" title="Delete" aria-label="Delete">

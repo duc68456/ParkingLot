@@ -21,6 +21,69 @@ function getEmployeeInitials(employee) {
   return parts.slice(0, 2).map((p) => p[0]?.toUpperCase()).join('');
 }
 
+function hasPinAccount(employee) {
+  // The project currently doesn't fetch/display the current PIN value for security.
+  // We treat the account as existing if a staffAccount-like object or flag is present.
+  const staffAccount = employee?.staffAccount ?? employee?.StaffAccount ?? employee?.staff_account ?? null;
+  if (staffAccount) return true;
+
+  const flags = [
+    employee?.hasPinAccount,
+    employee?.HasPinAccount,
+    employee?.has_pin_account,
+    employee?.hasPin,
+    employee?.HasPin,
+    employee?.has_pin
+  ];
+  if (flags.some((v) => v === true)) return true;
+
+  // If the backend provides an account status for the PIN account.
+  const pinStatus = employee?.pinAccountStatus ?? employee?.PinAccountStatus ?? employee?.pin_account_status;
+  if (typeof pinStatus === 'string' && pinStatus.trim()) return true;
+
+  return false;
+}
+
+function KeyIcon({ size = 32 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path
+        d="M13.5 10.5a4.5 4.5 0 1 0-9 0 4.5 4.5 0 0 0 9 0Zm0 0 7.3 0c.66 0 1.2.54 1.2 1.2v1.1c0 .55-.45 1-1 1h-1.1v1.1c0 .55-.45 1-1 1H17.8v1.1c0 .55-.45 1-1 1H15"
+        stroke="#9810FA"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M7.2 10.5h.01"
+        stroke="#9810FA"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function LockIcon({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path
+        d="M7 11V8.8C7 6.15 9.15 4 11.8 4h.4C14.85 4 17 6.15 17 8.8V11"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M6.5 11h11c.83 0 1.5.67 1.5 1.5v6.5c0 .83-.67 1.5-1.5 1.5h-11c-.83 0-1.5-.67-1.5-1.5V12.5c0-.83.67-1.5 1.5-1.5Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path d="M12 15.2v2.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export default function EmployeeAccountModal({ employee, onClose }) {
   const { authHeaders } = useAuth();
   const initials = getEmployeeInitials(employee);
@@ -52,6 +115,7 @@ export default function EmployeeAccountModal({ employee, onClose }) {
 
   const isStaff = employeeType === 'STAFF' || employeeType === 'GATE_STAFF';
   const username = employee?.id || employee?.ID || '';
+  const pinAccountExists = hasPinAccount(employee);
 
   const status = employee?.Status || employee?.status || 'Active';
 
@@ -258,7 +322,7 @@ export default function EmployeeAccountModal({ employee, onClose }) {
               className={`employee-account-modal__tab ${activeTab === 'pin' ? 'employee-account-modal__tab--active' : ''}`}
               onClick={() => setActiveTab('pin')}
             >
-              <span className="employee-account-modal__tabIcon" aria-hidden="true">🔑</span>
+              <span className="employee-account-modal__tabIcon" aria-hidden="true">▢</span>
               PIN Account
             </button>
             <button
@@ -268,53 +332,74 @@ export default function EmployeeAccountModal({ employee, onClose }) {
               className={`employee-account-modal__tab ${activeTab === 'admin' ? 'employee-account-modal__tab--active' : ''}`}
               onClick={() => setActiveTab('admin')}
             >
-              <span className="employee-account-modal__tabIcon" aria-hidden="true">👤</span>
+              <span className="employee-account-modal__tabIcon" aria-hidden="true">▢</span>
               Admin Account
             </button>
           </div>
 
           {activeTab === 'pin' ? (
             <div className="employee-account-modal__pinHub" role="tabpanel" aria-label="PIN Account">
-              <div className="employee-account-modal__pinCard">
-                <div className="employee-account-modal__pinHeader">
-                  <div>
-                    <div className="employee-account-modal__pinLabel">CURRENT PIN CODE</div>
-                    <div className="employee-account-modal__pinSub">6-digit authentication code</div>
+              {!pinAccountExists && !generatedPin ? (
+                <div className="employee-account-modal__pinEmpty" role="status" aria-label="No PIN Account">
+                  <div className="employee-account-modal__pinEmptyIcon" aria-hidden="true">
+                    <KeyIcon size={32} />
                   </div>
-                  <div className="employee-account-modal__pinIcon" aria-hidden="true">🔑</div>
+                  <div className="employee-account-modal__pinEmptyTitle">No PIN Account</div>
+                  <div className="employee-account-modal__pinEmptySub">
+                    This employee doesn&apos;t have a PIN account yet. Create one to enable gate access.
+                  </div>
+                  <button
+                    type="button"
+                    className="employee-account-modal__pinEmptyCta"
+                    onClick={handleGenerateNewPin}
+                    disabled={!isStaff || submitting}
+                    title={!isStaff ? 'PIN is only available for staff accounts' : 'Create PIN account'}
+                  >
+                    Create PIN Account
+                  </button>
                 </div>
-
-                <div className="employee-account-modal__pinMasked" aria-label="Masked PIN">• • • • • •</div>
-
-                <div className="employee-account-modal__pinMeta">
-                  <div className="employee-account-modal__pinMetaItem">
-                    <div className="employee-account-modal__pinMetaK">Employee ID</div>
-                    <div className="employee-account-modal__pinMetaV">{username || '—'}</div>
-                  </div>
-                  <div className="employee-account-modal__pinMetaItem">
-                    <div className="employee-account-modal__pinMetaK">Account Status</div>
-                    <div className="employee-account-modal__pinMetaV">{status}</div>
-                  </div>
-                </div>
-
-                {generatedPin ? (
-                  <div className="employee-account-modal__generatedPin">
-                    <div className="employee-account-modal__generatedPinLabel">NEW PIN</div>
-                    <div className="employee-account-modal__generatedPinValue">{generatedPin}</div>
-                    <div className="employee-account-modal__pinActions">
-                      <button className="employee-account-modal__copyBtn" type="button" onClick={handleCopyPin}>
-                        Copy
-                      </button>
-                      <button className="employee-account-modal__clearBtn" type="button" onClick={handleClearPin}>
-                        Clear
-                      </button>
+              ) : (
+                <div className="employee-account-modal__pinCard">
+                  <div className="employee-account-modal__pinHeader">
+                    <div>
+                      <div className="employee-account-modal__pinLabel">CURRENT PIN CODE</div>
+                      <div className="employee-account-modal__pinSub">6-digit authentication code</div>
                     </div>
-                    {copyMessage ? (
-                      <div className="employee-account-modal__success" role="status">{copyMessage}</div>
-                    ) : null}
+                    <div className="employee-account-modal__pinIcon" aria-hidden="true">🔑</div>
                   </div>
-                ) : null}
-              </div>
+
+                  <div className="employee-account-modal__pinMasked" aria-label="Masked PIN">• • • • • •</div>
+
+                  <div className="employee-account-modal__pinMeta">
+                    <div className="employee-account-modal__pinMetaItem">
+                      <div className="employee-account-modal__pinMetaK">Employee ID</div>
+                      <div className="employee-account-modal__pinMetaV">{username || '—'}</div>
+                    </div>
+                    <div className="employee-account-modal__pinMetaItem">
+                      <div className="employee-account-modal__pinMetaK">Account Status</div>
+                      <div className="employee-account-modal__pinMetaV">{status}</div>
+                    </div>
+                  </div>
+
+                  {generatedPin ? (
+                    <div className="employee-account-modal__generatedPin">
+                      <div className="employee-account-modal__generatedPinLabel">NEW PIN</div>
+                      <div className="employee-account-modal__generatedPinValue">{generatedPin}</div>
+                      <div className="employee-account-modal__pinActions">
+                        <button className="employee-account-modal__copyBtn" type="button" onClick={handleCopyPin}>
+                          Copy
+                        </button>
+                        <button className="employee-account-modal__clearBtn" type="button" onClick={handleClearPin}>
+                          Clear
+                        </button>
+                      </div>
+                      {copyMessage ? (
+                        <div className="employee-account-modal__success" role="status">{copyMessage}</div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              )}
 
               {error ? (
                 <div className="employee-account-modal__error" role="alert">{error}</div>
@@ -337,22 +422,13 @@ export default function EmployeeAccountModal({ employee, onClose }) {
             </div>
           ) : (
             <div className="employee-account-modal__adminHub" role="tabpanel" aria-label="Admin Account">
-              <div className="employee-account-modal__adminMiniMeta">
-                <div className="employee-account-modal__adminMiniMetaItem">
-                  <div className="employee-account-modal__adminMiniMetaK">Employee ID</div>
-                  <div className="employee-account-modal__adminMiniMetaV">{username || '—'}</div>
-                </div>
-                <div className="employee-account-modal__adminMiniMetaItem">
-                  <div className="employee-account-modal__adminMiniMetaK">Account Status</div>
-                  <div className="employee-account-modal__adminMiniMetaV">{status}</div>
-                </div>
-              </div>
-
               <div className="employee-account-modal__adminCard employee-account-modal__adminCard--change">
                 <div className="employee-account-modal__adminCardHeader">
-                  <div className="employee-account-modal__adminCardIcon" aria-hidden="true">🔒</div>
+                  <div className="employee-account-modal__adminCardIcon" aria-hidden="true">
+                    <LockIcon size={24} />
+                  </div>
                   <div className="employee-account-modal__adminCardHeading">
-                    <div className="employee-account-modal__adminTitle">Admin Account</div>
+                    <div className="employee-account-modal__adminTitleCaps">ADMIN ACCOUNT</div>
                     <div className="employee-account-modal__adminSub">Manage admin credentials</div>
                   </div>
                 </div>
@@ -360,15 +436,14 @@ export default function EmployeeAccountModal({ employee, onClose }) {
                 <div className="employee-account-modal__adminForm">
                   <div className="employee-account-modal__field employee-account-modal__field--readonly">
                     <span className="employee-account-modal__label employee-account-modal__label--caps">USERNAME</span>
-                    <div className="employee-account-modal__readonly">{username || '—'}</div>
+                    <div className="employee-account-modal__readonly employee-account-modal__readonly--mono">{String(username || '—')}</div>
                   </div>
 
                   <div className="employee-account-modal__field">
                     <span className="employee-account-modal__label employee-account-modal__label--caps">PASSWORD</span>
-
                     {!adminIsChangingPassword ? (
                       <>
-                        <div className="employee-account-modal__readonly employee-account-modal__readonly--masked" aria-label="Masked password">••••••••••••</div>
+                        <div className="employee-account-modal__readonly employee-account-modal__readonly--masked employee-account-modal__readonly--mono" aria-label="Masked password">••••••••••••</div>
                         <button
                           type="button"
                           className="employee-account-modal__adminPrimaryBtn"
@@ -376,6 +451,17 @@ export default function EmployeeAccountModal({ employee, onClose }) {
                         >
                           Change Password
                         </button>
+
+                        <div className="employee-account-modal__adminMiniMeta employee-account-modal__adminMiniMeta--inPanel">
+                          <div className="employee-account-modal__adminMiniMetaItem">
+                            <div className="employee-account-modal__adminMiniMetaK">Employee ID</div>
+                            <div className="employee-account-modal__adminMiniMetaV">{username || '—'}</div>
+                          </div>
+                          <div className="employee-account-modal__adminMiniMetaItem">
+                            <div className="employee-account-modal__adminMiniMetaK">Account Status</div>
+                            <div className="employee-account-modal__adminMiniMetaV">{status}</div>
+                          </div>
+                        </div>
                       </>
                     ) : (
                       <div className="employee-account-modal__adminPasswordPanel">

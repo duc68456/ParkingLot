@@ -1,0 +1,336 @@
+.view-perms {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.view-perms__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.view-perms__panel {
+  position: relative;
+  width: min(672px, calc(100vw - 48px));
+  max-height: calc(100vh - 64px);
+  margin: 48px auto;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.view-perms__header {
+  height: 69px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 0.8px solid #e2e8f0;
+}
+
+.view-perms__title {
+  font-family: "Arimo", sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 28px;
+  color: #0f172b;
+}
+
+.view-perms__closeIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #45556c;
+}
+
+.view-perms__closeIcon:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.view-perms__body {
+  padding: 24px;
+  padding-right: 39px; /* matches figma (slightly asymmetric) */
+  overflow: auto;
+}
+
+.view-perms__hero {
+  background: #314158;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.view-perms__heroLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.view-perms__heroBadge {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -2px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.view-perms__heroText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.view-perms__heroName {
+  font-family: "Arimo", sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 28px;
+  color: #ffffff;
+}
+
+.view-perms__heroDesc {
+  font-family: "Arimo", sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.view-perms__heroTotal {
+  width: 77px;
+  height: 76px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -2px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+  padding: 12px 20px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.view-perms__heroTotalLabel {
+  font-family: "Arimo", sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.view-perms__heroTotalValue {
+  font-family: "Arimo", sans-serif;
+  font-weight: 700;
+  font-size: 30px;
+  line-height: 36px;
+  color: #ffffff;
+}
+
+.view-perms__groups {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.view-perms__group {
+  border: 1.6px solid #e2e8f0;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px rgba(0, 0, 0, 0.06);
+  background: #ffffff;
+}
+
+.view-perms__groupHead {
+  background: #f1f5f9;
+  border-bottom: 1.6px solid #e2e8f0;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.view-perms__groupIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.view-perms__groupText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.view-perms__groupTitle {
+  font-family: "Arimo", sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 20px;
+  color: #0f172b;
+}
+
+.view-perms__groupSub {
+  font-family: "Arimo", sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+  color: #45556c;
+}
+
+.view-perms__groupBody {
+  background: #f8fafc;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.view-perms__perm {
+  border: 1.6px solid #b9f8cf;
+  background: #f0fdf4;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.view-perms__permCheck {
+  width: 24px;
+  height: 24px;
+  border-radius: 10px;
+  background: #00a63e;
+  border: 1.6px solid #00a63e;
+  box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.view-perms__permText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.view-perms__permLabel {
+  font-family: "Arimo", sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 20px;
+  color: #0f172b;
+}
+
+.view-perms__permDesc {
+  font-family: "Arimo", sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+  color: #45556c;
+}
+
+.view-perms__empty {
+  border: 1.6px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 20px;
+}
+
+.view-perms__emptyTitle {
+  font-family: "Arimo", sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 20px;
+  color: #0f172b;
+}
+
+.view-perms__emptySub {
+  margin-top: 4px;
+  font-family: "Arimo", sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+  color: #45556c;
+}
+
+.view-perms__footer {
+  border-top: 1.6px solid #e2e8f0;
+  padding: 17.6px 24px;
+  display: flex;
+  justify-content: flex-end;
+  background: #ffffff;
+}
+
+.view-perms__closeBtn {
+  height: 48px;
+  padding: 0 18px;
+  border-radius: 10px;
+  border: none;
+  background: #45556c;
+  color: #ffffff;
+  font-family: "Arimo", sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 24px;
+  cursor: pointer;
+  box-shadow: 0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -4px rgba(0, 0, 0, 0.1);
+}
+
+.view-perms__closeBtn:hover {
+  background: #314158;
+}
+
+@media (max-width: 520px) {
+  .view-perms__panel {
+    width: calc(100vw - 24px);
+    margin: 12px auto;
+    max-height: calc(100vh - 24px);
+  }
+
+  .view-perms__body {
+    padding-right: 24px;
+  }
+
+  .view-perms__hero {
+    padding: 16px;
+  }
+
+  .view-perms__heroTotal {
+    padding: 10px 14px;
+  }
+}
