@@ -7,6 +7,7 @@ const ShiftReportDetail = require('../models/shiftReportDetail');
 const VehicleType = require('../models/vehicleType');
 const { signToken, verifyToken } = require('../utils/auth');
 const middleware = require('../utils/middleware');
+const { resolveAuthzForEmployee } = require('../utils/authorization');
 
 const generatePin = () => String(Math.floor(100000 + Math.random() * 900000));
 
@@ -687,11 +688,17 @@ staffAccountsRouter.post('/verify-pin', async (request, response) => {
     }
 
     // StaffAccount.EmployeeID is an employee business ID string (EMP####).
+    const { roleIds, permissions } = staffAccount?.EmployeeID
+      ? await resolveAuthzForEmployee(staffAccount.EmployeeID)
+      : { roleIds: [], permissions: [] };
+
     const token = signToken({
       type: 'staff',
       staffAccountId: staffAccount._id.toString(),
       employeeId: staffAccount.EmployeeID,
-      employeeBusinessId: staffAccount.EmployeeID
+      employeeBusinessId: staffAccount.EmployeeID,
+      roleIds,
+      permissions
     })
 
     response.json({

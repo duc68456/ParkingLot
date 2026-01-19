@@ -3,6 +3,7 @@ const AdminAccount = require('../models/adminAccount');
 const Employee = require('../models/employee');
 const { signToken } = require('../utils/auth');
 const middleware = require('../utils/middleware');
+const { resolveAuthzForEmployee } = require('../utils/authorization');
 
 const isObjectId = (val) => /^[a-f\d]{24}$/i.test(String(val || '').trim());
 const isEmployeeBusinessId = (val) => /^EMP\d{4}$/i.test(String(val || '').trim());
@@ -520,6 +521,11 @@ adminAccountsRouter.post('/login', async (request, response) => {
       adminAccount?.employee?.ID ||
       (await resolveEmployeeBusinessId(adminAccount.EmployeeID));
 
+    // Resolve dynamic authz for JWT payload.
+    const { roleIds, permissions } = employeeBusinessId
+      ? await resolveAuthzForEmployee(employeeBusinessId)
+      : { roleIds: [], permissions: [] };
+
     const adminAccountObjectId = adminAccount?._id ? String(adminAccount._id) : null;
     if (!adminAccountObjectId) {
       return response.status(500).json({
@@ -540,7 +546,9 @@ adminAccountsRouter.post('/login', async (request, response) => {
         // Prefer business ID in token payload. Some older code reads employeeId,
         // so we keep it but now it equals the business ID.
         employeeId: employeeBusinessId,
-        employeeBusinessId
+        employeeBusinessId,
+        roleIds,
+        permissions
       });
     } catch (err) {
       return response.status(500).json({

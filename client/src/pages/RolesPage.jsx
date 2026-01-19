@@ -1,9 +1,18 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "../styles/pages/RolesPage.css";
 import ManagePermissionsModal from "../components/ManagePermissionsModal";
 import CreateRoleModal from "../components/CreateRoleModal";
 import EditRoleModal from "../components/EditRoleModal";
 import ViewPermissionsModal from "../components/ViewPermissionsModal";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  createRole,
+  deleteRole,
+  fetchRolePermissions,
+  fetchRoles,
+  updateRole,
+  updateRolePermissions
+} from "../utils/authzApi";
 
 function Icon({ name, size = 16, className = "" }) {
   const common = {
@@ -98,48 +107,7 @@ function Icon({ name, size = 16, className = "" }) {
   }
 }
 
-const SAMPLE_ROLES = [
-  {
-    id: "ROLE001",
-    name: "SuperAdmin",
-    description: "Full system access with all permissions",
-    assignedUsers: 2,
-    status: "Active",
-    lastUpdatedBy: "System",
-  },
-  {
-    id: "ROLE002",
-    name: "GateGuard",
-    description: "Gate management and entry/exit operations",
-    assignedUsers: 5,
-    status: "Active",
-    lastUpdatedBy: "Admin User",
-  },
-  {
-    id: "ROLE003",
-    name: "Accountant",
-    description: "Financial reports and pricing management",
-    assignedUsers: 3,
-    status: "Active",
-    lastUpdatedBy: "Admin User",
-  },
-  {
-    id: "ROLE004",
-    name: "HR Manager",
-    description: "Employee and customer management",
-    assignedUsers: 2,
-    status: "Active",
-    lastUpdatedBy: "Admin User",
-  },
-  {
-    id: "ROLE005",
-    name: "Customer Service",
-    description: "Customer support and card management",
-    assignedUsers: 4,
-    status: "Active",
-    lastUpdatedBy: "Admin User",
-  },
-];
+const SAMPLE_ROLES = [];
 
 function formatUsers(count) {
   const n = Number(count) || 0;
@@ -147,6 +115,7 @@ function formatUsers(count) {
 }
 
 export default function RolesPage() {
+  const { authHeaders } = useAuth();
   const [page, setPage] = useState(1);
   const pageSize = 5;
 
@@ -156,16 +125,49 @@ export default function RolesPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [activeRole, setActiveRole] = useState(null);
   const [rolePermissions, setRolePermissions] = useState(() => ({
-    ROLE001: ["view_dashboard", "manage_entry_exit", "view_sessions"],
-    ROLE002: ["manage_entry_exit", "view_sessions"],
-    ROLE003: [],
-    ROLE004: [],
-    ROLE005: [],
+    // Map roleId -> permissionCodes[]
   }));
 
   const [roles, setRoles] = useState(SAMPLE_ROLES);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  // UI-only for now.
+  useEffect(() => {
+    let mounted = true;
+
+    const load = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const data = await fetchRoles({ authHeaders });
+        const list = Array.isArray(data?.roles) ? data.roles : Array.isArray(data) ? data : data?.data?.roles;
+
+        // Normalize to RolesPage shape: { id, name, description, assignedUsers, status, lastUpdatedBy }
+        const normalized = (list || []).map((r) => ({
+          id: r?.ID || r?.id || r?._id,
+          name: r?.Name || r?.name || "",
+          description: r?.Description || r?.description || "",
+          assignedUsers: r?.AssignedUsers ?? r?.assignedUsers ?? 0,
+          status: r?.IsActive === false || String(r?.Status || "").toLowerCase() === "inactive" ? "Inactive" : "Active",
+          lastUpdatedBy: r?.UpdatedBy || r?.lastUpdatedBy || "—",
+        }));
+
+        if (mounted) {
+          setRoles(normalized);
+          setPage(1);
+        }
+      } catch (e) {
+        if (mounted) setError(e?.message || "Failed to load roles");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, [authHeaders]);
 
   const { items, total } = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -178,13 +180,33 @@ export default function RolesPage() {
   const canPrev = page > 1;
   const canNext = page * pageSize < total;
 
-  const openPermissions = (role) => {
+  const openPermissions = async (role) => {
     setActiveRole(role);
+    // Lazy-load permissions for this role the first time we open it.
+    if (role?.id && !Array.isArray(rolePermissions?.[role.id])) {
+      try {
+        const data = await fetchRolePermissions({ authHeaders, roleId: role.id });
+        const perms = data?.permissions || data?.data?.permissions || data || [];
+        setRolePermissions((prev) => ({ ...prev, [role.id]: Array.isArray(perms) ? perms : [] }));
+      } catch {
+        // If it fails, keep empty; modal will still open.
+        setRolePermissions((prev) => ({ ...prev, [role.id]: [] }));
+      }
+    }
     setIsPermissionsOpen(true);
   };
 
-  const openViewPermissions = (role) => {
+  const openViewPermissions = async (role) => {
     setActiveRole(role);
+    if (role?.id && !Array.isArray(rolePermissions?.[role.id])) {
+      try {
+        const data = await fetchRolePermissions({ authHeaders, roleId: role.id });
+        const perms = data?.permissions || data?.data?.permissions || data || [];
+        setRolePermissions((prev) => ({ ...prev, [role.id]: Array.isArray(perms) ? perms : [] }));
+      } catch {
+        setRolePermissions((prev) => ({ ...prev, [role.id]: [] }));
+      }
+    }
     setIsViewOpen(true);
   };
 
@@ -212,13 +234,19 @@ export default function RolesPage() {
     setActiveRole(null);
   };
 
-  const handleSavePermissions = (selectedKeys) => {
+  const handleSavePermissions = async (selectedKeys) => {
     if (!activeRole?.id) return;
-    setRolePermissions((prev) => ({ ...prev, [activeRole.id]: selectedKeys }));
-    closePermissions();
+    setError("");
+    try {
+      await updateRolePermissions({ authHeaders, roleId: activeRole.id, permissionCodes: selectedKeys });
+      setRolePermissions((prev) => ({ ...prev, [activeRole.id]: selectedKeys }));
+      closePermissions();
+    } catch (e) {
+      setError(e?.message || "Failed to update role permissions");
+    }
   };
 
-  const handleCreateRole = (payload) => {
+  const handleCreateRole = async (payload) => {
     const name = payload?.name?.trim();
     const description = payload?.description?.trim();
     if (!name || !description) {
@@ -226,28 +254,88 @@ export default function RolesPage() {
       return;
     }
 
-    const id = `ROLE${String(roles.length + 1).padStart(3, "0")}`;
-    const newRole = {
-      id,
-      name,
-      description,
-      assignedUsers: 0,
-      status: "Active",
-      lastUpdatedBy: "Admin User",
-    };
+    setError("");
+    try {
+      const created = await createRole({
+        authHeaders,
+        payload: {
+          Name: name,
+          Description: description,
+          IsActive: true
+        }
+      });
 
-    setRoles((prev) => [newRole, ...prev]);
-    setRolePermissions((prev) => ({ ...prev, [id]: [] }));
-    closeCreate();
+      const role = created?.role || created?.data?.role || created;
+      const normalized = {
+        id: role?.ID || role?.id || role?._id,
+        name: role?.Name || role?.name || name,
+        description: role?.Description || role?.description || description,
+        assignedUsers: role?.AssignedUsers ?? role?.assignedUsers ?? 0,
+        status: role?.IsActive === false || String(role?.Status || "").toLowerCase() === "inactive" ? "Inactive" : "Active",
+        lastUpdatedBy: role?.UpdatedBy || role?.lastUpdatedBy || "—",
+      };
+
+      setRoles((prev) => [normalized, ...prev]);
+      setRolePermissions((prev) => ({ ...prev, [normalized.id]: [] }));
+      closeCreate();
+    } catch (e) {
+      setError(e?.message || "Failed to create role");
+    }
   };
 
-  const handleSaveRole = (updatedRole) => {
+  const handleSaveRole = async (updatedRole) => {
     if (!updatedRole?.id) {
       closeEdit();
       return;
     }
-    setRoles((prev) => prev.map((r) => (r.id === updatedRole.id ? { ...r, ...updatedRole } : r)));
-    closeEdit();
+
+    setError("");
+    try {
+      const saved = await updateRole({
+        authHeaders,
+        roleId: updatedRole.id,
+        payload: {
+          Name: updatedRole.name,
+          Description: updatedRole.description,
+          IsActive: updatedRole.status === "Active"
+        }
+      });
+
+      const role = saved?.role || saved?.data?.role || saved;
+      const normalized = {
+        id: role?.ID || role?.id || updatedRole.id,
+        name: role?.Name || role?.name || updatedRole.name,
+        description: role?.Description || role?.description || updatedRole.description,
+        assignedUsers: role?.AssignedUsers ?? role?.assignedUsers ?? updatedRole.assignedUsers ?? 0,
+        status: role?.IsActive === false || String(role?.Status || "").toLowerCase() === "inactive" ? "Inactive" : "Active",
+        lastUpdatedBy: role?.UpdatedBy || role?.lastUpdatedBy || updatedRole.lastUpdatedBy || "—",
+      };
+
+      setRoles((prev) => prev.map((r) => (r.id === normalized.id ? { ...r, ...normalized } : r)));
+      closeEdit();
+    } catch (e) {
+      setError(e?.message || "Failed to update role");
+    }
+  };
+
+  const handleDeleteRole = async (role) => {
+    if (!role?.id) return;
+    // Basic confirm to avoid accidental deletions.
+    const ok = window.confirm(`Delete role ${role.name || role.id}?`);
+    if (!ok) return;
+
+    setError("");
+    try {
+      await deleteRole({ authHeaders, roleId: role.id });
+      setRoles((prev) => prev.filter((r) => r.id !== role.id));
+      setRolePermissions((prev) => {
+        const next = { ...prev };
+        delete next[role.id];
+        return next;
+      });
+    } catch (e) {
+      setError(e?.message || "Failed to delete role");
+    }
   };
 
   return (
@@ -265,6 +353,13 @@ export default function RolesPage() {
           Add New Role
         </button>
       </div>
+
+      {loading ? (
+        <div style={{ padding: 16, color: "#6B7280" }}>Loading roles…</div>
+      ) : null}
+      {error ? (
+        <div style={{ padding: 16, color: "#B91C1C" }}>{error}</div>
+      ) : null}
 
       <ManagePermissionsModal
         open={isPermissionsOpen}
@@ -350,7 +445,13 @@ export default function RolesPage() {
                       >
                         <Icon name="edit" />
                       </button>
-                      <button type="button" className="roles-page__iconBtn" title="Delete" aria-label="Delete">
+                      <button
+                        type="button"
+                        className="roles-page__iconBtn"
+                        title="Delete"
+                        aria-label="Delete"
+                        onClick={() => handleDeleteRole(r)}
+                      >
                         <Icon name="trash" />
                       </button>
                     </div>

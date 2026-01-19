@@ -7,6 +7,7 @@
     "dev": "node --watch index.js",
     "test": "jest --verbose --runInBand",
     "test:watch": "jest --watch --verbose",
+    "seed:authz": "node scripts/seedAuthz.js",
     "build:ui": "rm -rf dist && cd ../admin && npm run build && cp -r dist ../backend/dist",
     "deploy:full": "npm run build:ui && git add . && git commit -m uibuild && git push",
     "lint": "eslint .",

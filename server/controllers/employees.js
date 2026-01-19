@@ -1,6 +1,9 @@
 const employeesRouter = require("express").Router();
 const Employee = require("../models/employee");
 const Person = require("../models/person");
+const EmployeeRole = require("../models/employeeRole");
+
+const isEmployeeBusinessId = (val) => /^EMP\d{4}$/i.test(String(val || '').trim());
 
 const ALLOWED_EMPLOYEE_TYPES = ["STAFF", "GATE_STAFF", "MANAGER", "ADMIN"];
 const ALLOWED_EMPLOYEE_STATUSES = [
@@ -124,6 +127,94 @@ employeesRouter.get("/:id", async (request, response) => {
         message: "Failed to get employee",
         details: error.message,
       },
+    });
+  }
+});
+
+/**
+ * GET /api/employees/:employeeBusinessId/roles
+ * Returns explicit EmployeeRole assignments (multi-role).
+ * If none exist, returns an empty array (client can decide fallback behavior).
+ */
+employeesRouter.get("/:employeeBusinessId/roles", async (request, response) => {
+  try {
+    const employeeBusinessId = String(request.params.employeeBusinessId || '').trim().toUpperCase();
+    if (!employeeBusinessId || !isEmployeeBusinessId(employeeBusinessId)) {
+      return response.status(400).json({
+        success: false,
+        error: { message: 'Invalid employee business id', code: 'VALIDATION_ERROR' }
+      });
+    }
+
+    const exists = await Employee.exists({ ID: employeeBusinessId });
+    if (!exists) {
+      return response.status(404).json({
+        success: false,
+        error: { message: 'Employee not found', code: 'EMPLOYEE_NOT_FOUND' }
+      });
+    }
+
+    const rows = await EmployeeRole.find({ EmployeeID: employeeBusinessId }, { RoleID: 1, _id: 0 }).lean();
+    const roleIds = (rows || []).map((r) => String(r.RoleID || '').toUpperCase()).filter(Boolean);
+
+    return response.json({ success: true, data: { employeeBusinessId, roleIds } });
+  } catch (error) {
+    console.error('Get employee roles error:', error);
+    return response.status(500).json({
+      success: false,
+      error: { message: 'Failed to get employee roles', details: error.message }
+    });
+  }
+});
+
+/**
+ * PUT /api/employees/:employeeBusinessId/roles
+ * Body: { roleIds: string[] }
+ * Replace-all semantics.
+ */
+employeesRouter.put("/:employeeBusinessId/roles", async (request, response) => {
+  try {
+    const employeeBusinessId = String(request.params.employeeBusinessId || '').trim().toUpperCase();
+    if (!employeeBusinessId || !isEmployeeBusinessId(employeeBusinessId)) {
+      return response.status(400).json({
+        success: false,
+        error: { message: 'Invalid employee business id', code: 'VALIDATION_ERROR' }
+      });
+    }
+
+    const exists = await Employee.exists({ ID: employeeBusinessId });
+    if (!exists) {
+      return response.status(404).json({
+        success: false,
+        error: { message: 'Employee not found', code: 'EMPLOYEE_NOT_FOUND' }
+      });
+    }
+
+    const roleIdsRaw = Array.isArray(request.body?.roleIds) ? request.body.roleIds : [];
+    const roleIds = Array.from(new Set(roleIdsRaw.map((r) => String(r || '').trim().toUpperCase()).filter(Boolean)));
+
+    // Replace-all
+    await EmployeeRole.deleteMany({ EmployeeID: employeeBusinessId });
+    if (roleIds.length) {
+      await EmployeeRole.insertMany(
+        roleIds.map((rid) => ({
+          EmployeeID: employeeBusinessId,
+          RoleID: rid,
+          AssignedBy: request?.user?.employeeBusinessId || request?.user?.employeeId || null,
+          AssignedAt: new Date()
+        })),
+        { ordered: false }
+      ).catch(() => {
+        // ignore ordered errors
+      });
+    }
+
+    return response.json({ success: true, data: { employeeBusinessId, roleIds } });
+  } catch (error) {
+    console.error('Update employee roles error:', error);
+    return response.status(500).json({
+      success: false,
+      error: { message: 'Failed to update employee roles', details: error.message }
     });
   }
 });

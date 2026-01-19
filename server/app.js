@@ -53,6 +53,10 @@ const dashboardRouter = require('./controllers/dashboard')
 // Reports
 const reportsRouter = require('./controllers/reports')
 
+// Authz
+const rolesRouter = require('./controllers/roles')
+const permissionsRouter = require('./controllers/permissions')
+
 const app = express()
 
 logger.info('connecting to', config.MONGODB_URI)
@@ -96,6 +100,10 @@ app.use('/api/employees', middleware.authRequired, middleware.adminOnly, employe
 // Account creation and listing should be admin-only; login endpoints remain public in their routers.
 app.use('/api/staff-accounts', staffAccountsRouter)
 app.use('/api/admin-accounts', adminAccountsRouter)
+
+// Authz routes (admin-only handled inside routers for now)
+app.use('/api/roles', rolesRouter)
+app.use('/api/permissions', permissionsRouter)
 
 // Phase 3: Vehicle & Card Management Routes
 app.use('/api/vehicles', middleware.authRequired, middleware.adminOnly, vehiclesRouter)

@@ -287,6 +287,88 @@
   margin-bottom: 16px;
 }
 
+/* Assigned roles (Figma: chip row) */
+.employee-account-modal__assignedBox {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1.6px solid #E2E8F0;
+  background: #F8FAFC;
+  margin-bottom: 18px;
+}
+
+.employee-account-modal__assignedLabel {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 16px;
+  color: #45556C;
+  white-space: nowrap;
+  margin-top: 4px;
+}
+
+.employee-account-modal__assignedChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  flex: 1 1 auto;
+}
+
+.employee-account-modal__assignedChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 10px 0 12px;
+  border-radius: 999px;
+  border: 0.8px solid rgba(79, 57, 246, 0.22);
+  background: linear-gradient(90deg, rgba(152, 16, 250, 0.10) 0%, rgba(79, 57, 246, 0.10) 100%);
+  color: #1C398E;
+}
+
+.employee-account-modal__assignedChipText {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.employee-account-modal__assignedChipRemove {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(28, 57, 142, 0.10);
+  color: #1C398E;
+  font-size: 14px;
+  line-height: 18px;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.employee-account-modal__assignedChipRemove:hover {
+  background: rgba(28, 57, 142, 0.16);
+}
+
+.employee-account-modal__assignedChipRemove:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.employee-account-modal__assignedEmpty {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  color: #64748B;
+  padding: 6px 0;
+}
+
 .employee-account-modal__roleCard {
   width: 100%;
   text-align: left;
@@ -341,6 +423,112 @@
   border: 1.6px solid #BEDBFF;
   background: linear-gradient(144.143deg, #EFF6FF 0%, #EEF2FF 100%);
   padding: 24px;
+}
+
+/* Admin Account empty-state (Figma: Create Admin Account) */
+.employee-account-modal__adminCard--create {
+  border-color: #E9D5FF;
+  background: linear-gradient(145deg, #F5F3FF 0%, #EFF6FF 100%);
+}
+
+.employee-account-modal__adminCardIcon--create {
+  background: linear-gradient(135deg, #AD46FF 0%, #615FFF 100%);
+}
+
+.employee-account-modal__adminTitleSub {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  color: #45556C;
+  margin-top: 2px;
+}
+
+.employee-account-modal__adminForm {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.employee-account-modal__field {
+  display: flex;
+  flex-direction: column;
+}
+
+.employee-account-modal__label {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+  color: #45556C;
+}
+
+.employee-account-modal__input {
+  margin-top: 8px;
+  height: 48px;
+  border-radius: 12px;
+  border: 1.6px solid #E2E8F0;
+  background: rgba(255, 255, 255, 0.86);
+  padding: 0 14px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #0F172B;
+  outline: none;
+}
+
+.employee-account-modal__input:focus {
+  border-color: rgba(152, 16, 250, 0.45);
+  box-shadow: 0 0 0 4px rgba(152, 16, 250, 0.12);
+}
+
+.employee-account-modal__passwordWrap {
+  position: relative;
+  margin-top: 8px;
+  height: 48px;
+}
+
+.employee-account-modal__input--password {
+  width: 100%;
+  height: 48px;
+  padding-right: 44px;
+}
+
+.employee-account-modal__eyeBtn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #45556C;
+}
+
+.employee-account-modal__eyeBtn:hover {
+  background: rgba(15, 23, 43, 0.06);
+}
+
+.employee-account-modal__adminCreateBtn {
+  margin-top: 6px;
+  height: 48px;
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  background: linear-gradient(90deg, #9810FA 0%, #4F39F6 100%);
+  box-shadow: 0px 10px 15px -3px rgba(0,0,0,0.12), 0px 4px 6px -4px rgba(0,0,0,0.12);
+  color: #FFFFFF;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.employee-account-modal__adminCreateBtn:hover {
+  filter: brightness(0.98);
 }
 
 .employee-account-modal__adminCardHeader {
