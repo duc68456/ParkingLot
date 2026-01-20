@@ -34,6 +34,7 @@ adminAccountsRouter.get('/', middleware.authRequired, middleware.adminOnly, asyn
   try {
     const {
       status,
+      employeeId,
       page = 1,
       limit = 20
     } = request.query;
@@ -45,16 +46,31 @@ adminAccountsRouter.get('/', middleware.authRequired, middleware.adminOnly, asyn
       filter.Status = status.toUpperCase();
     }
 
+    // Optional filter by employee (accepts Employee Mongo _id or business ID EMP####)
+    if (employeeId) {
+      const employeeBusinessId = await resolveEmployeeBusinessId(employeeId);
+      if (!employeeBusinessId) {
+        return response.status(400).json({
+          success: false,
+          error: {
+            message: 'Invalid employeeId',
+            code: 'INVALID_EMPLOYEE_ID'
+          }
+        });
+      }
+      filter.EmployeeID = employeeBusinessId;
+    }
+
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     // Build query with employee population
     const adminAccounts = await AdminAccount.find(filter)
       .populate({
-        path: 'EmployeeID',
-        select: 'ID EmployeeType Status',
+        path: 'employee',
+        select: 'ID EmployeeType Status PersonID',
         populate: {
-          path: 'PersonID',
+          path: 'person',
           select: 'ID FullName Phone'
         }
       })
@@ -97,10 +113,10 @@ adminAccountsRouter.get('/:id', middleware.authRequired, middleware.adminOnly, a
   try {
     const adminAccount = await AdminAccount.findById(request.params.id)
       .populate({
-        path: 'EmployeeID',
-        select: 'ID EmployeeType Status HiredDate',
+        path: 'employee',
+        select: 'ID EmployeeType Status HiredDate PersonID',
         populate: {
-          path: 'PersonID',
+          path: 'person',
           select: 'ID FullName Phone Gender'
         }
       });
@@ -134,9 +150,29 @@ adminAccountsRouter.get('/:id', middleware.authRequired, middleware.adminOnly, a
 /**
  * POST /api/admin-accounts
  * Create new admin account
+ *
+ * Auth:
+ * - system admin (request.user.type === 'admin') OR
+ * - an employee token that includes a permission to manage admin accounts.
  */
-adminAccountsRouter.post('/', middleware.authRequired, middleware.adminOnly, async (request, response) => {
+adminAccountsRouter.post('/', middleware.authRequired, async (request, response) => {
   try {
+    const permissionsRaw = request.user?.permissions || request.user?.Permissions || [];
+    const permissions = (Array.isArray(permissionsRaw) ? permissionsRaw : [])
+      .map((p) => String(p || '').trim().toUpperCase())
+      .filter(Boolean);
+
+    const canManageAdminAccounts =
+      request.user?.type === 'admin' ||
+      permissions.includes('PEOPLE.ACCESS_MANAGEMENT_HUB');
+
+    if (!canManageAdminAccounts) {
+      return response.status(403).json({
+        success: false,
+        error: { message: 'forbidden', code: 'FORBIDDEN' }
+      });
+    }
+
     const {
       EmployeeID,
       Username,
@@ -230,12 +266,15 @@ adminAccountsRouter.post('/', middleware.authRequired, middleware.adminOnly, asy
 
     const savedAdminAccount = await adminAccount.save();
 
-    // Populate employee details before returning
+    // Populate employee details before returning.
+    // NOTE: AdminAccount.EmployeeID is a BUSINESS ID string (EMP####), not an ObjectId,
+    // so populating `EmployeeID` directly will attempt to cast EMP#### as ObjectId.
+    // Use the virtual instead.
     await savedAdminAccount.populate({
-      path: 'EmployeeID',
-      select: 'ID EmployeeType Status',
+      path: 'employee',
+      select: 'ID EmployeeType Status PersonID',
       populate: {
-        path: 'PersonID',
+        path: 'person',
         select: 'ID FullName Phone'
       }
     });
@@ -286,7 +325,11 @@ adminAccountsRouter.post('/', middleware.authRequired, middleware.adminOnly, asy
  * PUT /api/admin-accounts/:id
  * Update admin account
  */
-adminAccountsRouter.put('/:id', middleware.authRequired, middleware.adminOnly, async (request, response) => {
+adminAccountsRouter.put(
+  '/:id',
+  middleware.authRequired,
+  middleware.requirePermissions(['PEOPLE.ACCESS_MANAGEMENT_HUB']),
+  async (request, response) => {
   try {
     const {
       Username,
@@ -352,10 +395,10 @@ adminAccountsRouter.put('/:id', middleware.authRequired, middleware.adminOnly, a
 
     const updatedAdminAccount = await adminAccount.save();
     await updatedAdminAccount.populate({
-      path: 'EmployeeID',
-      select: 'ID EmployeeType Status',
+      path: 'employee',
+      select: 'ID EmployeeType Status PersonID',
       populate: {
-        path: 'PersonID',
+        path: 'person',
         select: 'ID FullName Phone'
       }
     });
@@ -388,7 +431,8 @@ adminAccountsRouter.put('/:id', middleware.authRequired, middleware.adminOnly, a
       }
     });
   }
-});
+  }
+);
 
 /**
  * DELETE /api/admin-accounts/:id
@@ -571,7 +615,10 @@ adminAccountsRouter.post('/login', async (request, response) => {
         // Return both the raw stored value and the resolved business id for robustness.
         EmployeeID: adminAccount.EmployeeID,
         EmployeeBusinessID: employeeBusinessId,
-        LastLoginAt: adminAccount.LastLoginAt
+        LastLoginAt: adminAccount.LastLoginAt,
+        // Provide populated documents so the client can render the employee/person name
+        // without needing an extra request immediately after login.
+        employee: adminAccount.employee || null
       }
     });
   } catch (error) {

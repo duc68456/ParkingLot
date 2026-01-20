@@ -15,32 +15,11 @@ const GateWarning = require('../models/gateWarning')
 const { getLPClient } = require('../utils/lpClient')
 const config = require('../utils/config')
 
-const isAdmin = (req) => req?.user?.type === 'admin'
-const isStaff = (req) => req?.user?.type === 'staff'
+const middleware = require('../utils/middleware')
 
-// Staff can only perform gate operations (query/create entry/process exit).
-// Admin can do everything.
-const requireAdminOrStaff = (req, res) => {
-  if (!isAdmin(req) && !isStaff(req)) {
-    res.status(403).json({
-      success: false,
-      error: { message: 'forbidden', code: 'FORBIDDEN' }
-    })
-    return false
-  }
-  return true
-}
-
-const requireAdmin = (req, res) => {
-  if (!isAdmin(req)) {
-    res.status(403).json({
-      success: false,
-      error: { message: 'forbidden', code: 'FORBIDDEN' }
-    })
-    return false
-  }
-  return true
-}
+// Option A: permission-based access.
+// Entry sessions only have VIEW permission.
+entrySessionsRouter.use(middleware.requirePermissions(['ENTRY_SESSIONS.VIEW']))
 
 // Helper function to calculate parking fee
 const calculateParkingFee = async (entryTime, exitTime, cardCategoryId, vehicleTypeId) => {
@@ -287,7 +266,6 @@ const incrementShiftCounters = async (employeeBusinessId, vehicleTypeId, revenue
 // GET all entry sessions with filtering and pagination (admin only)
 entrySessionsRouter.get('/', async (req, res) => {
   try {
-    if (!requireAdmin(req, res)) return
 
     const {
       vehicleId,
@@ -434,7 +412,6 @@ entrySessionsRouter.get('/', async (req, res) => {
  */
 entrySessionsRouter.get('/gate/query', async (req, res) => {
   try {
-    if (!requireAdminOrStaff(req, res)) return
 
     const cardId = String(req.query.cardId || '').trim()
     const licensePlate = String(req.query.licensePlate || '').trim().toUpperCase()
@@ -625,7 +602,6 @@ entrySessionsRouter.get('/gate/query', async (req, res) => {
  */
 entrySessionsRouter.get('/gate/active-latest', async (req, res) => {
   try {
-    if (!requireAdminOrStaff(req, res)) return
 
     const session = await EntrySession
       .findOne({ Status: 'IN_PARKING' })
@@ -694,7 +670,6 @@ entrySessionsRouter.get('/gate/active-latest', async (req, res) => {
  */
 entrySessionsRouter.post('/gate/entry', async (req, res) => {
   try {
-    if (!requireAdminOrStaff(req, res)) return
 
     const CardID = String(req.body.CardID || '').trim()
     const LicensePlate = String(req.body.LicensePlate || '').trim().toUpperCase()
@@ -1007,7 +982,6 @@ entrySessionsRouter.post('/gate/entry', async (req, res) => {
  */
 entrySessionsRouter.post('/gate/entry/confirm-reentry', async (req, res) => {
   try {
-    if (!requireAdminOrStaff(req, res)) return
 
     const SessionID = String(req.body.SessionID || '').trim()
     const CardID = String(req.body.CardID || '').trim()
@@ -1118,7 +1092,6 @@ entrySessionsRouter.post('/gate/entry/confirm-reentry', async (req, res) => {
  */
 entrySessionsRouter.post('/gate/exit/force', async (req, res) => {
   // Check permission manually since requireAdminOrStaff is not a middleware
-  if (!requireAdminOrStaff(req, res)) return
 
   try {
     const { CardID, GateNumber, LicensePlate, ProcessedBy, Reason } = req.body
@@ -1291,7 +1264,6 @@ entrySessionsRouter.get('/active/:cardId', async (req, res) => {
 // POST - Create entry session (vehicle entry)
 entrySessionsRouter.post('/entry', async (req, res) => {
   try {
-    if (!requireAdminOrStaff(req, res)) return
     const {
       VehicleID,
       VehicleTypeID,
@@ -1644,7 +1616,6 @@ entrySessionsRouter.post('/gate/exit', async (req, res) => {
 // POST - Process exit (calculate fee and close session)
 entrySessionsRouter.post('/exit/:id', async (req, res) => {
   try {
-    if (!requireAdminOrStaff(req, res)) return
     const { ProcessedExitBy, ManualFee, DiscountReason } = req.body
 
     const session = await EntrySession
@@ -1798,7 +1769,6 @@ entrySessionsRouter.post('/exit/:id', async (req, res) => {
 // PUT - Update session status (for lost ticket, cancellation)
 entrySessionsRouter.put('/:id', async (req, res) => {
   try {
-    if (!requireAdmin(req, res)) return
     const { Status } = req.body
 
     const session = await EntrySession.findById(req.params.id)
@@ -1882,7 +1852,6 @@ entrySessionsRouter.put('/:id', async (req, res) => {
 // DELETE - Delete session (only for cancelled sessions)
 entrySessionsRouter.delete('/:id', async (req, res) => {
   try {
-    if (!requireAdmin(req, res)) return
     const session = await EntrySession.findById(req.params.id)
     if (!session) {
       return res.status(404).json({
@@ -1938,7 +1907,6 @@ entrySessionsRouter.delete('/:id', async (req, res) => {
  */
 entrySessionsRouter.post('/gate/recognize-only', async (req, res) => {
   try {
-    if (!requireAdminOrStaff(req, res)) return
 
     // Initialize LP client
     const lpClient = getLPClient(config.LP_SERVICE_URL)
@@ -2019,7 +1987,6 @@ entrySessionsRouter.post('/gate/recognize-only', async (req, res) => {
  */
 entrySessionsRouter.post('/gate/entry-with-plate', async (req, res) => {
   try {
-    if (!requireAdminOrStaff(req, res)) return
 
     const CardID = String(req.body.CardID || '').trim()
     let VehicleTypeID = String(req.body.VehicleTypeID || '').trim()
@@ -2238,7 +2205,6 @@ entrySessionsRouter.post('/gate/entry-with-plate', async (req, res) => {
  */
 entrySessionsRouter.post('/gate/exit-with-plate', async (req, res) => {
   try {
-    if (!requireAdminOrStaff(req, res)) return
 
     const sessionId = req.body.sessionId || req.body.id
     const CardID = req.body.CardID
@@ -2488,7 +2454,6 @@ entrySessionsRouter.post('/gate/exit-with-plate', async (req, res) => {
  */
 entrySessionsRouter.get('/:id/images', async (req, res) => {
   try {
-    if (!requireAdminOrStaff(req, res)) return
 
     const session = await EntrySession.findById(req.params.id)
       .select('ID EntryImageData ExitImageData LicensePlate EntryTime ExitTime')

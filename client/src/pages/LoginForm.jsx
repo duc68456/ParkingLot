@@ -37,9 +37,17 @@ export default function LoginForm({ type }) {
         const data = json?.data
         const token = data?.token
 
+        // Server login response returns EmployeeID as a business id string (EMP####).
+        // The populated details (employee/person) are exposed via virtuals (employee -> person).
+        // Keep fallbacks for older responses.
         const fullName =
-          data?.EmployeeID?.PersonID?.FullName ||
-          data?.EmployeeID?.PersonID?.fullName ||
+          data?.employee?.person?.FullName ||
+          data?.employee?.person?.fullName ||
+          data?.employee?.person?.name ||
+          data?.employee?.FullName ||
+          data?.employee?.fullName ||
+          data?.fullName ||
+          data?.FullName ||
           data?.Username ||
           username
 
@@ -60,7 +68,8 @@ export default function LoginForm({ type }) {
             id: data?.ID,
             // EmployeeBusinessID is a string like "EMP0001", not an object
             employeeId: data?.EmployeeBusinessID || data?.EmployeeID,
-            employeeMongoId: data?.EmployeeID?.id,
+            // Prefer populated virtual employee, if present.
+            employeeMongoId: data?.employee?.id || data?.employee?._id || data?.EmployeeID?.id,
             type: 'admin'
           },
           'admin',

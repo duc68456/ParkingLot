@@ -5,6 +5,7 @@ const CardCategory = require('../models/cardCategory')
 const VehicleType = require('../models/vehicleType')
 const SubscriptionType = require('../models/subscriptionType')
 const mongoose = require('mongoose')
+const middleware = require('../utils/middleware')
 
 const isObjectId = (value) => mongoose.Types.ObjectId.isValid(value)
 
@@ -27,7 +28,7 @@ const attachRuleRelations = async (ruleDocOrObj) => {
 }
 
 // GET all subscription pricing rules with filtering and pagination
-subscriptionPricingRulesRouter.get('/', async (req, res) => {
+subscriptionPricingRulesRouter.get('/', middleware.requirePermissions(['PRICING.VIEW']), async (req, res) => {
   try {
     const {
       cardCategoryId,
@@ -112,7 +113,7 @@ subscriptionPricingRulesRouter.get('/', async (req, res) => {
 })
 
 // GET single subscription pricing rule by ID
-subscriptionPricingRulesRouter.get('/:id', async (req, res) => {
+subscriptionPricingRulesRouter.get('/:id', middleware.requirePermissions(['PRICING.VIEW']), async (req, res) => {
   try {
     const idOrBusinessId = req.params.id
     const rule = await SubscriptionPricingRule
@@ -206,7 +207,7 @@ subscriptionPricingRulesRouter.get('/find/:cardCategoryId/:vehicleTypeId/:subscr
 })
 
 // POST - Create new subscription pricing rule
-subscriptionPricingRulesRouter.post('/', async (req, res) => {
+subscriptionPricingRulesRouter.post('/', middleware.requirePermissions(['PRICING.FULL']), async (req, res) => {
   try {
     const { CardCategoryID, VehicleTypeID, SubscriptionTypeID } = req.body
 
@@ -308,7 +309,7 @@ subscriptionPricingRulesRouter.post('/', async (req, res) => {
 // Prices are managed through SubscriptionPricingRuleDetail
 
 // DELETE - Hard delete subscription pricing rule
-subscriptionPricingRulesRouter.delete('/:id', async (req, res) => {
+subscriptionPricingRulesRouter.delete('/:id', middleware.requirePermissions(['PRICING.FULL']), async (req, res) => {
   try {
     const idParam = req.params.id
     const looksLikeObjectId = (value) => typeof value === 'string' && /^[a-f\d]{24}$/i.test(value)

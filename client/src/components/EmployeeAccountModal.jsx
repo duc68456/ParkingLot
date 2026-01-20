@@ -82,6 +82,15 @@ function KeyIcon({ size = 32 }) {
   );
 }
 
+function ArrowRightIcon({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M5 12h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function LockIcon({ size = 20 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -103,10 +112,88 @@ function LockIcon({ size = 20 }) {
 }
 
 export default function EmployeeAccountModal({ employee, onClose }) {
-  const { authHeaders } = useAuth();
+  const { authHeaders, user } = useAuth();
   const initials = getEmployeeInitials(employee);
   const name = getEmployeeDisplayName(employee);
   const employeeType = normalizeEmployeeType(employee);
+
+  // Permissions of the *logged-in* user (who is performing actions in this modal).
+  // We prefer fetching from the backend (dynamic authorization) so changes in DB apply immediately.
+  const tokenViewerPermissions = useMemo(() => {
+    const raw = user?.permissions || user?.Permissions || [];
+    return Array.from(
+      new Set((Array.isArray(raw) ? raw : []).map((p) => String(p || '').trim().toUpperCase()).filter(Boolean))
+    );
+  }, [user]);
+
+  // In some deployments, admin JWTs don't carry `employeeBusinessId` so `/api/authz/me` can
+  // legitimately return an empty permission set. Supreme Admin should still be able to use
+  // Access Management Hub features, so we add a safe UI fallback based on the logged-in user.
+  const isSupremeAdminViewer = useMemo(() => {
+    const type = String(user?.type || '').trim().toLowerCase();
+    if (type !== 'admin') return false;
+    const roleName = String(user?.role || user?.Role || user?.roleName || user?.RoleName || '').trim().toLowerCase();
+    const name = String(user?.name || user?.Name || '').trim().toLowerCase();
+    const email = String(user?.email || user?.Email || '').trim().toLowerCase();
+    return roleName.includes('supreme') || name.includes('supreme') || email.includes('supreme');
+  }, [user]);
+
+  const [viewerPermissions, setViewerPermissions] = useState(tokenViewerPermissions);
+  const [viewerPermissionsLoading, setViewerPermissionsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadViewerPermissions = async () => {
+      if (!cancelled) setViewerPermissionsLoading(true);
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/authz/me`, { headers: authHeaders });
+        const json = await res.json();
+        const permsRaw = json?.data?.permissions || json?.permissions || [];
+        const perms = Array.from(
+          new Set((Array.isArray(permsRaw) ? permsRaw : []).map((p) => String(p || '').trim().toUpperCase()).filter(Boolean))
+        );
+        if (!cancelled) setViewerPermissions(perms.length ? perms : tokenViewerPermissions);
+      } catch {
+        // If fetch fails, fall back to permissions bundled in login/token.
+        if (!cancelled) setViewerPermissions(tokenViewerPermissions);
+      } finally {
+        if (!cancelled) setViewerPermissionsLoading(false);
+      }
+    };
+
+    loadViewerPermissions();
+    return () => {
+      cancelled = true;
+    };
+  }, [authHeaders, tokenViewerPermissions]);
+
+  const hasPermission = (permissionCode) => {
+    if (!permissionCode) return true;
+    const code = String(permissionCode).trim().toUpperCase();
+
+    // Supreme Admin UI fallback: don't block access hub driven actions.
+    if (isSupremeAdminViewer && code === 'PEOPLE.ACCESS_MANAGEMENT_HUB') return true;
+
+    // While loading, don't block UI actions purely on missing local permissions.
+    // Backend will remain the source of truth.
+    if (viewerPermissionsLoading) return true;
+    if (!viewerPermissions.length) return false;
+    return viewerPermissions.includes(code);
+  };
+
+  // Permission contract used by this modal:
+  // - Access hub (role assignment / admin account management): PEOPLE.ACCESS_MANAGEMENT_HUB
+  // - Staff PIN account management (create/reset PIN): handled under the same hub permission
+  const PERM_ACCESS_HUB = 'PEOPLE.ACCESS_MANAGEMENT_HUB';
+  // PIN creation/reset is part of Employee Access -> Access Management Hub (Employee)
+  // so we intentionally gate PIN actions by the hub permission.
+  const PERM_STAFF_PIN = PERM_ACCESS_HUB;
+
+  const ensurePermissionOrMessage = (permissionCode, message) => {
+    if (hasPermission(permissionCode)) return true;
+    setError(message || 'You do not have permission to perform this action.');
+    return false;
+  };
 
   // Hub state
   const [activeTab, setActiveTab] = useState('pin'); // 'pin' | 'admin'
@@ -121,8 +208,14 @@ export default function EmployeeAccountModal({ employee, onClose }) {
   const [generatedPin, setGeneratedPin] = useState('');
   const [copyMessage, setCopyMessage] = useState('');
 
+  // Staff PIN account state (backed by DB lookup)
+  const [staffAccount, setStaffAccount] = useState(null);
+  const [staffAccountLoading, setStaffAccountLoading] = useState(false);
+
   // Admin account state (UI only for now)
   // NOTE: Admin username is displayed from employee/admin data (read-only) in the new design.
+  const [adminAccount, setAdminAccount] = useState(null);
+  const [adminAccountLoading, setAdminAccountLoading] = useState(false);
   const [adminIsChangingPassword, setAdminIsChangingPassword] = useState(false);
   const [adminNewPassword, setAdminNewPassword] = useState('');
   const [adminNewConfirmPassword, setAdminNewConfirmPassword] = useState('');
@@ -142,12 +235,18 @@ export default function EmployeeAccountModal({ employee, onClose }) {
   if (!employee) return null;
 
   const isStaff = employeeType === 'STAFF' || employeeType === 'GATE_STAFF';
-  const username = employee?.id || employee?.ID || '';
-  const pinAccountExists = hasPinAccount(employee);
-  const adminAccountExists = hasAdminAccount(employee);
+  const employeeId = employee?.id || employee?.ID || '';
+  const pinAccountExists = Boolean(staffAccount) || hasPinAccount(employee);
+  // NOTE: employee business id is usually EMP#### in this codebase.
+  const employeeBusinessId = String(employee?.id || employee?.ID || '').trim();
+
+  // Prefer the backend-sourced admin account; fallback to heuristics for older endpoints.
+  const adminAccountExists = Boolean(adminAccount) || hasAdminAccount(employee);
 
   const adminDisplayUsername = String(
-    employee?.adminUsername ||
+    adminAccount?.Username ||
+      adminAccount?.username ||
+      employee?.adminUsername ||
       employee?.AdminUsername ||
       employee?.admin_username ||
       employee?.adminEmail ||
@@ -157,7 +256,7 @@ export default function EmployeeAccountModal({ employee, onClose }) {
       employee?.Username ||
       employee?.email ||
       employee?.Email ||
-      username ||
+    employeeId ||
       ''
   ).trim();
 
@@ -181,10 +280,6 @@ export default function EmployeeAccountModal({ employee, onClose }) {
     // Fallback to empty list if server doesn't support roles yet.
     return [];
   }, [availableRoles]);
-
-  // Load roles + employee role assignment once when modal opens.
-  // NOTE: employee business id is usually EMP#### in this codebase.
-  const employeeBusinessId = String(employee?.id || employee?.ID || '').trim();
 
   useEffect(() => {
     let cancelled = false;
@@ -230,6 +325,105 @@ export default function EmployeeAccountModal({ employee, onClose }) {
     };
   }, [employeeBusinessId, authHeaders]);
 
+  // Load staff account (PIN) state from DB so the modal reflects reality even if
+  // the employees list endpoint doesn't embed staffAccount.
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadStaffAccount = async () => {
+      if (!employeeBusinessId) return;
+
+      setStaffAccountLoading(true);
+      try {
+        const url = new URL(`${API_BASE_URL}/api/staff-accounts`);
+        url.searchParams.set('employeeId', employeeBusinessId);
+        url.searchParams.set('limit', '1');
+
+        const res = await fetch(url, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(authHeaders || {})
+          }
+        });
+
+        if (!res.ok) {
+          if (!cancelled) setStaffAccount(null);
+          return;
+        }
+
+        const data = await res.json().catch(() => null);
+        const payload = data?.data || data;
+        const account = Array.isArray(payload?.staffAccounts)
+          ? payload.staffAccounts[0]
+          : Array.isArray(payload?.items)
+            ? payload.items[0]
+            : payload?.staffAccount || payload;
+
+        if (!cancelled) setStaffAccount(account || null);
+      } catch {
+        if (!cancelled) setStaffAccount(null);
+      } finally {
+        if (!cancelled) setStaffAccountLoading(false);
+      }
+    };
+
+    loadStaffAccount();
+    return () => {
+      cancelled = true;
+    };
+  }, [employeeBusinessId, authHeaders]);
+
+  // Load admin account (if exists) from the DB.
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadAdminAccount = async () => {
+      if (!employeeBusinessId) return;
+
+      setAdminAccountLoading(true);
+      try {
+        const url = new URL(`${API_BASE_URL}/api/admin-accounts`);
+        url.searchParams.set('employeeId', employeeBusinessId);
+
+        const res = await fetch(url, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(authHeaders || {})
+          }
+        });
+
+        // If the server doesn't support lookup, just ignore.
+        if (res.status === 404) {
+          if (!cancelled) setAdminAccount(null);
+          return;
+        }
+
+        if (!res.ok) {
+          if (!cancelled) setAdminAccount(null);
+          return;
+        }
+
+        const data = await res.json().catch(() => null);
+        const payload = data?.data || data;
+        const account = Array.isArray(payload?.adminAccounts)
+          ? payload.adminAccounts[0]
+          : payload;
+
+        if (!cancelled) setAdminAccount(account || null);
+      } catch {
+        if (!cancelled) setAdminAccount(null);
+      } finally {
+        if (!cancelled) setAdminAccountLoading(false);
+      }
+    };
+
+    loadAdminAccount();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [employeeBusinessId, authHeaders]);
+
   const handleOverlayMouseDown = (e) => {
     if (e.target === e.currentTarget) onClose?.();
   };
@@ -241,6 +435,9 @@ export default function EmployeeAccountModal({ employee, onClose }) {
     setError('');
     setStatusMessage('');
 
+  setStaffAccount(null);
+  setStaffAccountLoading(false);
+
     // Clear admin fields on close as well.
     setAdminIsChangingPassword(false);
     setAdminNewPassword('');
@@ -249,6 +446,9 @@ export default function EmployeeAccountModal({ employee, onClose }) {
     setAdminShowNewConfirmPassword(false);
     setAdminPasswordPanelError('');
     setAdminStatus('');
+
+    setAdminAccount(null);
+    setAdminAccountLoading(false);
 
     setAdminCreateUsername('');
     setAdminCreatePassword('');
@@ -260,6 +460,7 @@ export default function EmployeeAccountModal({ employee, onClose }) {
   };
 
   const handleAdminOpenChangePassword = () => {
+    if (!ensurePermissionOrMessage('PEOPLE.ACCESS_MANAGEMENT_HUB', 'You do not have permission to manage employee access.')) return;
     setAdminPasswordPanelError('');
     setAdminStatus('');
     setAdminIsChangingPassword(true);
@@ -275,6 +476,7 @@ export default function EmployeeAccountModal({ employee, onClose }) {
   };
 
   const handleAdminSavePassword = async () => {
+    if (!ensurePermissionOrMessage('PEOPLE.ACCESS_MANAGEMENT_HUB', 'You do not have permission to manage employee access.')) return;
     setAdminPasswordPanelError('');
     setAdminStatus('');
 
@@ -291,17 +493,45 @@ export default function EmployeeAccountModal({ employee, onClose }) {
       return;
     }
 
-    // UI-only placeholder for now.
-    setAdminStatus('Password updated (UI-only). Backend wiring pending.');
-    setAdminIsChangingPassword(false);
-    setAdminNewPassword('');
-    setAdminNewConfirmPassword('');
-    setAdminShowNewPassword(false);
-    setAdminShowNewConfirmPassword(false);
+    if (!adminAccount?._id) {
+      setAdminPasswordPanelError('Missing admin account record.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin-accounts/${encodeURIComponent(adminAccount._id)}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authHeaders || {})
+        },
+        body: JSON.stringify({ Password: adminNewPassword })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data?.success === false) {
+        const message = data?.error?.message || `Failed to change password. (${res.status})`;
+        throw new Error(message);
+      }
+
+      setAdminStatus('Password updated successfully.');
+      setAdminAccount(data?.data || adminAccount);
+      setAdminIsChangingPassword(false);
+      setAdminNewPassword('');
+      setAdminNewConfirmPassword('');
+      setAdminShowNewPassword(false);
+      setAdminShowNewConfirmPassword(false);
+    } catch (err) {
+      setAdminPasswordPanelError(err?.message || 'Failed to change password.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleAdminCreateAccount = async (e) => {
     e?.preventDefault?.();
+    if (!ensurePermissionOrMessage('PEOPLE.ACCESS_MANAGEMENT_HUB', 'You do not have permission to manage employee access.')) return;
     setAdminCreateError('');
     setAdminStatus('');
 
@@ -323,16 +553,61 @@ export default function EmployeeAccountModal({ employee, onClose }) {
       return;
     }
 
-    // UI-only placeholder for now.
-    setAdminStatus('Admin account created (UI-only). Backend wiring pending.');
+    if (!employeeBusinessId) {
+      setAdminCreateError('Missing employee ID.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin-accounts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders
+        },
+        body: JSON.stringify({
+          EmployeeID: employeeBusinessId,
+          Username: u,
+          Password: adminCreatePassword,
+          Status: 'ACTIVE'
+        })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data?.success === false) {
+        const message = data?.error?.message || `Failed to create admin account. (${res.status})`;
+        throw new Error(message);
+      }
+
+      // Show success + switch to the "existing admin" view.
+      const createdUsername = String(data?.data?.Username || '').trim();
+      setAdminStatus('Admin account created successfully.');
+      setAdminCreateUsername('');
+      setAdminCreatePassword('');
+      setAdminCreateConfirmPassword('');
+
+      setAdminAccount(data?.data || { Username: createdUsername || u, EmployeeID: employeeBusinessId, Status: 'ACTIVE' });
+
+      // Update local "employee" shape used by hasAdminAccount/adminDisplayUsername.
+      setEmployee((prev) => ({
+        ...(prev || {}),
+        adminAccount: {
+          ...(prev?.adminAccount || {}),
+          Username: createdUsername || u
+        }
+      }));
+    } catch (err) {
+      setAdminCreateError(err?.message || 'Failed to create admin account.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Admin account creation is not part of the current Figma flow; keep the panel focused on
   // managing credentials (change password) to avoid conflicting forms.
 
   const handleGenerateNewPin = async () => {
-    if (!isStaff) return;
-
     setSubmitting(true);
     setError('');
     setStatusMessage('');
@@ -363,6 +638,8 @@ export default function EmployeeAccountModal({ employee, onClose }) {
       setGeneratedPin(pin);
       setStatusMessage('New PIN generated. Save it before closing.');
     } catch (e) {
+      // Backend is the source of truth. If it denies permission or employee type,
+      // show the message so the user knows why it failed.
       setError(e?.message || 'Failed to generate new PIN.');
     } finally {
       setSubmitting(false);
@@ -405,7 +682,7 @@ export default function EmployeeAccountModal({ employee, onClose }) {
             <div className="employee-account-modal__avatar" aria-hidden="true">{initials}</div>
             <div className="employee-account-modal__hubWho">
               <div className="employee-account-modal__hubName">{name}</div>
-              <div className="employee-account-modal__hubSub">{username || '—'}</div>
+              <div className="employee-account-modal__hubSub">{employeeBusinessId || '—'}</div>
               <div className="employee-account-modal__hubPills">
                 <span className="employee-account-modal__pill employee-account-modal__pill--role">{employeeType || '—'}</span>
                 <span className="employee-account-modal__pill employee-account-modal__pill--status">{status}</span>
@@ -432,6 +709,7 @@ export default function EmployeeAccountModal({ employee, onClose }) {
                   type="button"
                   className={`employee-account-modal__roleCard ${checked ? 'employee-account-modal__roleCard--selected' : ''}`}
                   onClick={async () => {
+                    if (!ensurePermissionOrMessage('PEOPLE.ACCESS_MANAGEMENT_HUB', 'You do not have permission to manage employee access.')) return;
                     if (!opt?.key || !employeeBusinessId) return;
                     setSubmitting(true);
                     setError('');
@@ -451,7 +729,7 @@ export default function EmployeeAccountModal({ employee, onClose }) {
                     }
                   }}
                   aria-pressed={checked}
-                  disabled={roleLoading || submitting}
+                  disabled={roleLoading || submitting || !hasPermission('PEOPLE.ACCESS_MANAGEMENT_HUB')}
                 >
                   <div className="employee-account-modal__roleCardText">
                     <div className="employee-account-modal__roleCardTitle">{opt.title}</div>
@@ -478,6 +756,7 @@ export default function EmployeeAccountModal({ employee, onClose }) {
                           className="employee-account-modal__assignedChipRemove"
                           aria-label={`Remove ${title}`}
                           onClick={async () => {
+                if (!ensurePermissionOrMessage('PEOPLE.ACCESS_MANAGEMENT_HUB', 'You do not have permission to manage employee access.')) return;
                             if (!employeeBusinessId) return;
                             setSubmitting(true);
                             setError('');
@@ -504,6 +783,12 @@ export default function EmployeeAccountModal({ employee, onClose }) {
                   <span className="employee-account-modal__assignedEmpty">None</span>
                 )}
               </div>
+            </div>
+          ) : null}
+
+          {!hasPermission(PERM_ACCESS_HUB) ? (
+            <div className="employee-account-modal__error" role="alert">
+              You don&apos;t have permission to manage employee access for this employee.
             </div>
           ) : null}
 
@@ -549,28 +834,41 @@ export default function EmployeeAccountModal({ employee, onClose }) {
                     type="button"
                     className="employee-account-modal__pinEmptyCta"
                     onClick={handleGenerateNewPin}
-                    disabled={!isStaff || submitting}
-                    title={!isStaff ? 'PIN is only available for staff accounts' : 'Create PIN account'}
+                    disabled={submitting}
+                    title="Create PIN account"
                   >
                     Create PIN Account
                   </button>
                 </div>
               ) : (
-                <div className="employee-account-modal__pinCard">
-                  <div className="employee-account-modal__pinHeader">
-                    <div>
+                <div className="employee-account-modal__pinExists">
+                  <div className="employee-account-modal__pinExistsHeader">
+                    <div className="employee-account-modal__pinExistsHeading">
                       <div className="employee-account-modal__pinLabel">CURRENT PIN CODE</div>
                       <div className="employee-account-modal__pinSub">6-digit authentication code</div>
                     </div>
-                    <div className="employee-account-modal__pinIcon" aria-hidden="true">🔑</div>
+                    {pinAccountExists ? (
+                      <button
+                        type="button"
+                        className="employee-account-modal__pinKeyBtn"
+                        onClick={handleGenerateNewPin}
+                        disabled={submitting}
+                        title="Generate new PIN"
+                        aria-label="Generate new PIN"
+                      >
+                        <KeyIcon size={20} />
+                      </button>
+                    ) : null}
                   </div>
 
-                  <div className="employee-account-modal__pinMasked" aria-label="Masked PIN">• • • • • •</div>
+                  <div className="employee-account-modal__pinMaskedWrap" aria-label="Masked PIN">
+                    <div className="employee-account-modal__pinMasked">• • • • • •</div>
+                  </div>
 
                   <div className="employee-account-modal__pinMeta">
                     <div className="employee-account-modal__pinMetaItem">
                       <div className="employee-account-modal__pinMetaK">Employee ID</div>
-                      <div className="employee-account-modal__pinMetaV">{username || '—'}</div>
+                      <div className="employee-account-modal__pinMetaV">{employeeId || '—'}</div>
                     </div>
                     <div className="employee-account-modal__pinMetaItem">
                       <div className="employee-account-modal__pinMetaK">Account Status</div>
@@ -605,17 +903,21 @@ export default function EmployeeAccountModal({ employee, onClose }) {
                 <div className="employee-account-modal__success" role="status">{statusMessage}</div>
               ) : null}
 
-              <button
-                type="button"
-                className="employee-account-modal__primaryGradientBtn"
-                onClick={handleGenerateNewPin}
-                disabled={!isStaff || submitting}
-                title={!isStaff ? 'PIN is only available for staff accounts' : 'Generate new PIN'}
-              >
-                <span aria-hidden="true">🔑</span>
-                Generate New PIN Code
-                <span aria-hidden="true">→</span>
-              </button>
+              {pinAccountExists ? (
+                <button
+                  type="button"
+                  className="employee-account-modal__primaryGradientBtn"
+                  onClick={handleGenerateNewPin}
+                  disabled={submitting}
+                  title="Generate new PIN"
+                >
+                  <KeyIcon size={20} />
+                  Generate New PIN Code
+                  <span className="employee-account-modal__primaryGradientBtnArrow" aria-hidden="true">
+                    <ArrowRightIcon size={18} />
+                  </span>
+                </button>
+              ) : null}
             </div>
           ) : (
             <div className="employee-account-modal__adminHub" role="tabpanel" aria-label="Admin Account">
@@ -631,7 +933,16 @@ export default function EmployeeAccountModal({ employee, onClose }) {
                     </div>
                   </div>
 
-                  <form className="employee-account-modal__adminForm" onSubmit={handleAdminCreateAccount}>
+                  <form
+                    className="employee-account-modal__adminForm"
+                    onSubmit={(e) => {
+                      if (!ensurePermissionOrMessage('PEOPLE.ACCESS_MANAGEMENT_HUB', 'You do not have permission to manage employee access.')) {
+                        e.preventDefault();
+                        return;
+                      }
+                      handleAdminCreateAccount(e);
+                    }}
+                  >
                     <div className="employee-account-modal__field">
                       <span className="employee-account-modal__label">Username</span>
                       <input
@@ -691,48 +1002,63 @@ export default function EmployeeAccountModal({ employee, onClose }) {
                       <div className="employee-account-modal__success" role="status">{adminStatus}</div>
                     ) : null}
 
-                    <button type="submit" className="employee-account-modal__adminCreateBtn">Create Admin Account</button>
+                    <button
+                      type="submit"
+                      className="employee-account-modal__adminCreateBtn"
+                      disabled={!hasPermission('PEOPLE.ACCESS_MANAGEMENT_HUB')}
+                      title={!hasPermission('PEOPLE.ACCESS_MANAGEMENT_HUB') ? 'No permission' : 'Create admin account'}
+                    >
+                      Create Admin Account
+                    </button>
                   </form>
                 </div>
               ) : (
-                <div className="employee-account-modal__adminCard employee-account-modal__adminCard--change">
-                  <div className="employee-account-modal__adminCardHeader">
-                    <div className="employee-account-modal__adminCardIcon" aria-hidden="true">
+                <div className="employee-account-modal__adminPanel employee-account-modal__adminPanel--exists">
+                  <div className="employee-account-modal__adminPanelTitleRow">
+                    <div className="employee-account-modal__adminPanelBadge" aria-hidden="true">
                       <LockIcon size={24} />
                     </div>
-                    <div className="employee-account-modal__adminCardHeading">
-                      <div className="employee-account-modal__adminTitleCaps">ADMIN ACCOUNT</div>
-                      <div className="employee-account-modal__adminSub">Manage admin credentials</div>
+                    <div>
+                      <div className="employee-account-modal__adminPanelTitle">Admin Account</div>
+                      <div className="employee-account-modal__adminPanelSubtitle">Manage admin credentials</div>
                     </div>
                   </div>
 
-                  <div className="employee-account-modal__adminForm">
-                    <div className="employee-account-modal__field employee-account-modal__field--readonly">
-                      <span className="employee-account-modal__label employee-account-modal__label--caps">USERNAME</span>
-                      <div className="employee-account-modal__readonly employee-account-modal__readonly--mono">{adminDisplayUsername || '—'}</div>
+                  <div className="employee-account-modal__adminPanelBody">
+                    <div className="employee-account-modal__field">
+                      <span className="employee-account-modal__label employee-account-modal__label--caps">Username</span>
+                      <div className="employee-account-modal__readonlyInput employee-account-modal__readonlyInput--mono">
+                        {adminAccountLoading ? 'Loading…' : (adminDisplayUsername || '—')}
+                      </div>
                     </div>
 
                     <div className="employee-account-modal__field">
-                      <span className="employee-account-modal__label employee-account-modal__label--caps">PASSWORD</span>
+                      <span className="employee-account-modal__label employee-account-modal__label--caps">Password</span>
                       {!adminIsChangingPassword ? (
                         <>
-                          <div className="employee-account-modal__readonly employee-account-modal__readonly--masked employee-account-modal__readonly--mono" aria-label="Masked password">••••••••••••</div>
+                          <div className="employee-account-modal__readonlyInput employee-account-modal__readonlyInput--mono employee-account-modal__readonlyInput--muted" aria-label="Masked password">
+                            ••••••••••••
+                          </div>
                           <button
                             type="button"
-                            className="employee-account-modal__adminPrimaryBtn"
-                            onClick={handleAdminOpenChangePassword}
+                            className="employee-account-modal__adminPrimaryBtn employee-account-modal__adminPrimaryBtn--full"
+                            onClick={() => {
+                              if (!ensurePermissionOrMessage('PEOPLE.ACCESS_MANAGEMENT_HUB', 'You do not have permission to manage employee access.')) return;
+                              handleAdminOpenChangePassword();
+                            }}
+                            disabled={!hasPermission('PEOPLE.ACCESS_MANAGEMENT_HUB')}
                           >
                             Change Password
                           </button>
 
-                          <div className="employee-account-modal__adminMiniMeta employee-account-modal__adminMiniMeta--inPanel">
-                            <div className="employee-account-modal__adminMiniMetaItem">
-                              <div className="employee-account-modal__adminMiniMetaK">Employee ID</div>
-                              <div className="employee-account-modal__adminMiniMetaV">{username || '—'}</div>
+                          <div className="employee-account-modal__adminMetaRow">
+                            <div className="employee-account-modal__adminMetaCard">
+                              <div className="employee-account-modal__adminMetaK">Employee ID</div>
+                              <div className="employee-account-modal__adminMetaV">{employeeBusinessId || '—'}</div>
                             </div>
-                            <div className="employee-account-modal__adminMiniMetaItem">
-                              <div className="employee-account-modal__adminMiniMetaK">Account Status</div>
-                              <div className="employee-account-modal__adminMiniMetaV">{status}</div>
+                            <div className="employee-account-modal__adminMetaCard">
+                              <div className="employee-account-modal__adminMetaK">Account Status</div>
+                              <div className="employee-account-modal__adminMetaV">{String(adminAccount?.Status || status || 'Active')}</div>
                             </div>
                           </div>
                         </>
@@ -801,7 +1127,7 @@ export default function EmployeeAccountModal({ employee, onClose }) {
                               type="button"
                               className="employee-account-modal__adminSaveBtn"
                               onClick={handleAdminSavePassword}
-                              disabled={!isAdminPasswordPanelValid}
+                              disabled={!isAdminPasswordPanelValid || !hasPermission('PEOPLE.ACCESS_MANAGEMENT_HUB')}
                             >
                               Save Password
                             </button>

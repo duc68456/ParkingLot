@@ -1,6 +1,35 @@
 import { useEffect, useMemo, useState } from "react";
 import "../styles/components/ManagePermissionsModal.css";
 
+const PERMISSION_CODES = Object.freeze({
+  DASHBOARD_VIEW: 'DASHBOARD.VIEW',
+  ENTRY_SESSIONS_VIEW: 'ENTRY_SESSIONS.VIEW',
+  REPORTS_VIEW: 'REPORTS.VIEW',
+
+  PEOPLE_VIEW: 'PEOPLE.VIEW',
+  PEOPLE_ACCESS_HUB: 'PEOPLE.ACCESS_MANAGEMENT_HUB',
+  PEOPLE_FULL: 'PEOPLE.FULL',
+
+  VEHICLES_VIEW: 'VEHICLES.VIEW',
+  VEHICLES_FULL: 'VEHICLES.FULL',
+
+  CARDS_VIEW: 'CARDS.VIEW',
+  CARDS_FULL: 'CARDS.FULL',
+
+  SUBSCRIPTIONS_VIEW: 'SUBSCRIPTIONS.VIEW',
+  SUBSCRIPTIONS_FULL: 'SUBSCRIPTIONS.FULL',
+
+  PURCHASE_CARD_FULL: 'PURCHASE_CARD.FULL',
+
+  PRICING_VIEW: 'PRICING.VIEW',
+  PRICING_FULL: 'PRICING.FULL',
+
+  SHIFTS_VIEW: 'SHIFTS.VIEW',
+  SHIFTS_FULL: 'SHIFTS.FULL',
+
+  STAFF_VIEW_FULL: 'STAFF_VIEW.FULL'
+});
+
 function Icon({ name, size = 20, className = "" }) {
   const common = {
     width: size,
@@ -126,68 +155,209 @@ export default function ManagePermissionsModal({
   onClose,
   onSave,
 }) {
-  const modules = useMemo(() => {
-    // Figma-inspired sample set (UI only). Can be replaced by API data later.
+  const groups = useMemo(() => {
     return [
       {
-        key: "SYSTEM",
-        title: "SYSTEM",
-        meta: "1 of 2 selected",
-        icon: "system",
-        accent: "purple",
-        permissions: [
-          { key: "view_dashboard", title: "View Dashboard", desc: "Access to system dashboard" },
-          { key: "system_settings", title: "System Settings", desc: "Manage system configuration" },
-        ],
+        key: 'general-monitoring',
+        title: 'General & Monitoring',
+        description: 'Focuses on high-level data visualization, reporting, and tracking live activity.',
+        icon: 'system',
+        accent: 'purple',
+        sections: [
+          {
+            key: 'dashboard',
+            title: 'Dashboard',
+            items: [
+              {
+                key: PERMISSION_CODES.DASHBOARD_VIEW,
+                title: 'Dashboard',
+                desc: 'Show button: Dashboard'
+              }
+            ]
+          },
+          {
+            key: 'sessions-activity',
+            title: 'Sessions & Activity',
+            items: [
+              {
+                key: PERMISSION_CODES.ENTRY_SESSIONS_VIEW,
+                title: 'View Entry Sessions',
+                desc: 'Show button: Sessions'
+              }
+            ]
+          },
+          {
+            key: 'analytics',
+            title: 'Analytics',
+            items: [
+              {
+                key: PERMISSION_CODES.REPORTS_VIEW,
+                title: 'Reports',
+                desc: 'Show button: Reports'
+              }
+            ]
+          }
+        ]
       },
       {
-        key: "PARKING",
-        title: "PARKING",
-        meta: "2 of 3 selected",
-        icon: "parking",
-        accent: "blue",
-        permissions: [
-          { key: "manage_entry_exit", title: "Manage Entry/Exit", desc: "Process vehicle entry and exit" },
-          { key: "view_sessions", title: "View Sessions", desc: "View parking sessions" },
-          { key: "manage_vehicles", title: "Manage Vehicles", desc: "Add, edit, delete vehicles" },
-        ],
+        key: 'customer-entity',
+        title: 'Customer & Entity Management',
+        description: 'Focuses on the management of physical users (people) and their associated assets (vehicles).',
+        icon: 'customer',
+        accent: 'pink',
+        sections: [
+          {
+            key: 'people',
+            title: 'People Management',
+            items: [
+              {
+                key: PERMISSION_CODES.PEOPLE_VIEW,
+                title: 'View People',
+                desc: 'Includes “View” action and “View Cards of People”. Show button: People'
+              },
+              {
+                key: PERMISSION_CODES.PEOPLE_ACCESS_HUB,
+                title: 'Employee Access',
+                desc: 'Action: Access Management Hub (Employee)'
+              },
+              {
+                key: PERMISSION_CODES.PEOPLE_FULL,
+                title: 'Full Management',
+                desc: 'Full actions of People page (Create, Edit, Delete, etc.)'
+              }
+            ]
+          },
+          {
+            key: 'vehicles',
+            title: 'Vehicle Management',
+            items: [
+              {
+                key: PERMISSION_CODES.VEHICLES_VIEW,
+                title: 'View Vehicles',
+                desc: 'Includes “View Vehicle Type”. Show button: Vehicles'
+              },
+              {
+                key: PERMISSION_CODES.VEHICLES_FULL,
+                title: 'Full Management',
+                desc: 'Full actions of Vehicles page'
+              }
+            ]
+          }
+        ]
       },
       {
-        key: "FINANCE",
-        title: "FINANCE",
-        meta: "0 of 3 selected",
-        icon: "finance",
-        accent: "green",
-        permissions: [
-          { key: "view_reports", title: "View Reports", desc: "Access financial reports" },
-          { key: "manage_pricing", title: "Manage Pricing", desc: "Configure pricing rules" },
-          { key: "process_refunds", title: "Process Refunds", desc: "Handle refund requests" },
-        ],
+        key: 'cards-subscriptions-sales',
+        title: 'Cards, Subscriptions & Sales',
+        description: 'Focuses on the issuance of credentials, billing, and recurring revenue models.',
+        icon: 'finance',
+        accent: 'green',
+        sections: [
+          {
+            key: 'cards',
+            title: 'Card Management',
+            items: [
+              {
+                key: PERMISSION_CODES.CARDS_VIEW,
+                title: 'View Cards',
+                desc: 'Includes view Categories, view Invoices. Show button: Cards'
+              },
+              {
+                key: PERMISSION_CODES.CARDS_FULL,
+                title: 'Full Management',
+                desc: 'Full actions of Cards'
+              }
+            ]
+          },
+          {
+            key: 'subscriptions',
+            title: 'Subscription Management',
+            items: [
+              {
+                key: PERMISSION_CODES.SUBSCRIPTIONS_VIEW,
+                title: 'View Subscriptions',
+                desc: 'Includes View Subscription Types. Show button: Subscriptions'
+              },
+              {
+                key: PERMISSION_CODES.SUBSCRIPTIONS_FULL,
+                title: 'Full Management',
+                desc: 'Full actions of Subscriptions'
+              }
+            ]
+          },
+          {
+            key: 'transactions',
+            title: 'Transactions',
+            items: [
+              {
+                key: PERMISSION_CODES.PURCHASE_CARD_FULL,
+                title: 'Purchase Card Action',
+                desc: 'Show button: Purchase Card'
+              }
+            ]
+          }
+        ]
       },
       {
-        key: "HR",
-        title: "HR",
-        meta: "0 of 3 selected",
-        icon: "hr",
-        accent: "amber",
-        permissions: [
-          { key: "manage_employees", title: "Manage Employees", desc: "Add, edit, delete employees" },
-          { key: "view_employee_data", title: "View Employee Data", desc: "View employee information" },
-          { key: "manage_shifts", title: "Manage Shifts", desc: "Schedule and manage shifts" },
-        ],
+        key: 'operational-configuration',
+        title: 'Operational Configuration',
+        description: 'Focuses on the rules, pricing, and scheduling that dictate how the system operates.',
+        icon: 'parking',
+        accent: 'blue',
+        sections: [
+          {
+            key: 'pricing',
+            title: 'Pricing Configuration',
+            items: [
+              {
+                key: PERMISSION_CODES.PRICING_VIEW,
+                title: 'View Pricing',
+                desc: 'View Entry Pricing, Card Pricing, Subscription Pricing, and pricing history. Show button: Pricing'
+              },
+              {
+                key: PERMISSION_CODES.PRICING_FULL,
+                title: 'Full Management',
+                desc: 'Full actions of Pricing'
+              }
+            ]
+          },
+          {
+            key: 'shifts',
+            title: 'Shift Management',
+            items: [
+              {
+                key: PERMISSION_CODES.SHIFTS_VIEW,
+                title: 'View Shifts',
+                desc: 'Show button: Shifts'
+              },
+              {
+                key: PERMISSION_CODES.SHIFTS_FULL,
+                title: 'Full Management',
+                desc: 'Full actions of Shifts page'
+              }
+            ]
+          }
+        ]
       },
       {
-        key: "CUSTOMER",
-        title: "CUSTOMER",
-        meta: "0 of 3 selected",
-        icon: "customer",
-        accent: "pink",
-        permissions: [
-          { key: "manage_customers", title: "Manage Customers", desc: "Add, edit, delete customers" },
-          { key: "manage_cards", title: "Manage Cards", desc: "Issue and manage parking cards" },
-          { key: "manage_subscriptions", title: "Manage Subscriptions", desc: "Handle subscription plans" },
-        ],
-      },
+        key: 'staff-interface',
+        title: 'Staff Interface',
+        description: 'Permissions specific to the operational staff view, distinct from the management sidebar.',
+        icon: 'hr',
+        accent: 'amber',
+        sections: [
+          {
+            key: 'staff-ops',
+            title: 'Staff Operations',
+            items: [
+              {
+                key: PERMISSION_CODES.STAFF_VIEW_FULL,
+                title: 'Full actions of Staff view',
+                desc: 'Full actions of Staff view'
+              }
+            ]
+          }
+        ]
+      }
     ];
   }, []);
 
@@ -200,8 +370,10 @@ export default function ManagePermissionsModal({
 
   const selectedCount = selected.size;
 
-  const moduleSelectedCount = (m) =>
-    m.permissions.reduce((acc, p) => (selected.has(p.key) ? acc + 1 : acc), 0);
+  const groupItems = (g) => g.sections.flatMap((s) => s.items);
+
+  const groupSelectedCount = (g) =>
+    groupItems(g).reduce((acc, p) => (selected.has(p.key) ? acc + 1 : acc), 0);
 
   const togglePermission = (permKey) => {
     setSelected((prev) => {
@@ -212,15 +384,15 @@ export default function ManagePermissionsModal({
     });
   };
 
-  const selectAllInModule = (m) => {
+  const selectAllInGroup = (g) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      for (const p of m.permissions) next.add(p.key);
+      for (const p of groupItems(g)) next.add(p.key);
       return next;
     });
   };
 
-  const isAllSelectedInModule = (m) => moduleSelectedCount(m) === m.permissions.length;
+  const isAllSelectedInGroup = (g) => groupSelectedCount(g) === groupItems(g).length;
 
   const handleBackgroundMouseDown = (e) => {
     if (e.target === e.currentTarget) onClose?.();
@@ -256,54 +428,65 @@ export default function ManagePermissionsModal({
           </div>
 
           <div className="mpm__modules">
-            {modules.map((m) => {
-              const selectedInModule = moduleSelectedCount(m);
-              const headMeta = `${selectedInModule} of ${m.permissions.length} selected`;
+            {groups.map((g) => {
+              const selectedInGroup = groupSelectedCount(g);
+              const headMeta = `${selectedInGroup} of ${groupItems(g).length} selected`;
 
               return (
-                <section className="mpm__module" key={m.key}>
+                <section className="mpm__module" key={g.key}>
                   <div className="mpm__moduleHeader">
                     <div className="mpm__moduleId">
-                      <div className={`mpm__moduleIcon mpm__moduleIcon--${m.accent}`} aria-hidden="true">
-                        <Icon name={m.icon} size={18} />
+                      <div className={`mpm__moduleIcon mpm__moduleIcon--${g.accent}`} aria-hidden="true">
+                        <Icon name={g.icon} size={18} />
                       </div>
                       <div className="mpm__moduleTitleWrap">
-                        <div className="mpm__moduleTitle">{m.title}</div>
+                        <div className="mpm__moduleTitle">{g.title}</div>
+                        {g.description ? (
+                          <div className="mpm__moduleDesc">{g.description}</div>
+                        ) : null}
                         <div className="mpm__moduleMeta">{headMeta}</div>
                       </div>
                     </div>
                     <button
                       type="button"
                       className="mpm__selectAll"
-                      onClick={() => selectAllInModule(m)}
-                      disabled={isAllSelectedInModule(m)}
+                      onClick={() => selectAllInGroup(g)}
+                      disabled={isAllSelectedInGroup(g)}
                     >
                       Select All
                     </button>
                   </div>
 
                   <div className="mpm__moduleBody">
-                    {m.permissions.map((p) => {
-                      const checked = selected.has(p.key);
+                    {g.sections.map((section) => (
+                      <div key={section.key} className="mpm__groupSection">
+                        <div className="mpm__groupSectionTitle">{section.title}</div>
 
-                      return (
-                        <button
-                          key={p.key}
-                          type="button"
-                          className={`mpm__perm ${checked ? "mpm__perm--checked" : ""}`}
-                          onClick={() => togglePermission(p.key)}
-                          aria-pressed={checked}
-                        >
-                          <span className={`mpm__checkbox ${checked ? "mpm__checkbox--checked" : ""}`} aria-hidden="true">
-                            {checked ? <Icon name="check" size={14} /> : null}
-                          </span>
-                          <span className="mpm__permText">
-                            <span className="mpm__permTitle">{p.title}</span>
-                            <span className="mpm__permDesc">{p.desc}</span>
-                          </span>
-                        </button>
-                      );
-                    })}
+                        <div className="mpm__groupSectionBody">
+                          {section.items.map((p) => {
+                            const checked = selected.has(p.key);
+
+                            return (
+                              <button
+                                key={p.key}
+                                type="button"
+                                className={`mpm__perm ${checked ? "mpm__perm--checked" : ""}`}
+                                onClick={() => togglePermission(p.key)}
+                                aria-pressed={checked}
+                              >
+                                <span className={`mpm__checkbox ${checked ? "mpm__checkbox--checked" : ""}`} aria-hidden="true">
+                                  {checked ? <Icon name="check" size={14} /> : null}
+                                </span>
+                                <span className="mpm__permText">
+                                  <span className="mpm__permTitle">{p.title}</span>
+                                  <span className="mpm__permDesc">{p.desc}</span>
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </section>
               );

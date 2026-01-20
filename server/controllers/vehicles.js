@@ -4,6 +4,7 @@ const VehicleType = require('../models/vehicleType')
 const Subscription = require('../models/subscription')
 const Customer = require('../models/customer')
 const Person = require('../models/person')
+const middleware = require('../utils/middleware')
 
 const getOwnerFromSubscription = async (vehicleId) => {
   if (!vehicleId) return null
@@ -86,7 +87,7 @@ const attachVehicleTypes = async (vehicleDocs) => {
 }
 
 // GET all vehicles with filtering and pagination
-vehiclesRouter.get('/', async (req, res) => {
+vehiclesRouter.get('/', middleware.requirePermissions(['VEHICLES.VIEW']), async (req, res) => {
   try {
     const { status, isActive, vehicleTypeId, search, page = 1, limit = 20 } = req.query
     const filter = {}
@@ -157,7 +158,7 @@ vehiclesRouter.get('/', async (req, res) => {
 })
 
 // GET single vehicle by ID
-vehiclesRouter.get('/:id', async (req, res) => {
+vehiclesRouter.get('/:id', middleware.requirePermissions(['VEHICLES.VIEW']), async (req, res) => {
   try {
     const vehicle = await Vehicle
       .findById(req.params.id)
@@ -194,7 +195,7 @@ vehiclesRouter.get('/:id', async (req, res) => {
 })
 
 // POST - Create new vehicle
-vehiclesRouter.post('/', async (req, res) => {
+vehiclesRouter.post('/', middleware.requirePermissions(['VEHICLES.FULL']), async (req, res) => {
   try {
     const { PlateNumber, VehicleTypeID, Color, Status } = req.body
 
@@ -263,7 +264,7 @@ vehiclesRouter.post('/', async (req, res) => {
 })
 
 // PUT - Update vehicle
-vehiclesRouter.put('/:id', async (req, res) => {
+vehiclesRouter.put('/:id', middleware.requirePermissions(['VEHICLES.FULL']), async (req, res) => {
   try {
     const { PlateNumber, VehicleTypeID, Color, Status, IsActive } = req.body
 
@@ -336,7 +337,7 @@ vehiclesRouter.put('/:id', async (req, res) => {
 })
 
 // DELETE - Update vehicle status (soft delete)
-vehiclesRouter.delete('/:id', async (req, res) => {
+vehiclesRouter.delete('/:id', middleware.requirePermissions(['VEHICLES.FULL']), async (req, res) => {
   try {
     const { status } = req.body;
 

@@ -2,9 +2,23 @@ import SearchBar from './SearchBar';
 import NotificationButton from './NotificationButton';
 import SettingsButton from './SettingsButton';
 import UserProfile from './UserProfile';
+import { useAuth } from '../contexts/AuthContext';
 import '../styles/components/AdminHeader.css';
 
 export default function AdminHeader({ title = 'Dashboard' }) {
+  const { user, userType } = useAuth();
+
+  const displayName =
+    user?.employee?.person?.FullName ||
+    user?.employee?.person?.fullName ||
+    user?.employee?.person?.name ||
+    user?.Username ||
+    user?.username ||
+    user?.FullName ||
+    user?.fullName ||
+    user?.name ||
+    (userType === 'staff' ? 'Staff' : 'Admin');
+
   return (
     <header className="admin-header">
       <div className="admin-header-content">
@@ -15,9 +29,7 @@ export default function AdminHeader({ title = 'Dashboard' }) {
           <NotificationButton notificationCount={1} />
           <SettingsButton />
           <UserProfile 
-            name="Admin User"
-            email="admin@parkingpro.com"
-            initials="AD"
+            name={displayName}
           />
         </div>
       </div>

@@ -1,5 +1,5 @@
 const subscriptionsRouter = require('express').Router()
-const { authRequired } = require('../utils/middleware')
+const middleware = require('../utils/middleware')
 const Subscription = require('../models/subscription')
 const Customer = require('../models/customer')
 const Vehicle = require('../models/vehicle')
@@ -76,7 +76,7 @@ const isSubscriptionValid = (subscription) => {
 }
 
 // GET all subscriptions with filtering and pagination
-subscriptionsRouter.get('/', async (req, res) => {
+subscriptionsRouter.get('/', middleware.requirePermissions(['SUBSCRIPTIONS.VIEW']), async (req, res) => {
   try {
     const {
       customerId,
@@ -187,7 +187,7 @@ subscriptionsRouter.get('/', async (req, res) => {
 })
 
 // GET single subscription by ID
-subscriptionsRouter.get('/:id', async (req, res) => {
+subscriptionsRouter.get('/:id', middleware.requirePermissions(['SUBSCRIPTIONS.VIEW']), async (req, res) => {
   try {
     // Accept either business ID (SSN####) or Mongo ObjectId.
     // IMPORTANT: never query {_id: 'SSN0001'} because Mongoose will try to cast and throw.
@@ -227,7 +227,7 @@ subscriptionsRouter.get('/:id', async (req, res) => {
 })
 
 // GET - Check if card has valid subscription
-subscriptionsRouter.get('/check/:cardId', async (req, res) => {
+subscriptionsRouter.get('/check/:cardId', middleware.requirePermissions(['SUBSCRIPTIONS.VIEW']), async (req, res) => {
   try {
     const now = new Date()
 
@@ -277,7 +277,7 @@ subscriptionsRouter.get('/check/:cardId', async (req, res) => {
 })
 
 // POST - Create new subscription
-subscriptionsRouter.post('/', authRequired, async (req, res) => {
+subscriptionsRouter.post('/', middleware.requirePermissions(['SUBSCRIPTIONS.FULL']), async (req, res) => {
   try {
     const {
       CustomerID,
@@ -443,7 +443,7 @@ subscriptionsRouter.post('/', authRequired, async (req, res) => {
 })
 
 // PUT - Update subscription (suspend/resume)
-subscriptionsRouter.put('/:id', async (req, res) => {
+subscriptionsRouter.put('/:id', middleware.requirePermissions(['SUBSCRIPTIONS.FULL']), async (req, res) => {
   try {
     const { IsSuspended } = req.body
 
@@ -485,7 +485,7 @@ subscriptionsRouter.put('/:id', async (req, res) => {
 })
 
 // DELETE - Delete subscription
-subscriptionsRouter.delete('/:id', async (req, res) => {
+subscriptionsRouter.delete('/:id', middleware.requirePermissions(['SUBSCRIPTIONS.FULL']), async (req, res) => {
   try {
     // Accept either business ID (SSN####) or Mongo ObjectId.
     // IMPORTANT: never query {_id: 'SSN0001'} because Mongoose will try to cast and throw.

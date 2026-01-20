@@ -1,21 +1,11 @@
 const vehicleTypesRouter = require('express').Router();
 const VehicleType = require('../models/vehicleType');
 
-const isAdmin = (request) => request.user?.role === 'admin'
+const middleware = require('../utils/middleware');
 
-const requireAdmin = (request, response) => {
-  if (!isAdmin(request)) {
-    response.status(403).json({
-      success: false,
-      error: {
-        message: 'Admin access required',
-        code: 'ADMIN_ONLY'
-      }
-    })
-    return false
-  }
-  return true
-}
+// Permission-based access control (Option A): admins and staff can access if they have the permission.
+// - VEHICLES.VIEW: view vehicle types
+// - VEHICLES.FULL: create/update/delete vehicle types
 
 /**
  * GET /api/vehicle-types
@@ -27,7 +17,7 @@ const requireAdmin = (request, response) => {
  * - page: number - Page number for pagination
  * - limit: number - Items per page
  */
-vehicleTypesRouter.get('/', async (request, response) => {
+vehicleTypesRouter.get('/', middleware.requirePermissions(['VEHICLES.VIEW']), async (request, response) => {
   try {
     const {
       isActive,
@@ -87,7 +77,7 @@ vehicleTypesRouter.get('/', async (request, response) => {
  * GET /api/vehicle-types/:id
  * Get single vehicle type by ID
  */
-vehicleTypesRouter.get('/:id', async (request, response) => {
+vehicleTypesRouter.get('/:id', middleware.requirePermissions(['VEHICLES.VIEW']), async (request, response) => {
   try {
     const vehicleType = await VehicleType.findById(request.params.id);
 
@@ -121,9 +111,8 @@ vehicleTypesRouter.get('/:id', async (request, response) => {
  * POST /api/vehicle-types
  * Create new vehicle type
  */
-vehicleTypesRouter.post('/', async (request, response) => {
+vehicleTypesRouter.post('/', middleware.requirePermissions(['VEHICLES.FULL']), async (request, response) => {
   try {
-    if (!requireAdmin(request, response)) return
     const {
       Name,
       IsActive
@@ -210,9 +199,9 @@ vehicleTypesRouter.post('/', async (request, response) => {
  * PUT /api/vehicle-types/:id
  * Update vehicle type
  */
-vehicleTypesRouter.put('/:id', async (request, response) => {
+vehicleTypesRouter.put('/:id', middleware.requirePermissions(['VEHICLES.FULL']), async (request, response) => {
   try {
-    if (!requireAdmin(request, response)) return
+
     const {
       Name,
       IsActive
@@ -290,9 +279,9 @@ vehicleTypesRouter.put('/:id', async (request, response) => {
  * Delete vehicle type
  * Note: Can only delete inactive vehicle types
  */
-vehicleTypesRouter.delete('/:id', async (request, response) => {
+vehicleTypesRouter.delete('/:id', middleware.requirePermissions(['VEHICLES.FULL']), async (request, response) => {
   try {
-    if (!requireAdmin(request, response)) return
+
     const vehicleType = await VehicleType.findById(request.params.id);
 
     if (!vehicleType) {

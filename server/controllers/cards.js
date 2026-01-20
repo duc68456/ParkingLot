@@ -7,6 +7,7 @@ const Customer = require('../models/customer')
 const Subscription = require('../models/subscription')
 const Vehicle = require('../models/vehicle')
 const VehicleType = require('../models/vehicleType')
+const middleware = require('../utils/middleware')
 
 // Helper: Get vehicle info from active subscription
 const getVehicleFromSubscription = async (cardId) => {
@@ -36,7 +37,7 @@ const getVehicleFromSubscription = async (cardId) => {
 }
 
 // GET next UID in sequence (for auto-generation)
-cardsRouter.get('/next-uid', async (req, res) => {
+cardsRouter.get('/next-uid', middleware.requirePermissions(['CARDS.VIEW']), async (req, res) => {
   try {
     // Find the latest card with a valid UID format (UID-XXXX)
     const latestCard = await Card.findOne(
@@ -73,7 +74,7 @@ cardsRouter.get('/next-uid', async (req, res) => {
 })
 
 // GET all cards with filtering and pagination
-cardsRouter.get('/', async (req, res) => {
+cardsRouter.get('/', middleware.requirePermissions(['CARDS.VIEW']), async (req, res) => {
   try {
     const {
       status,
@@ -224,7 +225,7 @@ cardsRouter.get('/', async (req, res) => {
 })
 
 // GET single card by ID
-cardsRouter.get('/:id', async (req, res) => {
+cardsRouter.get('/:id', middleware.requirePermissions(['CARDS.VIEW']), async (req, res) => {
   try {
     const card = await Card.findById(req.params.id)
 
@@ -263,7 +264,7 @@ cardsRouter.get('/:id', async (req, res) => {
 })
 
 // GET card by UID (for RFID scanning)
-cardsRouter.get('/uid/:uid', async (req, res) => {
+cardsRouter.get('/uid/:uid', middleware.requirePermissions(['CARDS.VIEW']), async (req, res) => {
   try {
     const card = await Card.findOne({ UID: req.params.uid })
 
@@ -327,7 +328,7 @@ cardsRouter.get('/uid/:uid', async (req, res) => {
 })
 
 // POST - Create visitor card (for staff gate)
-cardsRouter.post('/create-visitor', async (req, res) => {
+cardsRouter.post('/create-visitor', middleware.requirePermissions(['CARDS.FULL']), async (req, res) => {
   try {
     // Find Visitor category automatically
     const visitorCategory = await CardCategory.findOne({
@@ -390,7 +391,7 @@ cardsRouter.post('/create-visitor', async (req, res) => {
 })
 
 // POST - Create new card
-cardsRouter.post('/', async (req, res) => {
+cardsRouter.post('/', middleware.requirePermissions(['CARDS.FULL']), async (req, res) => {
   try {
     const {
       CardCategoryID,
@@ -528,7 +529,7 @@ cardsRouter.post('/', async (req, res) => {
 // POST - Assign card to a customer
 // Accepts Mongo _id, business CardID, or UID in :id
 // Body: { personId: 'PER0001' } (type can be provided but will be ignored unless it's 'customer')
-cardsRouter.post('/:id/assign', async (req, res) => {
+cardsRouter.post('/:id/assign', middleware.requirePermissions(['CARDS.FULL']), async (req, res) => {
   try {
     const { type, personId, uid } = req.body || {}
     const assignType = String(type || '').toLowerCase()
@@ -685,7 +686,7 @@ cardsRouter.post('/:id/assign', async (req, res) => {
 })
 
 // PUT - Update card
-cardsRouter.put('/:id', async (req, res) => {
+cardsRouter.put('/:id', middleware.requirePermissions(['CARDS.FULL']), async (req, res) => {
   try {
     const {
       CardCategoryID,
@@ -825,7 +826,7 @@ cardsRouter.put('/:id', async (req, res) => {
 })
 
 // DELETE - Soft delete card
-cardsRouter.delete('/:id', async (req, res) => {
+cardsRouter.delete('/:id', middleware.requirePermissions(['CARDS.FULL']), async (req, res) => {
   try {
     const card = await Card.findById(req.params.id)
     if (!card) {

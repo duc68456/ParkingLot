@@ -49,6 +49,8 @@ const PERMISSION_DISPLAY = {
   [PERMISSIONS.STAFF_VIEW_FULL]: { name: 'Staff View (Full)', description: 'Full actions of staff view' }
 };
 
+// Note: ROLE_SUPREME_ADMIN is seeded via ROLE_DEFINITIONS in server/utils/permissions.js.
+
 async function upsertRole(roleDef) {
   await Role.updateOne(
     { ID: roleDef.id.toUpperCase() },

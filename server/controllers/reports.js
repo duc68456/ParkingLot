@@ -9,6 +9,12 @@ const CardCategory = require('../models/cardCategory')
 const Card = require('../models/card')
 const Person = require('../models/person')
 
+const middleware = require('../utils/middleware')
+
+// Option A: allow staff/admin access based on permissions.
+// All report endpoints require REPORTS.VIEW.
+reportsRouter.use(middleware.requirePermissions(['REPORTS.VIEW']))
+
 // Helper: Parse date range from query
 const parseDateRange = (fromDate, toDate) => {
   const now = new Date()

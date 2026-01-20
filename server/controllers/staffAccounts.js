@@ -53,6 +53,7 @@ staffAccountsRouter.get('/', middleware.authRequired, middleware.adminOnly, asyn
   try {
     const {
       status,
+      employeeId,
       page = 1,
       limit = 20
     } = request.query;
@@ -64,16 +65,37 @@ staffAccountsRouter.get('/', middleware.authRequired, middleware.adminOnly, asyn
       filter.Status = status.toUpperCase();
     }
 
+    if (employeeId) {
+      const employeeBusinessId = await resolveEmployeeBusinessId(employeeId);
+      if (employeeBusinessId) {
+        filter.EmployeeID = employeeBusinessId;
+      } else {
+        // If the caller provided an invalid employee id, return empty result set.
+        return response.json({
+          success: true,
+          data: {
+            staffAccounts: [],
+            pagination: {
+              page: parseInt(page),
+              limit: parseInt(limit),
+              total: 0,
+              pages: 0
+            }
+          }
+        });
+      }
+    }
+
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     // Build query with employee population
     const staffAccounts = await StaffAccount.find(filter)
       .populate({
-        path: 'EmployeeID',
-        select: 'ID EmployeeType Status',
+        path: 'employee',
+        select: 'ID EmployeeType Status PersonID HiredDate',
         populate: {
-          path: 'PersonID',
+          path: 'person',
           select: 'ID FullName Phone'
         }
       })
@@ -116,10 +138,10 @@ staffAccountsRouter.get('/:id', middleware.authRequired, middleware.adminOnly, a
   try {
     const staffAccount = await StaffAccount.findById(request.params.id)
       .populate({
-        path: 'EmployeeID',
-        select: 'ID EmployeeType Status HiredDate',
+        path: 'employee',
+        select: 'ID EmployeeType Status HiredDate PersonID',
         populate: {
-          path: 'PersonID',
+          path: 'person',
           select: 'ID FullName Phone Gender'
         }
       });
@@ -366,7 +388,7 @@ staffAccountsRouter.put('/:id', middleware.authRequired, middleware.adminOnly, a
 
 /**
  * POST /api/staff-accounts/by-employee/:employeeBusinessId/generate-pin
- * Generates a new 6-digit PIN for a staff employee.
+ * Generates a new 6-digit PIN for an employee.
  * - Admin-only
  * - Creates the StaffAccount if missing
  * - Stores hashed PIN (via model pre-save hook)
@@ -390,13 +412,8 @@ staffAccountsRouter.post('/by-employee/:employeeBusinessId/generate-pin', middle
       });
     }
 
-    const employeeType = String(employee.EmployeeType || '').toUpperCase();
-    if (employeeType !== 'STAFF' && employeeType !== 'GATE_STAFF') {
-      return response.status(400).json({
-        success: false,
-        error: { message: 'Employee is not a staff account type', code: 'INVALID_EMPLOYEE_TYPE' }
-      });
-    }
+    // Option C (per product requirement): everyone can have PINs.
+    // We intentionally do not restrict by EmployeeType here.
 
     let staffAccount = await StaffAccount.findOne({ EmployeeID: employeeBusinessId });
 

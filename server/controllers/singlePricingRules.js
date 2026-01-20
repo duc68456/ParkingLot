@@ -6,6 +6,8 @@ const CardCategory = require('../models/cardCategory')
 const VehicleType = require('../models/vehicleType')
 const Employee = require('../models/employee')
 
+const middleware = require('../utils/middleware')
+
 const mongoose = require('mongoose')
 
 const isObjectId = (value) => mongoose.Types.ObjectId.isValid(value)
@@ -190,7 +192,7 @@ const enrichSinglePricingRuleDetails = async (details) => {
 }
 
 // GET list: newest detail per (CardCategoryID, VehicleTypeID)
-singlePricingRulesRouter.get('/', async (req, res) => {
+singlePricingRulesRouter.get('/', middleware.requirePermissions(['PRICING.VIEW']), async (req, res) => {
   try {
     const {
       cardCategoryId,
@@ -301,7 +303,7 @@ singlePricingRulesRouter.get('/', async (req, res) => {
 })
 
 // GET current: effective detail for a pair
-singlePricingRulesRouter.get('/current/:cardCategoryId/:vehicleTypeId', async (req, res) => {
+singlePricingRulesRouter.get('/current/:cardCategoryId/:vehicleTypeId', middleware.requirePermissions(['PRICING.VIEW']), async (req, res) => {
   try {
     const { cardCategoryId, vehicleTypeId } = req.params
     const now = new Date()
@@ -348,7 +350,7 @@ singlePricingRulesRouter.get('/current/:cardCategoryId/:vehicleTypeId', async (r
 })
 
 // GET history: all details for a pair (oldest -> newest)
-singlePricingRulesRouter.get('/history/:cardCategoryId/:vehicleTypeId', async (req, res) => {
+singlePricingRulesRouter.get('/history/:cardCategoryId/:vehicleTypeId', middleware.requirePermissions(['PRICING.VIEW']), async (req, res) => {
   try {
     const { cardCategoryId, vehicleTypeId } = req.params
     const { page = 1, limit = 20 } = req.query
@@ -402,7 +404,7 @@ singlePricingRulesRouter.get('/history/:cardCategoryId/:vehicleTypeId', async (r
 })
 
 // POST: Create a new pricing detail (master is created if missing)
-singlePricingRulesRouter.post('/', async (req, res) => {
+singlePricingRulesRouter.post('/', middleware.requirePermissions(['PRICING.FULL']), async (req, res) => {
   try {
     const {
       CardCategoryID,
@@ -490,7 +492,7 @@ singlePricingRulesRouter.post('/', async (req, res) => {
 })
 
 // DELETE detail by Mongo _id (correction use only)
-singlePricingRulesRouter.delete('/:id', async (req, res) => {
+singlePricingRulesRouter.delete('/:id', middleware.requirePermissions(['PRICING.FULL']), async (req, res) => {
   try {
     const detail = await SinglePricingRuleDetail.findById(req.params.id)
     if (!detail) {
@@ -519,7 +521,7 @@ singlePricingRulesRouter.delete('/:id', async (req, res) => {
 module.exports = singlePricingRulesRouter
 
 // GET single pricing rule by ID
-singlePricingRulesRouter.get('/:id', async (req, res) => {
+singlePricingRulesRouter.get('/:id', middleware.requirePermissions(['PRICING.VIEW']), async (req, res) => {
   try {
     const { id } = req.params
 
@@ -555,7 +557,7 @@ singlePricingRulesRouter.get('/:id', async (req, res) => {
 })
 
 // GET current pricing rule for a card category and vehicle type
-singlePricingRulesRouter.get('/current/:cardCategoryId/:vehicleTypeId', async (req, res) => {
+singlePricingRulesRouter.get('/current/:cardCategoryId/:vehicleTypeId', middleware.requirePermissions(['PRICING.VIEW']), async (req, res) => {
   try {
     const { cardCategoryId, vehicleTypeId } = req.params
     const now = new Date()
@@ -620,7 +622,7 @@ singlePricingRulesRouter.get('/current/:cardCategoryId/:vehicleTypeId', async (r
 })
 
 // GET pricing history for card category and vehicle type
-singlePricingRulesRouter.get('/history/:cardCategoryId/:vehicleTypeId', async (req, res) => {
+singlePricingRulesRouter.get('/history/:cardCategoryId/:vehicleTypeId', middleware.requirePermissions(['PRICING.VIEW']), async (req, res) => {
   try {
     const { cardCategoryId, vehicleTypeId } = req.params
     const { page = 1, limit = 20 } = req.query
@@ -692,7 +694,7 @@ singlePricingRulesRouter.get('/history/:cardCategoryId/:vehicleTypeId', async (r
 })
 
 // POST - Create new single pricing rule (immutable - never update, only insert)
-singlePricingRulesRouter.post('/', async (req, res) => {
+singlePricingRulesRouter.post('/', middleware.requirePermissions(['PRICING.FULL']), async (req, res) => {
   try {
     const {
       CardCategoryID,
@@ -809,7 +811,7 @@ singlePricingRulesRouter.post('/', async (req, res) => {
 // To change pricing, create a new SinglePricingRule record with new StartDateApply
 
 // DELETE - Hard delete (only for corrections, not normal operations)
-singlePricingRulesRouter.delete('/:id', async (req, res) => {
+singlePricingRulesRouter.delete('/:id', middleware.requirePermissions(['PRICING.FULL']), async (req, res) => {
   try {
     const rule = await SinglePricingRule.findById(req.params.id)
     if (!rule) {

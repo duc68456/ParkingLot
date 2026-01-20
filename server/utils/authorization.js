@@ -1,10 +1,11 @@
 const Employee = require('../models/employee');
 const EmployeeRole = require('../models/employeeRole');
-const Role = require('../models/role');
 const RolePermission = require('../models/rolePermission');
-const Permission = require('../models/permission');
 
 const { ROLE_DEFINITIONS, buildEffectivePermissions } = require('./permissions');
+
+const normalize = (v) => String(v || '').trim();
+const upper = (v) => normalize(v).toUpperCase();
 
 // Resolve roles + permissions from DB. Falls back to Employee.EmployeeType mapping
 // if there are no EmployeeRole assignments (for backward compatibility).
@@ -27,8 +28,8 @@ async function resolveAuthzForEmployee(employeeBusinessId) {
     else roleIds = ['ROLE_STAFF'];
   }
 
-  // If RolePermission/Permission tables are present and have rows for the roles,
-  // use them; otherwise fall back to ROLE_DEFINITIONS (code-based).
+  // Dynamic authz: RolePermission.PermissionID is already the plain-text permission code.
+  // The server should union permissions across ALL roles for this employee.
   const dbRolePerms = await RolePermission.find(
     { RoleID: { $in: roleIds } },
     { RoleID: 1, PermissionID: 1, _id: 0 }
@@ -36,27 +37,16 @@ async function resolveAuthzForEmployee(employeeBusinessId) {
 
   let permissions;
   if (dbRolePerms?.length) {
-    // Merge + apply excludes based on ROLE_DEFINITIONS if a role defines excludes.
-    const allow = Array.from(new Set(dbRolePerms.map((rp) => String(rp.PermissionID || '').toUpperCase()).filter(Boolean)));
-
-    // Convert these permission IDs back to their original case format if stored differently.
-    // We keep uppercase in DB but codes in app are uppercase anyway.
-    const effective = buildEffectivePermissions(roleIds).
-      map((p) => p.toUpperCase());
-
-    // If DB is seeded properly, `allow` should match `effective`. But we will prioritize DB,
-    // only applying excludes from code to preserve your "Manager excludes Access Hub" rule.
-    const deny = (roleIds || [])
-      .map((id) => ROLE_DEFINITIONS[id])
-      .filter(Boolean)
-      .flatMap((r) => (r.excludes || []).map((x) => String(x).toUpperCase()));
-
-    permissions = allow.filter((p) => !deny.includes(p));
-
-    // If DB allow list is empty (mis-seeded), fallback to code.
-    if (!permissions.length && effective.length) permissions = effective;
+    permissions = Array.from(
+      new Set(
+        (dbRolePerms || [])
+          .map((rp) => String(rp.PermissionID || '').trim().toUpperCase())
+          .filter(Boolean)
+      )
+    );
   } else {
-    permissions = buildEffectivePermissions(roleIds);
+    // Fallback for legacy installs where RolePermission isn't used.
+    permissions = buildEffectivePermissions(roleIds).map((p) => String(p || '').trim().toUpperCase());
   }
 
   // Ensure Permission docs exist check (optional; doesn't block)

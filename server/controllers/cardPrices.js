@@ -4,6 +4,8 @@ const CardCategory = require('../models/cardCategory')
 const Employee = require('../models/employee')
 const Person = require('../models/person')
 
+const middleware = require('../utils/middleware')
+
 const populateChangedByEmployee = {
   path: 'ChangedBy',
   select: 'ID EmployeeType',
@@ -29,7 +31,7 @@ const populateCardPricePrev = {
 // POST - Backfill missing initial prices for categories
 // Creates a CardPrice for each CardCategory that currently has no CardPrice.
 // Body: { defaultPrice?: number }
-cardPricesRouter.post('/backfill-missing', async (req, res) => {
+cardPricesRouter.post('/backfill-missing', middleware.requirePermissions(['PRICING.FULL']), async (req, res) => {
   try {
     const { defaultPrice = 0 } = req.body || {}
     const numericPrice = Number(defaultPrice)
@@ -109,7 +111,7 @@ cardPricesRouter.post('/backfill-missing', async (req, res) => {
 })
 
 // GET all card prices with filtering and pagination
-cardPricesRouter.get('/', async (req, res) => {
+cardPricesRouter.get('/', middleware.requirePermissions(['PRICING.VIEW']), async (req, res) => {
   try {
     const {
       cardCategoryId,
@@ -177,7 +179,7 @@ cardPricesRouter.get('/', async (req, res) => {
 })
 
 // GET single card price by ID
-cardPricesRouter.get('/:id', async (req, res) => {
+cardPricesRouter.get('/:id', middleware.requirePermissions(['PRICING.VIEW']), async (req, res) => {
   try {
     const cardPrice = await CardPrice
       .findById(req.params.id)
@@ -211,7 +213,7 @@ cardPricesRouter.get('/:id', async (req, res) => {
 })
 
 // GET current price for a card category
-cardPricesRouter.get('/current/:cardCategoryId', async (req, res) => {
+cardPricesRouter.get('/current/:cardCategoryId', middleware.requirePermissions(['PRICING.VIEW']), async (req, res) => {
   try {
     const now = new Date()
 
@@ -251,7 +253,7 @@ cardPricesRouter.get('/current/:cardCategoryId', async (req, res) => {
 })
 
 // GET price history for a card category
-cardPricesRouter.get('/history/:cardCategoryId', async (req, res) => {
+cardPricesRouter.get('/history/:cardCategoryId', middleware.requirePermissions(['PRICING.VIEW']), async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query
 
@@ -337,7 +339,7 @@ cardPricesRouter.get('/history/:cardCategoryId', async (req, res) => {
 // POST - Create new card price (immutable - never update, only insert)
 // New: Authenticated shortcut endpoint to create a new price for a category.
 // Uses JWT payload for ChangedBy (request.user.employeeId).
-cardPricesRouter.post('/change', async (req, res) => {
+cardPricesRouter.post('/change', middleware.requirePermissions(['PRICING.FULL']), async (req, res) => {
   try {
     const { CardCategoryID, Price, StartDateApply, Reason } = req.body
 
@@ -434,7 +436,7 @@ cardPricesRouter.post('/change', async (req, res) => {
   }
 })
 
-cardPricesRouter.post('/', async (req, res) => {
+cardPricesRouter.post('/', middleware.requirePermissions(['PRICING.FULL']), async (req, res) => {
   try {
     const {
       CardCategoryID,
@@ -532,7 +534,7 @@ cardPricesRouter.post('/', async (req, res) => {
 // To change price, create a new CardPrice record with new StartDateApply
 
 // DELETE - Hard delete (only for corrections, not normal operations)
-cardPricesRouter.delete('/:id', async (req, res) => {
+cardPricesRouter.delete('/:id', middleware.requirePermissions(['PRICING.FULL']), async (req, res) => {
   try {
     const idOrCustomId = req.params.id
 

@@ -4,18 +4,7 @@ const Shift = require('../models/shift')
 const Employee = require('../models/employee')
 const Person = require('../models/person')
 
-const isAdmin = (req) => req?.user?.type === 'admin'
-
-const requireAdmin = (req, res) => {
-  if (!isAdmin(req)) {
-    res.status(403).json({
-      success: false,
-      error: { message: 'forbidden', code: 'FORBIDDEN' }
-    })
-    return false
-  }
-  return true
-}
+const middleware = require('../utils/middleware')
 
 const parseDateOnly = (value) => {
   if (!value) return null
@@ -38,7 +27,8 @@ const parseDateOnly = (value) => {
  */
 shiftsRouter.get('/', async (req, res) => {
   try {
-    if (!requireAdmin(req, res)) return
+    const guard = middleware.requirePermissions(['SHIFTS.VIEW'])
+    return guard(req, res, async () => {
 
     const { fromDate, toDate, search, status, page = 1, limit = 20 } = req.query
 
@@ -122,6 +112,7 @@ shiftsRouter.get('/', async (req, res) => {
         }
       }
     })
+    })
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -136,7 +127,8 @@ shiftsRouter.get('/', async (req, res) => {
  */
 shiftsRouter.get('/:shiftId', async (req, res) => {
   try {
-    if (!requireAdmin(req, res)) return
+    const guard = middleware.requirePermissions(['SHIFTS.VIEW'])
+    return guard(req, res, async () => {
 
     const shiftId = String(req.params.shiftId || '').trim()
     if (!shiftId) {
@@ -166,6 +158,7 @@ shiftsRouter.get('/:shiftId', async (req, res) => {
     }
 
     res.json({ success: true, data: { item: shift } })
+    })
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -181,7 +174,8 @@ shiftsRouter.get('/:shiftId', async (req, res) => {
  */
 shiftsRouter.post('/:shiftId/end', async (req, res) => {
   try {
-    if (!requireAdmin(req, res)) return
+    const guard = middleware.requirePermissions(['SHIFTS.FULL'])
+    return guard(req, res, async () => {
 
     const shiftId = String(req.params.shiftId || '').trim()
     if (!shiftId) {
@@ -208,6 +202,7 @@ shiftsRouter.post('/:shiftId/end', async (req, res) => {
     await shift.save()
 
     res.json({ success: true, data: shift.toJSON ? shift.toJSON() : shift })
+    })
   } catch (error) {
     res.status(500).json({
       success: false,

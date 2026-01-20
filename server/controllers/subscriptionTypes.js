@@ -1,8 +1,9 @@
 const subscriptionTypesRouter = require('express').Router()
 const SubscriptionType = require('../models/subscriptionType')
+const middleware = require('../utils/middleware')
 
 // GET all subscription types with pagination
-subscriptionTypesRouter.get('/', async (req, res) => {
+subscriptionTypesRouter.get('/', middleware.requirePermissions(['SUBSCRIPTIONS.VIEW']), async (req, res) => {
   try {
     const { search, page = 1, limit = 20 } = req.query
     const filter = {}
@@ -48,7 +49,7 @@ subscriptionTypesRouter.get('/', async (req, res) => {
 })
 
 // GET single subscription type by ID
-subscriptionTypesRouter.get('/:id', async (req, res) => {
+subscriptionTypesRouter.get('/:id', middleware.requirePermissions(['SUBSCRIPTIONS.VIEW']), async (req, res) => {
   try {
     const subscriptionType = await SubscriptionType.findById(req.params.id)
 
@@ -78,7 +79,7 @@ subscriptionTypesRouter.get('/:id', async (req, res) => {
 })
 
 // POST - Create new subscription type
-subscriptionTypesRouter.post('/', async (req, res) => {
+subscriptionTypesRouter.post('/', middleware.requirePermissions(['SUBSCRIPTIONS.FULL']), async (req, res) => {
   try {
     const { TypeName, DurationDays, Description } = req.body
 
@@ -141,7 +142,7 @@ subscriptionTypesRouter.post('/', async (req, res) => {
 })
 
 // PUT - Update subscription type
-subscriptionTypesRouter.put('/:id', async (req, res) => {
+subscriptionTypesRouter.put('/:id', middleware.requirePermissions(['SUBSCRIPTIONS.FULL']), async (req, res) => {
   try {
     const { TypeName, DurationDays, Description } = req.body
 
@@ -208,7 +209,7 @@ subscriptionTypesRouter.put('/:id', async (req, res) => {
 })
 
 // DELETE - Hard delete subscription type
-subscriptionTypesRouter.delete('/:id', async (req, res) => {
+subscriptionTypesRouter.delete('/:id', middleware.requirePermissions(['SUBSCRIPTIONS.FULL']), async (req, res) => {
   try {
     const subscriptionType = await SubscriptionType.findById(req.params.id)
     if (!subscriptionType) {

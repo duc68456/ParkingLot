@@ -34,8 +34,8 @@ const PERMISSIONS = Object.freeze({
 const ROLE_IDS = Object.freeze({
   STAFF: 'ROLE_STAFF',
   MANAGER: 'ROLE_MANAGER',
-  ADMIN: 'ROLE_ADMIN'
-  // Supreme admin intentionally omitted for now.
+  ADMIN: 'ROLE_ADMIN',
+  SUPREME_ADMIN: 'ROLE_SUPREME_ADMIN'
 });
 
 const ROLE_DEFINITIONS = Object.freeze({
@@ -90,6 +90,14 @@ const ROLE_DEFINITIONS = Object.freeze({
       PERMISSIONS.SHIFTS_VIEW,
       PERMISSIONS.REPORTS_VIEW
     ]
+  },
+
+  [ROLE_IDS.SUPREME_ADMIN]: {
+    id: ROLE_IDS.SUPREME_ADMIN,
+    name: 'Supreme Admin',
+    description: 'Full actions of the application',
+    // All permissions currently known by the system.
+    permissions: Object.values(PERMISSIONS)
   }
 });
 

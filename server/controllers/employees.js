@@ -2,6 +2,7 @@ const employeesRouter = require("express").Router();
 const Employee = require("../models/employee");
 const Person = require("../models/person");
 const EmployeeRole = require("../models/employeeRole");
+const middleware = require('../utils/middleware');
 
 const isEmployeeBusinessId = (val) => /^EMP\d{4}$/i.test(String(val || '').trim());
 
@@ -136,7 +137,10 @@ employeesRouter.get("/:id", async (request, response) => {
  * Returns explicit EmployeeRole assignments (multi-role).
  * If none exist, returns an empty array (client can decide fallback behavior).
  */
-employeesRouter.get("/:employeeBusinessId/roles", async (request, response) => {
+employeesRouter.get(
+  "/:employeeBusinessId/roles",
+  middleware.requirePermissions(['PEOPLE.ACCESS_MANAGEMENT_HUB']),
+  async (request, response) => {
   try {
     const employeeBusinessId = String(request.params.employeeBusinessId || '').trim().toUpperCase();
     if (!employeeBusinessId || !isEmployeeBusinessId(employeeBusinessId)) {
@@ -165,14 +169,18 @@ employeesRouter.get("/:employeeBusinessId/roles", async (request, response) => {
       error: { message: 'Failed to get employee roles', details: error.message }
     });
   }
-});
+  }
+);
 
 /**
  * PUT /api/employees/:employeeBusinessId/roles
  * Body: { roleIds: string[] }
  * Replace-all semantics.
  */
-employeesRouter.put("/:employeeBusinessId/roles", async (request, response) => {
+employeesRouter.put(
+  "/:employeeBusinessId/roles",
+  middleware.requirePermissions(['PEOPLE.ACCESS_MANAGEMENT_HUB']),
+  async (request, response) => {
   try {
     const employeeBusinessId = String(request.params.employeeBusinessId || '').trim().toUpperCase();
     if (!employeeBusinessId || !isEmployeeBusinessId(employeeBusinessId)) {
@@ -217,7 +225,8 @@ employeesRouter.put("/:employeeBusinessId/roles", async (request, response) => {
       error: { message: 'Failed to update employee roles', details: error.message }
     });
   }
-});
+  }
+);
 
 /**
  * POST /api/employees/validate

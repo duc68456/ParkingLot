@@ -9,6 +9,11 @@ const Employee = require('../models/employee')
 const Person = require('../models/person')
 const GateWarning = require('../models/gateWarning')
 
+const middleware = require('../utils/middleware')
+
+// Option A: allow staff/admin access based on permissions.
+dashboardRouter.use(middleware.requirePermissions(['DASHBOARD.VIEW']))
+
 /**
  * GET /api/dashboard/stats
  * Returns key statistics for the dashboard
