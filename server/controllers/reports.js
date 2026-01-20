@@ -8,6 +8,9 @@ const VehicleType = require('../models/vehicleType')
 const CardCategory = require('../models/cardCategory')
 const Card = require('../models/card')
 const Person = require('../models/person')
+const Subscription = require('../models/subscription')
+const CardPurchaseInvoice = require('../models/cardPurchaseInvoice')
+const CardPurchaseDetail = require('../models/cardPurchaseDetail')
 
 // Helper: Parse date range from query
 const parseDateRange = (fromDate, toDate) => {
@@ -86,24 +89,70 @@ reportsRouter.get('/overview', async (req, res) => {
 })
 
 // GET /api/reports/revenue-trend - Revenue by day/week/month
+// Always returns fixed time intervals for consistent chart display
 reportsRouter.get('/revenue-trend', async (req, res) => {
   try {
-    const { fromDate, toDate, quickRange, period = 'day' } = req.query
+    const { fromDate, toDate, quickRange, period } = req.query
 
     let dateRange = quickRange ? getQuickRange(quickRange) : parseDateRange(fromDate, toDate)
     const { from, to } = dateRange
 
-    // Determine grouping format
+    // Determine grouping format based on quickRange or explicit period
+    const effectivePeriod = period || (quickRange === 'today' ? 'hour' : quickRange === 'year' ? 'month' : 'day')
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+    // Generate fixed time slots based on quickRange
+    let fixedSlots = []
+    if (quickRange === 'today') {
+      // Today: every hour (0-23)
+      for (let h = 0; h < 24; h++) {
+        fixedSlots.push({ key: h, label: `${h.toString().padStart(2, '0')}:00`, revenue: 0, transactions: 0 })
+      }
+    } else if (quickRange === 'year') {
+      // Year: 12 months
+      for (let m = 1; m <= 12; m++) {
+        fixedSlots.push({ key: m, label: months[m - 1], revenue: 0, transactions: 0 })
+      }
+    } else if (quickRange === 'week') {
+      // Week: 7 days
+      const startOfWeek = new Date(from)
+      for (let d = 0; d < 7; d++) {
+        const date = new Date(startOfWeek)
+        date.setDate(startOfWeek.getDate() + d)
+        const dateStr = date.toISOString().split('T')[0]
+        const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        fixedSlots.push({ key: dateStr, label, revenue: 0, transactions: 0 })
+      }
+    } else if (quickRange === 'month') {
+      // Month: all days in current month
+      const year = from.getFullYear()
+      const month = from.getMonth()
+      const daysInMonth = new Date(year, month + 1, 0).getDate()
+      for (let d = 1; d <= daysInMonth; d++) {
+        const date = new Date(year, month, d)
+        const dateStr = date.toISOString().split('T')[0]
+        const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        fixedSlots.push({ key: dateStr, label, revenue: 0, transactions: 0 })
+      }
+    } else {
+      // Default: last 7 days
+      for (let d = 6; d >= 0; d--) {
+        const date = new Date()
+        date.setDate(date.getDate() - d)
+        const dateStr = date.toISOString().split('T')[0]
+        const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        fixedSlots.push({ key: dateStr, label, revenue: 0, transactions: 0 })
+      }
+    }
+
+    // Determine grouping for aggregation
     let groupFormat
-    switch (period) {
-      case 'week':
-        groupFormat = { $isoWeek: '$ExitTime' }
-        break
-      case 'month':
-        groupFormat = { $month: '$ExitTime' }
-        break
-      default:
-        groupFormat = { $dateToString: { format: '%Y-%m-%d', date: '$ExitTime' } }
+    if (quickRange === 'today') {
+      groupFormat = { $hour: '$ExitTime' }
+    } else if (quickRange === 'year') {
+      groupFormat = { $month: '$ExitTime' }
+    } else {
+      groupFormat = { $dateToString: { format: '%Y-%m-%d', date: '$ExitTime' } }
     }
 
     const pipeline = [
@@ -117,27 +166,41 @@ reportsRouter.get('/revenue-trend', async (req, res) => {
         $group: {
           _id: groupFormat,
           revenue: { $sum: '$FinalFee' },
-          transactions: { $sum: 1 },
-          year: { $first: { $year: '$ExitTime' } }
+          transactions: { $sum: 1 }
         }
-      },
-      { $sort: { year: 1, _id: 1 } }
+      }
     ]
 
     const results = await EntrySession.aggregate(pipeline)
 
-    // Calculate trend (% change from previous)
-    const trendData = results.map((item, index) => {
-      const prevRevenue = index > 0 ? results[index - 1].revenue : null
-      const trend = prevRevenue !== null && prevRevenue > 0
-        ? ((item.revenue - prevRevenue) / prevRevenue) * 100
-        : null
+    // Create lookup map from results
+    const dataMap = new Map()
+    for (const item of results) {
+      dataMap.set(String(item._id), item)
+    }
+
+    // Merge data into fixed slots
+    const trendData = fixedSlots.map((slot, index) => {
+      const data = dataMap.get(String(slot.key))
+      const revenue = data ? data.revenue : 0
+      const transactions = data ? data.transactions : 0
+
+      // Calculate trend
+      const prevRevenue = index > 0 ? fixedSlots[index - 1].revenue : null
+      let trend = null
+      if (prevRevenue !== null && prevRevenue > 0) {
+        trend = Math.round(((revenue - prevRevenue) / prevRevenue) * 1000) / 10
+      }
+
+      // Update slot with actual data for trend calculation
+      slot.revenue = revenue
+      slot.transactions = transactions
 
       return {
-        label: String(item._id),
-        revenue: item.revenue,
-        transactions: item.transactions,
-        trend: trend !== null ? Math.round(trend * 10) / 10 : null
+        label: slot.label,
+        revenue,
+        transactions,
+        trend
       }
     })
 
@@ -145,7 +208,8 @@ reportsRouter.get('/revenue-trend', async (req, res) => {
       success: true,
       data: {
         items: trendData,
-        period,
+        period: effectivePeriod,
+        quickRange,
         dateRange: { from, to }
       }
     })
@@ -164,7 +228,7 @@ reportsRouter.get('/staff', async (req, res) => {
     const { from, to } = dateRange
 
     // Get all employees with person info
-    const employees = await Employee.find({ Status: 'ACTIVE' })
+    const employees = await Employee.find({ Status: 'ACTIVE', EmployeeType: 'STAFF' })
       .populate('person')
       .lean()
 
@@ -202,7 +266,7 @@ reportsRouter.get('/staff', async (req, res) => {
         revenue,
         avgShift
       }
-    })
+    }).filter(s => s.revenue > 0)
 
     // KPIs
     const totalStaff = employees.length
@@ -297,40 +361,168 @@ reportsRouter.get('/detailed/card-categories', async (req, res) => {
     // Get all card categories
     const cardCategories = await CardCategory.find({ IsActive: true }).lean()
 
-    // Get sessions with card info
-    const sessions = await EntrySession.find({
-      Status: 'EXITED',
-      ExitTime: { $gte: from, $lte: to }
-    }).select('CardID FinalFee').lean()
+    // Helper to normalize strings for comparison (visitor check)
+    const isVisitor = (name) => {
+      const s = String(name || '').toLowerCase()
+      return s.includes('visitor') || s.includes('vãng lai')
+    }
 
-    // Get cards to map to categories
-    const cardIds = [...new Set(sessions.map(s => s.CardID))]
-    const cards = await Card.find({ CardID: { $in: cardIds } }).select('CardID CardCategoryID').lean()
-    const cardMap = new Map(cards.map(c => [c.CardID, c.CardCategoryID]))
-
-    // Aggregate by category
     const categoryStats = {}
-    for (const session of sessions) {
-      const categoryId = cardMap.get(session.CardID) || 'UNKNOWN'
-      if (!categoryStats[categoryId]) {
-        categoryStats[categoryId] = { transactions: 0, revenue: 0 }
-      }
-      categoryStats[categoryId].transactions++
-      categoryStats[categoryId].revenue += session.FinalFee || 0
+    // Initialize stats
+    cardCategories.forEach(cc => {
+      categoryStats[cc.ID] = { transactions: 0, revenue: 0, type: cc.Name, isVisitor: isVisitor(cc.Name) }
+    })
+
+    // 1. Calculate VISITOR Revenue (from EntrySessions)
+    // Only fetch sessions for visitor cards if we can filter by card category via lookup,
+    // or just fetch all exited sessions and filter in memory if volume allows.
+    // For scalability, let's try to filter by visitor categories if possible.
+    const visitorCategoryIds = cardCategories.filter(c => isVisitor(c.Name)).map(c => c.ID)
+
+    if (visitorCategoryIds.length > 0) {
+      // Find cards belonging to visitor categories (if needed, but usually Visitor cards are linked to Visitor Category)
+      // Aggregate EntrySessions -> Lookup Card -> Match CardCategory in visitorCategoryIds
+      const visitorPipeline = [
+        {
+          $match: {
+            Status: 'EXITED',
+            ExitTime: { $gte: from, $lte: to }
+          }
+        },
+        {
+          $lookup: {
+            from: 'cards', // collection name
+            localField: 'CardID',
+            foreignField: 'CardID',
+            as: 'card'
+          }
+        },
+        { $unwind: '$card' }, // Unwind to check category
+        {
+          $match: {
+            'card.CardCategoryID': { $in: visitorCategoryIds }
+          }
+        },
+        {
+          $group: {
+            _id: '$card.CardCategoryID',
+            revenue: { $sum: '$FinalFee' },
+            transactions: { $sum: 1 }
+          }
+        }
+      ]
+
+      const visitorResults = await EntrySession.aggregate(visitorPipeline)
+      visitorResults.forEach(r => {
+        if (categoryStats[r._id]) {
+          categoryStats[r._id].revenue += r.revenue
+          categoryStats[r._id].transactions += r.transactions
+        }
+      })
+    }
+
+    // 2. Calculate NON-VISITOR Revenue (Subscriptions + Invoices)
+    const nonVisitorCategories = cardCategories.filter(c => !isVisitor(c.Name))
+    const nonVisitorCategoryIds = nonVisitorCategories.map(c => c.ID)
+
+    if (nonVisitorCategoryIds.length > 0) {
+      // A. Subscriptions
+      // We need to know which category a subscription belongs to.
+      // Subscription -> Card -> CardCategory.
+      const subPipeline = [
+        {
+          $match: {
+            // Using createdAt as "revenue date". Could use StartDate depending on business logic.
+            createdAt: { $gte: from, $lte: to }
+          }
+        },
+        {
+          $lookup: {
+            from: 'cards',
+            localField: 'CardID',
+            foreignField: 'CardID',
+            as: 'card'
+          }
+        },
+        { $unwind: '$card' },
+        {
+          $match: {
+            'card.CardCategoryID': { $in: nonVisitorCategoryIds }
+          }
+        },
+        {
+          $group: {
+            _id: '$card.CardCategoryID',
+            revenue: { $sum: '$PricePaid' },
+            transactions: { $sum: 1 }
+          }
+        }
+      ]
+
+      const subResults = await Subscription.aggregate(subPipeline)
+      subResults.forEach(r => {
+        if (categoryStats[r._id]) {
+          categoryStats[r._id].revenue += r.revenue
+          categoryStats[r._id].transactions += r.transactions
+        }
+      })
+
+      // B. Card Purchase Invoices (Detailed)
+      // Filter details by Invoice Date and Category
+      // We need to look up the Invoice to check the date first (or filter details then lookup invoice?).
+      // Better: Match Invoices in range -> Lookup Details -> Unwind -> Match non-visitor category -> Group
+      const invoicePipeline = [
+        {
+          $match: {
+            InvoiceDate: { $gte: from, $lte: to },
+            Status: 'COMPLETED' // Only count completed invoices? Or all? User said "invoice turns". Usually completed sales.
+          }
+        },
+        {
+          $lookup: {
+            from: 'cardpurchasedetails', // Check exact collection name in mongo usually lowercase plural
+            localField: 'ID',
+            foreignField: 'InvoiceID',
+            as: 'details'
+          }
+        },
+        { $unwind: '$details' },
+        {
+          $match: {
+            'details.CardCategoryID': { $in: nonVisitorCategoryIds }
+          }
+        },
+        {
+          $group: {
+            _id: '$details.CardCategoryID',
+            // Revenue = quantity * unit price
+            revenue: { $sum: { $multiply: ['$details.Quantity', '$details.UnitPrice'] } },
+            transactions: { $sum: '$details.Quantity' } // Counting number of cards sold as "transactions" (turns)
+          }
+        }
+      ]
+
+      const invoiceResults = await CardPurchaseInvoice.aggregate(invoicePipeline)
+      invoiceResults.forEach(r => {
+        if (categoryStats[r._id]) {
+          categoryStats[r._id].revenue += r.revenue
+          categoryStats[r._id].transactions += r.transactions
+        }
+      })
     }
 
     const totalRevenue = Object.values(categoryStats).reduce((sum, s) => sum + s.revenue, 0)
 
-    const items = cardCategories.map(cc => {
-      const stat = categoryStats[cc.ID] || { transactions: 0, revenue: 0 }
-      return {
-        id: cc.ID,
-        type: cc.Name,
-        transactions: stat.transactions,
-        revenue: stat.revenue,
-        percentage: totalRevenue > 0 ? Math.round((stat.revenue / totalRevenue) * 1000) / 10 : 0
-      }
-    })
+    const items = Object.values(categoryStats).map(stat => ({
+      id: cardCategories.find(c => c.Name === stat.type)?.ID || 'UNKNOWN',
+      type: stat.type,
+      transactions: stat.transactions,
+      revenue: stat.revenue,
+      percentage: totalRevenue > 0 ? Math.round((stat.revenue / totalRevenue) * 1000) / 10 : 0
+    }))
+
+    // Sort by revenue desc
+    items.sort((a, b) => b.revenue - a.revenue)
 
     res.json({
       success: true,
@@ -410,26 +602,76 @@ reportsRouter.get('/detailed/hourly', async (req, res) => {
 // GET /api/reports/time-period - Revenue comparison with trends
 reportsRouter.get('/time-period', async (req, res) => {
   try {
-    const { fromDate, toDate, quickRange, period = 'day' } = req.query
+    const { fromDate, toDate, quickRange, period = 'day', month, year } = req.query
 
-    // Reuse revenue-trend logic but with more detail
-    let dateRange = quickRange ? getQuickRange(quickRange) : parseDateRange(fromDate, toDate)
-    const { from, to } = dateRange
+    // Determine Date Range
+    let dateRange
+    let groupFormat
+    let labelFormat
+    let allKeys = [] // To fill gaps
 
-    let groupFormat, labelFormat
-    switch (period) {
-      case 'week':
-        groupFormat = { $isoWeek: '$ExitTime' }
-        labelFormat = 'Week'
-        break
-      case 'month':
-        groupFormat = { $month: '$ExitTime' }
-        labelFormat = 'Month'
-        break
-      default:
+    // Logic for "By Week" with specific month/year check (Custom 4-week buckets)
+    if (period === 'week' && month && year) {
+      const y = parseInt(year)
+      const m = parseInt(month) - 1
+      const from = new Date(y, m, 1)
+      const to = new Date(y, m + 1, 0, 23, 59, 59, 999)
+      dateRange = { from, to }
+
+      // Custom Grouping for 4 Weeks
+      // Week 1: 1-7, Week 2: 8-14, Week 3: 15-21, Week 4: 22-End
+      groupFormat = {
+        $switch: {
+          branches: [
+            { case: { $lte: [{ $dayOfMonth: '$ExitTime' }, 7] }, then: 1 },
+            { case: { $lte: [{ $dayOfMonth: '$ExitTime' }, 14] }, then: 2 },
+            { case: { $lte: [{ $dayOfMonth: '$ExitTime' }, 21] }, then: 3 },
+          ],
+          default: 4
+        }
+      }
+      labelFormat = 'Week'
+      allKeys = [1, 2, 3, 4]
+    } else {
+      dateRange = quickRange ? getQuickRange(quickRange) : parseDateRange(fromDate, toDate)
+      const { from, to } = dateRange
+
+      if (period === 'day') {
         groupFormat = { $dateToString: { format: '%Y-%m-%d', date: '$ExitTime' } }
         labelFormat = 'Day'
+
+        // Generate all dates in range
+        let current = new Date(from)
+        while (current <= to) {
+          allKeys.push(current.toISOString().split('T')[0])
+          current.setDate(current.getDate() + 1)
+        }
+      } else if (period === 'month') {
+        groupFormat = {
+          y: { $year: '$ExitTime' },
+          m: { $month: '$ExitTime' }
+        }
+        labelFormat = 'Month'
+
+        // Generate all months in range
+        let current = new Date(from)
+        current.setDate(1) // Start of month
+        const target = new Date(to)
+        target.setDate(1) // Start of target month
+
+        while (current <= target) {
+          allKeys.push({ y: current.getFullYear(), m: current.getMonth() + 1 })
+          current.setMonth(current.getMonth() + 1)
+        }
+      } else if (period === 'week') {
+        // General week range - simpler isoWeek
+        groupFormat = { $isoWeek: '$ExitTime' }
+        labelFormat = 'Week'
+        // Not filling gaps for general week range as it's complex with years
+      }
     }
+
+    const { from, to } = dateRange
 
     const pipeline = [
       {
@@ -443,43 +685,75 @@ reportsRouter.get('/time-period', async (req, res) => {
           _id: groupFormat,
           revenue: { $sum: '$FinalFee' },
           transactions: { $sum: 1 },
-          entries: { $sum: 1 },
-          year: { $first: { $year: '$ExitTime' } },
-          month: { $first: { $month: '$ExitTime' } },
-          day: { $first: { $dayOfMonth: '$ExitTime' } }
+          firstDate: { $min: '$ExitTime' }
         }
       },
-      { $sort: { year: 1, month: 1, day: 1, _id: 1 } }
+      { $sort: { _id: 1 } }
     ]
 
     const results = await EntrySession.aggregate(pipeline)
 
-    // Format labels and calculate trends
-    const items = results.map((item, index) => {
-      const prevRevenue = index > 0 ? results[index - 1].revenue : null
-      const trend = prevRevenue !== null && prevRevenue > 0
-        ? ((item.revenue - prevRevenue) / prevRevenue) * 100
-        : null
-
-      let label = String(item._id)
-      if (period === 'day' && item._id) {
-        const date = new Date(item._id)
-        label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      } else if (period === 'week') {
-        label = `Week ${item._id}`
-      } else if (period === 'month') {
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-        label = months[item._id - 1] || `Month ${item._id}`
-      }
-
-      return {
-        id: String(item._id),
-        label,
-        revenue: item.revenue,
-        transactions: item.transactions,
-        trend: trend !== null ? Math.round(trend * 10) / 10 : null
-      }
+    // Map results to a dictionary for easy lookup
+    const resultMap = {}
+    results.forEach(r => {
+      // Stringify key for object lookup
+      const k = (typeof r._id === 'object' && r._id !== null) ? `${r._id.y}-${r._id.m}` : String(r._id)
+      resultMap[k] = r
     })
+
+    // Build final items filling gaps
+    let items = []
+
+    if (allKeys.length > 0) {
+      items = allKeys.map((key, index) => {
+        let lookupKey = key
+        if (typeof key === 'object') lookupKey = `${key.y}-${key.m}`
+        else lookupKey = String(key)
+
+        const data = resultMap[lookupKey] || { revenue: 0, transactions: 0 }
+
+        let label = ''
+        if (period === 'day') {
+          const [y, m, d] = lookupKey.split('-')
+          const date = new Date(y, m - 1, d)
+          label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        } else if (period === 'week') {
+          // key is 1, 2, 3, 4
+          label = `Week ${key}`
+        } else if (period === 'month') {
+          // key is {y, m}
+          const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+          label = `${months[key.m - 1]} ${key.y}`
+        }
+
+        // Calculate trend relative to PREVIOUS item in this generated list
+        const prevItem = index > 0 ? items[index - 1] : null
+        let trend = null
+        if (prevItem && prevItem.revenue > 0) {
+          trend = ((data.revenue - prevItem.revenue) / prevItem.revenue) * 100
+        }
+
+        return {
+          id: String(index),
+          label,
+          revenue: data.revenue,
+          transactions: data.transactions,
+          trend: trend !== null ? Math.round(trend * 10) / 10 : null
+        }
+      })
+    } else {
+      // Fallback for cases without gap filling
+      items = results.map((item, index) => {
+        let label = `Week ${item._id}`
+        return {
+          id: String(index),
+          label,
+          revenue: item.revenue,
+          transactions: item.transactions,
+          trend: null
+        }
+      })
+    }
 
     res.json({
       success: true,

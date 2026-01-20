@@ -288,26 +288,7 @@ export default function Dashboard() {
     },
   ];
 
-  const alertsToDisplay = [
-    {
-      id: 1,
-      tone: 'warning',
-      title: 'Motorcycle parking 92% full (1104/1200)',
-      time: '5 mins ago',
-    },
-    {
-      id: 2,
-      tone: 'danger',
-      title: 'Card read error at Gate 3',
-      time: '15 mins ago',
-    },
-    {
-      id: 3,
-      tone: 'info',
-      title: 'Shift change due in 30 minutes',
-      time: '30 mins ago',
-    },
-  ];
+
 
   const capacityToDisplay = [
     {
@@ -365,7 +346,7 @@ export default function Dashboard() {
     }))
     : recentActivityToDisplay;
 
-  // Use gate warnings for alerts if available, fallback to regular alerts or mock data
+  // Use gate warnings for alerts if available, fallback to regular alerts or empty
   const displayAlerts = gateWarnings.length > 0
     ? gateWarnings.slice(0, 10).map(w => ({
       id: w.ID || w._id || w.id,
@@ -380,7 +361,7 @@ export default function Dashboard() {
         title: al.title,
         time: formatRelativeTime(al.timestamp)
       }))
-      : alertsToDisplay;
+      : [];
   // Calculate total for percentage in tooltip
   const totalDailyVehicles = dailyDistribution.reduce((sum, item) => sum + item.value, 0);
 
@@ -545,6 +526,11 @@ export default function Dashboard() {
           </div>
 
           <div className="dashboard-alertList">
+            {displayAlerts.length === 0 && (
+              <div style={{ padding: '20px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>
+                ✅ No active alerts
+              </div>
+            )}
             {displayAlerts.map((al) => (
               <div key={al.id} className={`dashboard-alert dashboard-alert--${al.tone}`}>
                 <div className="dashboard-alertIcon" aria-hidden="true">

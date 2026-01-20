@@ -489,12 +489,10 @@ dashboardRouter.get('/gate-warnings', async (request, response, next) => {
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0)
     const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59)
 
-    // Get today's warnings
-    const todayWarnings = await GateWarning.find({
-      createdAt: { $gte: startOfToday, $lte: endOfToday }
-    })
+    // Get available warnings (recent 10)
+    const recentWarnings = await GateWarning.find({})
       .sort({ createdAt: -1 })
-      .limit(50)
+      .limit(10)
       .lean()
 
     const todayCount = await GateWarning.countDocuments({
@@ -506,7 +504,7 @@ dashboardRouter.get('/gate-warnings', async (request, response, next) => {
     response.json({
       success: true,
       data: {
-        warnings: todayWarnings,
+        warnings: recentWarnings,
         todayCount,
         totalCount
       }

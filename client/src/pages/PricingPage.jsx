@@ -465,6 +465,7 @@ export default function PricingPage() {
         Array.isArray(items)
           ? items
             .slice()
+            // Sort ascending first to calculate next/prev logic easily
             .sort((a, b) => new Date(a?.StartDateApply || a?.createdAt || 0).getTime() - new Date(b?.StartDateApply || b?.createdAt || 0).getTime())
             .map((it, idx, arr) => {
               // What the UI component expects per item:
@@ -475,6 +476,7 @@ export default function PricingPage() {
 
               const prevFromServer = it?.SinglePricingRuleDetailPrevRule || it?.SinglePricingRulePrevRule || null
               const prevFromArray = idx > 0 ? arr[idx - 1] : null
+              const nextFromArray = idx < arr.length - 1 ? arr[idx + 1] : null
 
               const prevDayPrice =
                 prevFromServer?.DayPrice ??
@@ -489,9 +491,16 @@ export default function PricingPage() {
                 prevFromArray?.NextHourPrice ??
                 null
 
+              // Start Date
+              const startDate = it?.StartDateApply ?? null
+
+              // End Date: The distinct start date of the NEXT rule, or 'Active' if this is the last one.
+              // Note: This assumes the loaded list includes the latest rules (page 1).
+              let endDate = nextFromArray?.StartDateApply ?? 'Active'
+
               return {
                 id: it?.ID || it?.id || it?._id,
-                startDate: it?.StartDateApply ?? null,
+                startDate: startDate,
                 changedBy:
                   it?.ChangedByEmployee?.Person?.FullName ||
                   it?.ChangedByEmployee?.Person?.fullName ||
@@ -510,11 +519,11 @@ export default function PricingPage() {
                   nextHour: prevNextHour
                 },
 
-                periodStart: it?.StartDateApply ?? null,
-                // We don't currently have EndDateApply in the schema; keep null.
-                periodEnd: it?.EndDateApply ?? null
+                periodStart: startDate,
+                periodEnd: endDate
               }
             })
+            .reverse() // Reverse to show Newest -> Oldest
           : []
       );
     } catch (e) {

@@ -5,6 +5,7 @@ import EditCategoryModal from '../components/EditCategoryModal';
 import ViewCardModal from '../components/ViewCardModal';
 import ViewCategoryCardsModal from '../components/ViewCategoryCardsModal';
 import DeleteCategoryModal from '../components/DeleteCategoryModal';
+import EditCardModal from '../components/EditCardModal';
 import { useAuth } from '../contexts/AuthContext';
 import {
   CardsActionEditIcon,
@@ -104,6 +105,8 @@ function CardsPage() {
   const [categoryToEdit, setCategoryToEdit] = useState(null);
   const [showViewCardModal, setShowViewCardModal] = useState(false);
   const [cardToView, setCardToView] = useState(null);
+  const [showEditCardModal, setShowEditCardModal] = useState(false);
+  const [cardToEdit, setCardToEdit] = useState(null);
   const [showViewCategoryCardsModal, setShowViewCategoryCardsModal] = useState(false);
   const [categoryToViewCards, setCategoryToViewCards] = useState(null);
   const [showDeleteCategoryModal, setShowDeleteCategoryModal] = useState(false);
@@ -420,8 +423,54 @@ function CardsPage() {
   };
 
   const handleEditCard = (cardId) => {
-    console.log('Edit card:', cardId);
-    // TODO: Implement edit card
+    const card = filteredCards.find(c => c.id === cardId) || cards.find((c) => c.id === cardId);
+    if (card) {
+      setCardToEdit(card);
+      setShowEditCardModal(true);
+    }
+  };
+
+  const handleSaveCardStatus = async (cardId, newStatus) => {
+    try {
+      // Find the Mongo _id from the raw object if possible, or use the cardId (which might be the business ID in this page logic, normalized as 'id')
+      // normalizeCard uses: id: c?.CardID || c?.id || c?._id
+      // The PUT endpoint usually expects Mongo ID but let's check if it handles business ID.
+      // CardsRouter.put('/:id', Card.findById(req.params.id)) -> requires Mongo ID.
+      // Ensure we have the Mongo ID.
+      const cardObj = cards.find(c => c.id === cardId);
+      const mongoId = cardObj?._raw?._id || cardObj?._raw?.id;
+
+      if (!mongoId) throw new Error('Cannot identify card for update');
+
+      const res = await fetch(`${API_BASE_URL}/api/cards/${mongoId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        body: JSON.stringify({
+          Status: newStatus
+        })
+      });
+
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(json?.error?.message || 'Failed to update card status');
+      }
+
+      const updatedRaw = json?.data;
+      if (updatedRaw) {
+        const normalized = normalizeCard(updatedRaw);
+        setCards(prev => prev.map(c => c.id === normalized.id ? normalized : c));
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Update card status error:', err);
+      throw err;
+    }
+  };
+
+  const handleCloseEditCardModal = () => {
+    setShowEditCardModal(false);
+    setCardToEdit(null);
   };
 
   const handleAssignClick = (card) => {
@@ -1396,6 +1445,16 @@ function CardsPage() {
         <ViewCardModal
           card={cardToView}
           onClose={handleCloseViewCardModal}
+        />
+      )}
+
+      {/* Edit Card Modal */}
+      {showEditCardModal && cardToEdit && (
+        <EditCardModal
+          isOpen={showEditCardModal}
+          card={cardToEdit}
+          onClose={handleCloseEditCardModal}
+          onSave={handleSaveCardStatus}
         />
       )}
 
