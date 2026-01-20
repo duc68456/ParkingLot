@@ -454,6 +454,27 @@
   margin-bottom: 16px;
 }
 
+.reports-panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.reports-panelHeader .reports-panelTitle {
+  margin-bottom: 0;
+}
+
+.reports-panelMeta {
+  font-family: 'Arimo', sans-serif;
+  font-size: 13px;
+  line-height: 20px;
+  color: #62748e;
+  background: #f1f5f9;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
 .reports-chartPlaceholder {
   width: 100%;
   height: 300px;
@@ -770,4 +791,78 @@
     width: 100%;
     overflow-x: auto;
   }
+}
+
+/* Time Period Cards */
+.reports-cardsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.reports-periodCard {
+  background: #fff;
+  border: 1.6px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.reports-periodCard:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.reports-periodCardLabel {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #62748e;
+}
+
+.reports-periodCardValue {
+  font-family: 'Arimo', sans-serif;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 500;
+  color: #1d293d;
+}
+
+.reports-periodCardTrend {
+  font-size: 13px;
+  margin-top: auto;
+}
+
+@media (max-width: 1100px) {
+  .reports-cardsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .reports-cardsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.reports-select {
+  height: 43.2px;
+  border-radius: 10px;
+  border: 1.6px solid #e2e8f0;
+  background: #fff;
+  padding: 0 12px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  color: #1d293d;
+  width: 100%;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2362748e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
 }

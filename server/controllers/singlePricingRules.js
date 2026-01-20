@@ -487,7 +487,13 @@ singlePricingRulesRouter.post('/', middleware.requirePermissions(['PRICING.FULL'
       message: 'SinglePricingRuleDetail created successfully'
     })
   } catch (error) {
-    res.status(400).json({ success: false, error: { message: error.message, code: 'CREATE_SINGLE_PRICING_RULE_ERROR' } })
+    res.status(400).json({
+      success: false,
+      error: {
+        message: error.message,
+        code: 'CREATE_SINGLE_PRICING_RULE_ERROR'
+      }
+    })
   }
 })
 
