@@ -23,6 +23,9 @@ const PERMISSION_DISPLAY = {
   [PERMISSIONS.DASHBOARD_VIEW]: { name: 'View Dashboard', description: 'Show Dashboard button and access dashboard data' },
   [PERMISSIONS.PURCHASE_CARD]: { name: 'Purchase Card (Full)', description: 'Show Purchase Card and allow all operations' },
 
+  [PERMISSIONS.SYSTEM_CONFIG_VIEW]: { name: 'View System Configuration', description: 'Show System Config page and load system settings' },
+  [PERMISSIONS.SYSTEM_CONFIG_FULL]: { name: 'System Configuration (Full)', description: 'Edit and save system settings' },
+
   [PERMISSIONS.PEOPLE_VIEW]: { name: 'View People', description: 'Show People button + view people and cards of people' },
   [PERMISSIONS.PEOPLE_ACCESS_HUB]: { name: 'Access Management Hub', description: 'Allow Access Management Hub action on employee' },
   [PERMISSIONS.PEOPLE_FULL]: { name: 'People (Full)', description: 'Full actions of People page (except access hub is separate)' },

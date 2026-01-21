@@ -1,0 +1,327 @@
+/* System Configuration (Figma: System Config) */
+
+.syscfg {
+  width: 100%;
+}
+
+.syscfg__banner {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #111827;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.syscfg__banner--error {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.syscfg__banner--success {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+/* Reuse PageHeader layout component; just follow spacing from design */
+
+.syscfg__card {
+  background: #ffffff;
+  border: 1.6px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 24px;
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.syscfg__card--tight {
+  gap: 20px;
+}
+
+.syscfg__sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.syscfg__sectionIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.syscfg__sectionIconSvg {
+  width: 20px;
+  height: 20px;
+  color: #1447e6;
+}
+
+.syscfg__sectionText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.syscfg__sectionTitle {
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+  color: #1d293d;
+}
+
+.syscfg__sectionSubtitle {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  color: #62748e;
+}
+
+.syscfg__capGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.syscfg__capCard {
+  border: 0.8px solid;
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.syscfg__capCardTop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.syscfg__capIconWrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 0;
+  box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.syscfg__capIcon {
+  width: 20px;
+  height: 20px;
+  color: #314158;
+}
+
+.syscfg__capMeta {
+  display: flex;
+  flex-direction: column;
+}
+
+.syscfg__capLabel {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+}
+
+.syscfg__capHint {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+  color: #62748e;
+}
+
+.syscfg__numberInput {
+  width: 100%;
+  height: 55.2px;
+  border-radius: 10px;
+  border: 1.6px solid #cad5e2;
+  background: #ffffff;
+  padding: 12px 16px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 400;
+  color: #0f172b;
+  outline: none;
+}
+
+.syscfg__numberInput::placeholder {
+  color: rgba(10, 10, 10, 0.5);
+}
+
+.syscfg__numberInput:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.syscfg__numberInput--wide {
+  width: 100%;
+  max-width: 520px;
+}
+
+.syscfg__totalRow {
+  border-top: 1.6px solid #e2e8f0;
+  padding-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.syscfg__totalTitle {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  color: #45556c;
+}
+
+.syscfg__totalSub {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+  color: #62748e;
+  margin-top: 4px;
+}
+
+.syscfg__totalValue {
+  text-align: right;
+}
+
+.syscfg__totalNumber {
+  font-family: 'Arimo', sans-serif;
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 400;
+  color: #1d293d;
+}
+
+.syscfg__totalLabel {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+  color: #62748e;
+  margin-top: 4px;
+}
+
+.syscfg__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 700px;
+}
+
+.syscfg__label {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  color: #314158;
+}
+
+.syscfg__help {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+  color: #62748e;
+}
+
+.syscfg__row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.syscfg__unit {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  color: #45556c;
+}
+
+.syscfg__info {
+  margin-top: 12px;
+  background: #eef2ff;
+  border: 0.8px solid #c6d2ff;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.syscfg__infoTitle {
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  color: #372aac;
+  margin-bottom: 8px;
+}
+
+.syscfg__infoTitle strong {
+  font-weight: 700;
+}
+
+.syscfg__infoText {
+  font-family: 'Arimo', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+  color: #4f39f6;
+}
+
+.syscfg__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.syscfg__saveBtn {
+  height: 48px;
+  border-radius: 10px;
+  padding: 0 24px;
+  background: #155dfc;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  font-family: 'Arimo', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+  box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.syscfg__saveBtn:hover {
+  background: #1447e6;
+}
+
+.syscfg__saveBtn:active {
+  transform: translateY(0.5px);
+}
+
+@media (max-width: 960px) {
+  .syscfg__capGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .syscfg__numberInput--wide {
+    max-width: none;
+  }
+}

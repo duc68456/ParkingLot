@@ -8,6 +8,7 @@ const Customer = require('../models/customer')
 const Employee = require('../models/employee')
 const Person = require('../models/person')
 const GateWarning = require('../models/gateWarning')
+const SystemConfig = require('../models/systemConfig')
 
 const middleware = require('../utils/middleware')
 
@@ -228,8 +229,10 @@ dashboardRouter.get('/capacity', async (request, response, next) => {
     // Get all active vehicle types
     const vehicleTypes = await VehicleType.find({ IsActive: true }).lean()
 
-    // Default capacity per type (100 as requested)
+    // Load configured capacity (fallback to DEFAULT_CAPACITY if config not set)
     const DEFAULT_CAPACITY = 100
+  const cfg = await SystemConfig.findOne({}).sort({ UpdatedAt: -1 }).lean().catch(() => null)
+  const cfgByType = cfg?.parkingCapacityByType || {}
 
     // Count vehicles currently in parking by type
     const sessionsInParking = await EntrySession.find({
@@ -245,7 +248,9 @@ dashboardRouter.get('/capacity', async (request, response, next) => {
     // Build capacity response - use actual vehicle types from DB
     const capacityData = vehicleTypes.map((vt, index) => {
       const current = countByType[vt.VehicleTypeID] || 0
-      const max = DEFAULT_CAPACITY
+      const typeId = String(vt.VehicleTypeID || '').trim().toUpperCase()
+      const configured = Number(cfgByType?.[typeId]?.total)
+      const max = Number.isFinite(configured) && configured >= 0 ? configured : DEFAULT_CAPACITY
       const percent = max > 0 ? Math.round((current / max) * 100) : 0
 
       // Map tone based on vehicle type name (case-insensitive)
@@ -288,8 +293,10 @@ dashboardRouter.get('/alerts', async (request, response, next) => {
     const alerts = []
     const now = new Date()
 
-    // Check capacity alerts - use 100 default capacity per type
-    const DEFAULT_CAPACITY = 100
+  // Check capacity alerts - use configured capacity (fallback to 100 per type)
+  const DEFAULT_CAPACITY = 100
+  const cfg = await SystemConfig.findOne({}).sort({ UpdatedAt: -1 }).lean().catch(() => null)
+  const cfgByType = cfg?.parkingCapacityByType || {}
     const vehicleTypes = await VehicleType.find({ IsActive: true }).lean()
 
     const sessionsInParking = await EntrySession.find({
@@ -305,7 +312,9 @@ dashboardRouter.get('/alerts', async (request, response, next) => {
     // Generate capacity alerts
     for (const vt of vehicleTypes) {
       const current = countByType[vt.VehicleTypeID] || 0
-      const max = DEFAULT_CAPACITY
+      const typeId = String(vt.VehicleTypeID || '').trim().toUpperCase()
+      const configured = Number(cfgByType?.[typeId]?.total)
+      const max = Number.isFinite(configured) && configured >= 0 ? configured : DEFAULT_CAPACITY
       const percent = max > 0 ? Math.round((current / max) * 100) : 0
 
       if (percent >= 90) {

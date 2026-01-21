@@ -13,6 +13,7 @@ import Dashboard from "./Dashboard";
 import ReportsPage from "./ReportsPage";
 import ShiftsPage from "./ShiftsPage";
 import RolesPage from "./RolesPage";
+import SystemConfigPage from "./SystemConfigPage";
 import "../styles/pages/AdminLayout.css";
 import { useSearchParams } from "react-router-dom";
 
@@ -67,6 +68,8 @@ export default function AdminLayout({ children }) {
         return <ReportsPage />;
       case "Roles":
         return <RolesPage />;
+      case "System Config":
+        return <SystemConfigPage />;
       case "Dashboard":
       default:
         return <Dashboard />;

@@ -58,6 +58,9 @@ const reportsRouter = require('./controllers/reports')
 const rolesRouter = require('./controllers/roles')
 const permissionsRouter = require('./controllers/permissions')
 
+// System Config
+const systemConfigRouter = require('./controllers/systemConfig')
+
 const app = express()
 
 logger.info('connecting to', config.MONGODB_URI)
@@ -134,6 +137,9 @@ app.use('/api/admin-accounts', adminAccountsRouter)
 // Authz routes (admin-only handled inside routers for now)
 app.use('/api/roles', rolesRouter)
 app.use('/api/permissions', permissionsRouter)
+
+// System config routes
+app.use('/api/system-config', systemConfigRouter)
 
 // Phase 3: Vehicle & Card Management Routes
 app.use('/api/vehicles', middleware.authRequired, vehiclesRouter)

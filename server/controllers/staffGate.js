@@ -348,7 +348,12 @@ staffGateRouter.get('/parking-capacity', async (req, res) => {
     const EntrySession = require('../models/entrySession')
     const VehicleType = require('../models/vehicleType')
 
+    const SystemConfig = require('../models/systemConfig')
+
     const DEFAULT_CAPACITY = 100
+
+    const cfg = await SystemConfig.findOne({}).sort({ UpdatedAt: -1 }).lean().catch(() => null)
+  const cfgByType = cfg?.parkingCapacityByType || {}
 
     // Get all active vehicle types
     const vehicleTypes = await VehicleType.find({ IsActive: true }).lean()
@@ -364,15 +369,19 @@ staffGateRouter.get('/parking-capacity', async (req, res) => {
         Status: 'IN_PARKING'
       })
 
+      const typeId = String(vt.VehicleTypeID || '').trim().toUpperCase()
+      const configured = Number(cfgByType?.[typeId]?.total)
+      const totalForType = Number.isFinite(configured) && configured >= 0 ? configured : DEFAULT_CAPACITY
+
       capacityData[vt.VehicleTypeID] = {
         id: vt.VehicleTypeID,
         name: vt.Name,
         current,
-        total: DEFAULT_CAPACITY
+        total: totalForType
       }
 
       totalCurrent += current
-      totalCapacity += DEFAULT_CAPACITY
+      totalCapacity += totalForType
     }
 
     res.json({

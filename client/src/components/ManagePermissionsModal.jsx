@@ -6,6 +6,9 @@ const PERMISSION_CODES = Object.freeze({
   ENTRY_SESSIONS_VIEW: 'ENTRY_SESSIONS.VIEW',
   REPORTS_VIEW: 'REPORTS.VIEW',
 
+  SYSTEM_CONFIG_VIEW: 'SYSTEM_CONFIG.VIEW',
+  SYSTEM_CONFIG_FULL: 'SYSTEM_CONFIG.FULL',
+
   PEOPLE_VIEW: 'PEOPLE.VIEW',
   PEOPLE_ACCESS_HUB: 'PEOPLE.ACCESS_MANAGEMENT_HUB',
   PEOPLE_FULL: 'PEOPLE.FULL',
@@ -333,6 +336,22 @@ export default function ManagePermissionsModal({
                 key: PERMISSION_CODES.SHIFTS_FULL,
                 title: 'Full Management',
                 desc: 'Full actions of Shifts page'
+              }
+            ]
+          },
+          {
+            key: 'system-config',
+            title: 'System Configuration',
+            items: [
+              {
+                key: PERMISSION_CODES.SYSTEM_CONFIG_VIEW,
+                title: 'View System Config',
+                desc: 'Show button: System Config'
+              },
+              {
+                key: PERMISSION_CODES.SYSTEM_CONFIG_FULL,
+                title: 'Full Management',
+                desc: 'Allow editing and saving System Config settings'
               }
             ]
           }
