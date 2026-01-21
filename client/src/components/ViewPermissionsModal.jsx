@@ -1,32 +1,18 @@
 import { useEffect, useMemo } from "react";
 import "../styles/components/ViewPermissionsModal.css";
 
-function StopIcon({ size = 20 }) {
+function CloseIcon() {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path
-        d="M12 2.75l7 3.2v6.07c0 4.62-3.02 8.83-7 9.98-3.98-1.15-7-5.36-7-9.98V5.95l7-3.2z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M5 5L15 15M15 5L5 15" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }
 
-function CloseIcon({ size = 20 }) {
+function CheckIcon() {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d="M18 6L6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M6 6l12 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function CheckIcon({ size = 16 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -38,8 +24,8 @@ const PERMISSION_META = {
 };
 
 const CATEGORY_META = {
-  System: { caption: "SYSTEM", iconBg: "#F3E8FF", iconColor: "#9333EA" },
-  Parking: { caption: "PARKING", iconBg: "#DBEAFE", iconColor: "#2563EB" },
+  System: { caption: "SYSTEM" },
+  Parking: { caption: "PARKING" },
 };
 
 function normalizeKey(key) {
@@ -95,7 +81,7 @@ export default function ViewPermissionsModal({ open, role, permissions, onClose 
 
       <div className="view-perms__panel" role="document">
         <div className="view-perms__header">
-          <div className="view-perms__title">View Permissions</div>
+          <h3 className="view-perms__title">View Permissions</h3>
           <button type="button" className="view-perms__closeIcon" aria-label="Close" onClick={onClose}>
             <CloseIcon />
           </button>
@@ -103,18 +89,11 @@ export default function ViewPermissionsModal({ open, role, permissions, onClose 
 
         <div className="view-perms__body">
           <div className="view-perms__hero">
-            <div className="view-perms__heroLeft">
-              <div className="view-perms__heroBadge" aria-hidden="true">
-                <StopIcon size={28} />
-              </div>
-              <div className="view-perms__heroText">
-                <div className="view-perms__heroName">{role?.name || "Role"}</div>
-                <div className="view-perms__heroDesc">{role?.description || ""}</div>
-              </div>
+            <div className="view-perms__heroText">
+              <div className="view-perms__heroName">{role?.name || "Role"}</div>
+              <div className="view-perms__heroDesc">{role?.description || ""}</div>
             </div>
-
-            <div className="view-perms__heroTotal" aria-label={`Total ${total}`}
-            >
+            <div className="view-perms__heroTotal" aria-label={`Total ${total}`}>
               <div className="view-perms__heroTotalLabel">TOTAL</div>
               <div className="view-perms__heroTotalValue">{total}</div>
             </div>
@@ -130,16 +109,11 @@ export default function ViewPermissionsModal({ open, role, permissions, onClose 
               grouped.map((g) => {
                 const catMeta = CATEGORY_META[g.category] || {
                   caption: String(g.category || "OTHER").toUpperCase(),
-                  iconBg: "#E2E8F0",
-                  iconColor: "#45556C",
                 };
 
                 return (
                   <section key={g.category} className="view-perms__group" aria-label={g.category}>
                     <div className="view-perms__groupHead">
-                      <div className="view-perms__groupIcon" style={{ background: catMeta.iconBg, color: catMeta.iconColor }} aria-hidden="true">
-                        <StopIcon size={20} />
-                      </div>
                       <div className="view-perms__groupText">
                         <div className="view-perms__groupTitle">{catMeta.caption}</div>
                         <div className="view-perms__groupSub">

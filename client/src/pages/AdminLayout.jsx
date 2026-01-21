@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { useAuthz } from "../contexts/AuthzContext";
 import Sidebar from "../components/Sidebar";
 import AdminHeader from "../components/AdminHeader";
 import PeoplePage from "./PeoplePage";
@@ -21,14 +22,71 @@ export default function AdminLayout({ children }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const { logout } = useAuth();
+  const { hasAnyPermission, loading: authzLoading } = useAuthz();
+
+  // Permission map for each page
+  const pagePermissions = {
+    'Dashboard': ['DASHBOARD.VIEW'],
+    'Purchase Card': ['PURCHASE_CARD.FULL'],
+    'People': ['PEOPLE.VIEW', 'PEOPLE.FULL', 'PEOPLE.ACCESS_MANAGEMENT_HUB'],
+    'Vehicles': ['VEHICLES.VIEW', 'VEHICLES.FULL'],
+    'Cards': ['CARDS.VIEW', 'CARDS.FULL'],
+    'Subscriptions': ['SUBSCRIPTIONS.VIEW', 'SUBSCRIPTIONS.FULL'],
+    'Entry Sessions': ['ENTRY_SESSIONS.VIEW'],
+    'Pricing': ['PRICING.VIEW', 'PRICING.FULL'],
+    'Shifts': ['SHIFTS.VIEW', 'SHIFTS.FULL'],
+    'Reports': ['REPORTS.VIEW'],
+    'Roles': ['ROLES.VIEW', 'ROLES.FULL'],
+    'System Config': ['SYSTEM_CONFIG.VIEW', 'SYSTEM_CONFIG.FULL'],
+  };
+
+  // Get default landing page based on permissions
+  const getDefaultPage = () => {
+    const pageOrder = [
+      'Dashboard',
+      'Purchase Card',
+      'People',
+      'Vehicles',
+      'Cards',
+      'Subscriptions',
+      'Entry Sessions',
+      'Pricing',
+      'Shifts',
+      'Reports',
+      'Roles',
+      'System Config'
+    ];
+
+    for (const page of pageOrder) {
+      if (hasAnyPermission(pagePermissions[page] || [])) {
+        return page;
+      }
+    }
+
+    return 'Dashboard'; // fallback
+  };
 
   useEffect(function () {
-    if (!searchParams.get("tab")) {
+    const currentTab = searchParams.get("tab");
+
+    if (!currentTab) {
+      // Set default landing page based on permissions
+      const defaultPage = getDefaultPage();
       const newSearchParams = new URLSearchParams(searchParams.toString());
-      newSearchParams.set("tab", "Dashboard");
+      newSearchParams.set("tab", defaultPage);
       setSearchParams(newSearchParams);
+    } else {
+      // Validate current tab permission
+      const requiredPerms = pagePermissions[currentTab];
+      if (requiredPerms && !hasAnyPermission(requiredPerms)) {
+        // Redirect to default page if no permission
+        const defaultPage = getDefaultPage();
+        const newSearchParams = new URLSearchParams(searchParams.toString());
+        newSearchParams.set("tab", defaultPage);
+        setSearchParams(newSearchParams);
+      }
     }
-  }, []);
+  }, [searchParams, hasAnyPermission]);
 
   const handleToggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
@@ -36,6 +94,8 @@ export default function AdminLayout({ children }) {
 
   const handleLogout = () => {
     logout();
+    // Clear all URL params and redirect to root
+    window.location.href = '/';
   };
 
   const handleNavClick = (label) => {
@@ -47,7 +107,35 @@ export default function AdminLayout({ children }) {
   const renderContent = () => {
     if (children) return children;
 
-    switch (searchParams.get("tab")) {
+    // Show loading while permissions are being fetched
+    if (authzLoading) {
+      return (
+        <div style={{ padding: '48px 24px', textAlign: 'center' }}>
+          <p style={{ fontFamily: 'Arimo, sans-serif', fontSize: '14px', color: '#64748b' }}>
+            Loading permissions...
+          </p>
+        </div>
+      );
+    }
+
+    const currentTab = searchParams.get("tab");
+    const requiredPerms = pagePermissions[currentTab];
+
+    // Check permission before rendering
+    if (requiredPerms && !hasAnyPermission(requiredPerms)) {
+      return (
+        <div style={{ padding: '48px 24px', textAlign: 'center' }}>
+          <h2 style={{ fontFamily: 'Arimo, sans-serif', fontSize: '20px', color: '#0f172b', marginBottom: '8px' }}>
+            Access Denied
+          </h2>
+          <p style={{ fontFamily: 'Arimo, sans-serif', fontSize: '14px', color: '#64748b' }}>
+            You don't have permission to access this page.
+          </p>
+        </div>
+      );
+    }
+
+    switch (currentTab) {
       case "Purchase Card":
         return <PurchaseCardPage />;
       case "People":

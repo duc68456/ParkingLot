@@ -23,7 +23,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 68px;
+  height: 68.8px;
   padding: 0 24px;
   border-bottom: 0.8px solid #e2e8f0;
 }
@@ -34,6 +34,7 @@
   font-size: 18px;
   line-height: 28px;
   color: #0f172b;
+  margin: 0;
 }
 
 .mpm__close {
@@ -43,14 +44,14 @@
   border: none;
   background: transparent;
   cursor: pointer;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  color: #62748e;
+  transition: background-color 0.2s;
 }
 
 .mpm__close:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: #f1f5f9;
 }
 
 .mpm__body {
@@ -59,9 +60,9 @@
 }
 
 .mpm__roleBanner {
-  background: #4f39f6; /* solid, no gradient */
+  background: #f8fafc;
   border-radius: 14px;
-  box-shadow: 0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -4px rgba(0, 0, 0, 0.1);
+  border: 0.8px solid #e2e8f0;
   padding: 24px;
   display: flex;
   align-items: center;
@@ -77,18 +78,6 @@
   min-width: 0;
 }
 
-.mpm__roleBadge {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-  flex-shrink: 0;
-}
-
 .mpm__roleMeta {
   display: flex;
   flex-direction: column;
@@ -98,10 +87,10 @@
 
 .mpm__roleName {
   font-family: "Arimo", sans-serif;
-  font-weight: 700;
-  font-size: 18px;
-  line-height: 28px;
-  color: #ffffff;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  color: #0f172b;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -112,7 +101,7 @@
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
-  color: rgba(255, 255, 255, 0.9);
+  color: #64748b;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -122,8 +111,8 @@
   width: 98px;
   height: 76px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.2);
-  box-shadow: 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -2px rgba(0, 0, 0, 0.1);
+  background: #ffffff;
+  border: 0.8px solid #e2e8f0;
   padding: 12px 20px;
   display: flex;
   flex-direction: column;
@@ -140,7 +129,7 @@
   line-height: 16px;
   letter-spacing: 0.6px;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.8);
+  color: #64748b;
 }
 
 .mpm__selectedValue {
@@ -148,7 +137,7 @@
   font-weight: 700;
   font-size: 30px;
   line-height: 36px;
-  color: #ffffff;
+  color: #0f172b;
 }
 
 .mpm__modules {
@@ -181,41 +170,6 @@
   gap: 12px;
 }
 
-.mpm__moduleIcon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.mpm__moduleIcon--purple {
-  background: #f3e8ff;
-  color: #7e22ce;
-}
-
-.mpm__moduleIcon--blue {
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-
-.mpm__moduleIcon--green {
-  background: #dcfce7;
-  color: #16a34a;
-}
-
-.mpm__moduleIcon--amber {
-  background: #ffedd4;
-  color: #b45309;
-}
-
-.mpm__moduleIcon--pink {
-  background: #fce7f3;
-  color: #be185d;
-}
-
 .mpm__moduleTitleWrap {
   display: flex;
   flex-direction: column;
@@ -224,7 +178,7 @@
 
 .mpm__moduleTitle {
   font-family: "Arimo", sans-serif;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 14px;
   line-height: 20px;
   color: #0f172b;
@@ -235,7 +189,7 @@
   font-weight: 400;
   font-size: 12px;
   line-height: 16px;
-  color: #45556c;
+  color: #64748b;
 }
 
 .mpm__moduleDesc {
@@ -283,7 +237,7 @@
   padding: 10px 0;
 }
 
-.mpm__groupSection + .mpm__groupSection {
+.mpm__groupSection+.mpm__groupSection {
   border-top: 1px solid #e2e8f0;
 }
 
@@ -318,26 +272,37 @@
 }
 
 .mpm__perm--checked {
-  background: #eef2ff;
-  border-color: #615fff;
-  box-shadow: 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -2px rgba(0, 0, 0, 0.1);
+  background: #f8fafc;
+  border-color: #94a3b8;
 }
 
 .mpm__checkbox {
   width: 24px;
   height: 24px;
-  border-radius: 10px;
-  border: 1.6px solid #cad5e2;
+  border-radius: 6px;
+  border: 1.6px solid #cbd5e1;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: transparent;
+  background: #ffffff;
+  position: relative;
 }
 
 .mpm__checkbox--checked {
-  background: #4f39f6;
-  border-color: #4f39f6;
-  color: #ffffff;
+  background: #0f172b;
+  border-color: #0f172b;
+}
+
+.mpm__checkbox--checked::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 3px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
 .mpm__permText {
@@ -349,7 +314,7 @@
 
 .mpm__permTitle {
   font-family: "Arimo", sans-serif;
-  font-weight: 700;
+  font-weight: 500;
   font-size: 14px;
   line-height: 20px;
   color: #0f172b;
@@ -360,19 +325,11 @@
   font-weight: 400;
   font-size: 12px;
   line-height: 16px;
-  color: #45556c;
-}
-
-.mpm__perm--checked .mpm__permTitle {
-  color: #312c85;
-}
-
-.mpm__perm--checked .mpm__permDesc {
-  color: #432dd7;
+  color: #64748b;
 }
 
 .mpm__footer {
-  border-top: 1.6px solid #e2e8f0;
+  border-top: 0.8px solid #e2e8f0;
   padding: 18px 24px;
   display: flex;
   gap: 12px;
@@ -380,27 +337,36 @@
 
 .mpm__primary,
 .mpm__secondary {
-  height: 51px;
+  height: 48px;
   border-radius: 10px;
   font-family: "Arimo", sans-serif;
-  font-weight: 700;
-  font-size: 16px;
+  font-weight: 500;
+  font-size: 15px;
   line-height: 24px;
   cursor: pointer;
   flex: 1;
+  transition: all 0.2s;
 }
 
 .mpm__primary {
   border: none;
-  background: #4f39f6; /* solid */
+  background: #0f172b;
   color: #ffffff;
-  box-shadow: 0px 10px 15px -3px rgba(198, 210, 255, 0.9), 0px 4px 6px -4px rgba(198, 210, 255, 0.9);
+}
+
+.mpm__primary:hover {
+  background: #1e293b;
 }
 
 .mpm__secondary {
-  background: transparent;
-  border: 1.6px solid #cad5e2;
-  color: #314158;
+  background: #ffffff;
+  border: 0.8px solid #cbd5e1;
+  color: #475569;
+}
+
+.mpm__secondary:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
 }
 
 @media (max-width: 520px) {

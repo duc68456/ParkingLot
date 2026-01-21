@@ -30,118 +30,18 @@ const PERMISSION_CODES = Object.freeze({
   SHIFTS_VIEW: 'SHIFTS.VIEW',
   SHIFTS_FULL: 'SHIFTS.FULL',
 
+  ROLES_VIEW: 'ROLES.VIEW',
+  ROLES_FULL: 'ROLES.FULL',
+
   STAFF_VIEW_FULL: 'STAFF_VIEW.FULL'
 });
 
-function Icon({ name, size = 20, className = "" }) {
-  const common = {
-    width: size,
-    height: size,
-    viewBox: "0 0 24 24",
-    fill: "none",
-    xmlns: "http://www.w3.org/2000/svg",
-    className,
-    "aria-hidden": true,
-    focusable: false,
-  };
-
-  switch (name) {
-    case "x":
-      return (
-        <svg {...common}>
-          <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          <path d="M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      );
-    case "shield":
-      return (
-        <svg {...common}>
-          <path
-            d="M12 2.75l7 3.2v6.07c0 4.62-3.02 8.83-7 9.98-3.98-1.15-7-5.36-7-9.98V5.95l7-3.2z"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-          />
-        </svg>
-      );
-    case "check":
-      return (
-        <svg {...common}>
-          <path d="M5 12.5l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-    case "system":
-      return (
-        <svg {...common}>
-          <path
-            d="M4.5 7.5a3 3 0 0 1 3-3h9a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-9a3 3 0 0 1-3-3v-9z"
-            stroke="currentColor"
-            strokeWidth="1.8"
-          />
-          <path d="M8 9h8M8 13h8M8 17h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-      );
-    case "parking":
-      return (
-        <svg {...common}>
-          <path
-            d="M7 20V4h7a5 5 0 0 1 0 10H7"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      );
-    case "finance":
-      return (
-        <svg {...common}>
-          <path
-            d="M6.5 8.5a5.5 5.5 0 1 1 0 7"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-          />
-          <path d="M10 12h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-      );
-    case "hr":
-      return (
-        <svg {...common}>
-          <path
-            d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4z"
-            stroke="currentColor"
-            strokeWidth="1.8"
-          />
-          <path
-            d="M4.5 21a7.5 7.5 0 0 1 15 0"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-          />
-        </svg>
-      );
-    case "customer":
-      return (
-        <svg {...common}>
-          <path
-            d="M16 11a4 4 0 1 0-8 0"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-          />
-          <path
-            d="M5.5 20.5c1.9-2.6 4.3-4 6.5-4s4.6 1.4 6.5 4"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-          />
-          <path d="M12 12.2a3 3 0 1 0-3-3 3 3 0 0 0 3 3z" stroke="currentColor" strokeWidth="1.8" />
-        </svg>
-      );
-    default:
-      return null;
-  }
+function CloseIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M5 5L15 15M15 5L5 15" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
 }
 
 function normalizeSet(value) {
@@ -164,8 +64,6 @@ export default function ManagePermissionsModal({
         key: 'general-monitoring',
         title: 'General & Monitoring',
         description: 'Focuses on high-level data visualization, reporting, and tracking live activity.',
-        icon: 'system',
-        accent: 'purple',
         sections: [
           {
             key: 'dashboard',
@@ -206,8 +104,6 @@ export default function ManagePermissionsModal({
         key: 'customer-entity',
         title: 'Customer & Entity Management',
         description: 'Focuses on the management of physical users (people) and their associated assets (vehicles).',
-        icon: 'customer',
-        accent: 'pink',
         sections: [
           {
             key: 'people',
@@ -252,8 +148,6 @@ export default function ManagePermissionsModal({
         key: 'cards-subscriptions-sales',
         title: 'Cards, Subscriptions & Sales',
         description: 'Focuses on the issuance of credentials, billing, and recurring revenue models.',
-        icon: 'finance',
-        accent: 'green',
         sections: [
           {
             key: 'cards',
@@ -361,8 +255,6 @@ export default function ManagePermissionsModal({
         key: 'staff-interface',
         title: 'Staff Interface',
         description: 'Permissions specific to the operational staff view, distinct from the management sidebar.',
-        icon: 'hr',
-        accent: 'amber',
         sections: [
           {
             key: 'staff-ops',
@@ -372,6 +264,29 @@ export default function ManagePermissionsModal({
                 key: PERMISSION_CODES.STAFF_VIEW_FULL,
                 title: 'Full actions of Staff view',
                 desc: 'Full actions of Staff view'
+              }
+            ]
+          }
+        ]
+      },
+      {
+        key: 'access-control',
+        title: 'Access Control & Administration',
+        description: 'Manages roles, permissions, and user access to the system.',
+        sections: [
+          {
+            key: 'roles',
+            title: 'Role Management',
+            items: [
+              {
+                key: PERMISSION_CODES.ROLES_VIEW,
+                title: 'View Roles',
+                desc: 'View list of roles and their permissions. Show button: Roles'
+              },
+              {
+                key: PERMISSION_CODES.ROLES_FULL,
+                title: 'Full Management',
+                desc: 'Full actions of Roles page (Create, Edit, Delete roles and manage permissions)'
               }
             ]
           }
@@ -423,25 +338,20 @@ export default function ManagePermissionsModal({
     <div className="mpm" role="dialog" aria-modal="true" onMouseDown={handleBackgroundMouseDown}>
       <div className="mpm__panel">
         <div className="mpm__header">
-          <div className="mpm__title">Manage Permissions</div>
+          <h3 className="mpm__title">Manage Permissions</h3>
           <button type="button" className="mpm__close" aria-label="Close" onClick={onClose}>
-            <Icon name="x" size={18} />
+            <CloseIcon />
           </button>
         </div>
 
         <div className="mpm__body">
           <div className="mpm__roleBanner">
-            <div className="mpm__roleBannerLeft">
-              <div className="mpm__roleBadge" aria-hidden="true">
-                <Icon name="shield" size={22} />
-              </div>
-              <div className="mpm__roleMeta">
-                <div className="mpm__roleName">{role?.name ?? "Role"}</div>
-                <div className="mpm__roleDesc">{role?.description ?? ""}</div>
-              </div>
+            <div className="mpm__roleMeta">
+              <div className="mpm__roleName">{role?.name ?? "Role"}</div>
+              <div className="mpm__roleDesc">{role?.description ?? ""}</div>
             </div>
             <div className="mpm__selectedCard">
-              <div className="mpm__selectedLabel">Selected</div>
+              <div className="mpm__selectedLabel">SELECTED</div>
               <div className="mpm__selectedValue">{selectedCount}</div>
             </div>
           </div>
@@ -455,9 +365,6 @@ export default function ManagePermissionsModal({
                 <section className="mpm__module" key={g.key}>
                   <div className="mpm__moduleHeader">
                     <div className="mpm__moduleId">
-                      <div className={`mpm__moduleIcon mpm__moduleIcon--${g.accent}`} aria-hidden="true">
-                        <Icon name={g.icon} size={18} />
-                      </div>
                       <div className="mpm__moduleTitleWrap">
                         <div className="mpm__moduleTitle">{g.title}</div>
                         {g.description ? (
@@ -494,7 +401,6 @@ export default function ManagePermissionsModal({
                                 aria-pressed={checked}
                               >
                                 <span className={`mpm__checkbox ${checked ? "mpm__checkbox--checked" : ""}`} aria-hidden="true">
-                                  {checked ? <Icon name="check" size={14} /> : null}
                                 </span>
                                 <span className="mpm__permText">
                                   <span className="mpm__permTitle">{p.title}</span>

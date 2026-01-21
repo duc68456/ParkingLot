@@ -33,7 +33,7 @@ function normalizeRoleDoc(role) {
 // -------------------- ROLES CRUD --------------------
 
 // GET /api/roles?limit=500
-rolesRouter.get('/', middleware.authRequired, middleware.adminOnly, async (req, res) => {
+rolesRouter.get('/', middleware.authRequired, middleware.requirePermissions(['ROLES.VIEW', 'ROLES.FULL']), async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit || '500', 10) || 500, 2000);
     const roles = await Role.find({}, null, { sort: { CreatedAt: -1 }, limit }).lean();
@@ -66,7 +66,7 @@ rolesRouter.get('/', middleware.authRequired, middleware.adminOnly, async (req, 
 });
 
 // POST /api/roles
-rolesRouter.post('/', middleware.authRequired, middleware.adminOnly, async (req, res) => {
+rolesRouter.post('/', middleware.authRequired, middleware.requirePermissions(['ROLES.FULL']), async (req, res) => {
   try {
     const { Name, Description, IsActive } = req.body || {};
     const name = String(Name || '').trim();
@@ -95,7 +95,7 @@ rolesRouter.post('/', middleware.authRequired, middleware.adminOnly, async (req,
 });
 
 // PUT /api/roles/:id
-rolesRouter.put('/:id', middleware.authRequired, middleware.adminOnly, async (req, res) => {
+rolesRouter.put('/:id', middleware.authRequired, middleware.requirePermissions(['ROLES.FULL']), async (req, res) => {
   try {
     const roleId = String(req.params.id || '').trim().toUpperCase();
     if (!roleId) {
@@ -125,7 +125,7 @@ rolesRouter.put('/:id', middleware.authRequired, middleware.adminOnly, async (re
 });
 
 // DELETE /api/roles/:id
-rolesRouter.delete('/:id', middleware.authRequired, middleware.adminOnly, async (req, res) => {
+rolesRouter.delete('/:id', middleware.authRequired, middleware.requirePermissions(['ROLES.FULL']), async (req, res) => {
   try {
     const roleId = String(req.params.id || '').trim().toUpperCase();
     if (!roleId) {
@@ -162,7 +162,7 @@ rolesRouter.delete('/:id', middleware.authRequired, middleware.adminOnly, async 
 // -------------------- PERMISSIONS --------------------
 
 // GET /api/roles/:id/permissions
-rolesRouter.get('/:id/permissions', middleware.authRequired, middleware.adminOnly, async (req, res) => {
+rolesRouter.get('/:id/permissions', middleware.authRequired, middleware.requirePermissions(['ROLES.VIEW', 'ROLES.FULL']), async (req, res) => {
   try {
     const roleId = String(req.params.id || '').trim().toUpperCase();
     if (!roleId) {
@@ -180,7 +180,7 @@ rolesRouter.get('/:id/permissions', middleware.authRequired, middleware.adminOnl
 });
 
 // PUT /api/roles/:id/permissions { permissions: [] }
-rolesRouter.put('/:id/permissions', middleware.authRequired, middleware.adminOnly, async (req, res) => {
+rolesRouter.put('/:id/permissions', middleware.authRequired, middleware.requirePermissions(['ROLES.FULL']), async (req, res) => {
   try {
     const roleId = String(req.params.id || '').trim().toUpperCase();
     if (!roleId) {

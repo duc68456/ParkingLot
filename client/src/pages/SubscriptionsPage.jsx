@@ -17,7 +17,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001
 // Inline SVG Icons for consistent rendering
 const AddIcon = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M10 4.16667V15.8333M4.16667 10H15.8333" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M10 5V15M5 10H15" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -516,7 +516,7 @@ function SubscriptionsPage() {
         <div className="subscriptions-content">
           <div className="subscriptions-controls">
             {/* Top Row: Search and Register Action */}
-              <div className="controls-top">
+            <div className="controls-top">
               <div className="search-container">
                 <svg className="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <path d="M7.33333 12.6667C10.2789 12.6667 12.6667 10.2789 12.6667 7.33333C12.6667 4.38781 10.2789 2 7.33333 2C4.38781 2 2 4.38781 2 7.33333C2 10.2789 4.38781 12.6667 7.33333 12.6667Z" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -541,7 +541,7 @@ function SubscriptionsPage() {
               </div>
 
               {canEdit && (
-                <button className="register-button" onClick={handleRegisterSubscription}>
+                <button className="btn-register" onClick={handleRegisterSubscription}>
                   <AddIcon /> Register Subscription
                 </button>
               )}

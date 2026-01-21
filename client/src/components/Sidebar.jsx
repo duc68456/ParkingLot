@@ -38,7 +38,7 @@ export default function Sidebar({ currentPage = 'Dashboard', onLogout, isCollaps
     Returns: ['CARDS.FULL'],
     Pricing: ['PRICING.VIEW', 'PRICING.FULL'],
     Shifts: ['SHIFTS.VIEW', 'SHIFTS.FULL'],
-    Roles: ['PEOPLE.ACCESS_MANAGEMENT_HUB'],
+    Roles: ['ROLES.VIEW', 'ROLES.FULL'],
     'System Config': ['SYSTEM_CONFIG.VIEW', 'SYSTEM_CONFIG.FULL'],
     Reports: ['REPORTS.VIEW']
   };

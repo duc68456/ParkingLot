@@ -55,7 +55,7 @@ export function AuthzProvider({ children }) {
 
   const hasPermission = (code) => {
     if (!code) return true;
-    if (loading) return true; // don't block UI while loading; backend is source of truth
+    if (loading) return false; // block UI while loading to prevent flash of unauthorized content
     const normalized = String(code).trim().toUpperCase();
     return permissions.includes(normalized);
   };
@@ -63,7 +63,7 @@ export function AuthzProvider({ children }) {
   const hasAnyPermission = (codes) => {
     const list = Array.isArray(codes) ? codes : [];
     if (!list.length) return true;
-    if (loading) return true;
+    if (loading) return false; // block UI while loading
     return list.some((c) => hasPermission(c));
   };
 

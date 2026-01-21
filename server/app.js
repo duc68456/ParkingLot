@@ -134,9 +134,9 @@ app.use('/api/employees', middleware.authRequired, employeesRouter)
 app.use('/api/staff-accounts', staffAccountsRouter)
 app.use('/api/admin-accounts', adminAccountsRouter)
 
-// Authz routes (admin-only handled inside routers for now)
-app.use('/api/roles', rolesRouter)
-app.use('/api/permissions', permissionsRouter)
+// Authz routes (permission-based access control)
+app.use('/api/roles', middleware.authRequired, rolesRouter)
+app.use('/api/permissions', middleware.authRequired, permissionsRouter)
 
 // System config routes
 app.use('/api/system-config', systemConfigRouter)

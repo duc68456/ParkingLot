@@ -50,6 +50,13 @@ const ShieldIcon = () => (
   </svg>
 );
 
+const RefreshIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M14 8C14 11.3137 11.3137 14 8 14C4.68629 14 2 11.3137 2 8C2 4.68629 4.68629 2 8 2C9.84871 2 11.5 2.8654 12.5962 4.23077" stroke="#314158" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M12 2V4.5H9.5" stroke="#314158" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 const SAMPLE_ROLES = [];
 
 function formatUsers(count) {
@@ -324,7 +331,7 @@ export default function RolesPage() {
             aria-label="Refresh"
             disabled={loading}
           >
-            <Icon name="refresh" />
+            <RefreshIcon />
           </button>
 
           <button type="button" className="roles-page__addBtn" onClick={() => setIsCreateOpen(true)}>
