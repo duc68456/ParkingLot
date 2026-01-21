@@ -11,6 +11,60 @@
   margin-bottom: 32px;
 }
 
+.roles-page__topActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.roles-page__searchInput {
+  height: 44px;
+  width: min(320px, 52vw);
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 0.8px solid #E2E8F0;
+  background: #FFFFFF;
+  font-family: 'Arimo', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #0F172B;
+  outline: none;
+}
+
+.roles-page__searchInput::placeholder {
+  color: #94A3B8;
+}
+
+.roles-page__searchInput:focus {
+  border-color: #155DFC;
+  box-shadow: 0 0 0 3px rgba(21, 93, 252, 0.15);
+}
+
+.roles-page__iconOnlyBtn {
+  height: 44px;
+  width: 44px;
+  border-radius: 10px;
+  border: 0.8px solid #E2E8F0;
+  background: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #45556C;
+  box-shadow: 0px 1px 2px rgba(0,0,0,0.04);
+}
+
+.roles-page__iconOnlyBtn:hover {
+  border-color: #CBD5E1;
+  background: #F8FAFC;
+}
+
+.roles-page__iconOnlyBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .roles-page__header {
   display: flex;
   flex-direction: column;
@@ -215,6 +269,15 @@
   display: flex;
   gap: 4px;
   align-items: center;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+
+/* Ensure the actions column stays wide enough to show all icon buttons */
+.roles-page__table thead th:last-child,
+.roles-page__table tbody td:last-child {
+  min-width: 160px;
+  text-align: right;
 }
 
 .roles-page__iconBtn {

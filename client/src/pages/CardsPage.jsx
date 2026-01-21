@@ -378,7 +378,15 @@ function CardsPage() {
   const unassignedCards = useMemo(() => {
     // Business rule: cards are initially created as UNASSIGNED and later assigned to a person.
     const list = Array.isArray(cards) ? cards : [];
-    return list.filter((c) => String(c?.rawStatus || '').toUpperCase() === 'UNASSIGNED');
+    return list.filter((c) => {
+      if (String(c?.rawStatus || '').toUpperCase() !== 'UNASSIGNED') return false;
+
+      // Business rule: Visitor cards are not assignable.
+      const typeOrCategory = String(c?.type || c?.category || '').trim().toLowerCase();
+      if (typeOrCategory === 'visitor') return false;
+
+      return true;
+    });
   }, [cards]);
 
   useEffect(() => {
@@ -951,7 +959,6 @@ function CardsPage() {
                   <th>OWNER</th>
                   <th>VEHICLE</th>
                   <th>STATUS</th>
-                  <th>EXPIRY</th>
                   <th className="text-right">ACTIONS</th>
                 </tr>
               </thead>
@@ -987,7 +994,6 @@ function CardsPage() {
                     <td>
                       <span className={`status-pill status-pill--inactive`}>{card.status}</span>
                     </td>
-                    <td className="expiry-cell">{card.expiry}</td>
                     <td>
                       <div className="action-buttons action-buttons-right">
                         {canEdit && (

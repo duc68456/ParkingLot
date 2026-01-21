@@ -27,6 +27,37 @@ function Icon({ name, size = 16, className = "" }) {
   };
 
   switch (name) {
+    case "refresh":
+      return (
+        <svg {...common}>
+          <path
+            d="M20 12a8 8 0 0 1-13.66 5.66"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+          <path
+            d="M4 12a8 8 0 0 1 13.66-5.66"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+          <path
+            d="M20 4v5h-5"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M4 20v-5h5"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
     case "eye":
       return (
         <svg {...common}>
@@ -119,6 +150,8 @@ export default function RolesPage() {
   const [page, setPage] = useState(1);
   const pageSize = 5;
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   const [isPermissionsOpen, setIsPermissionsOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -132,50 +165,64 @@ export default function RolesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const loadRoles = async ({ resetPage = true } = {}) => {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await fetchRoles({ authHeaders });
+      const list = Array.isArray(data?.roles) ? data.roles : Array.isArray(data) ? data : data?.data?.roles;
+
+      // Normalize to RolesPage shape: { id, name, description, assignedUsers, status, lastUpdatedBy }
+      const normalized = (list || []).map((r) => ({
+        id: r?.ID || r?.id || r?._id,
+        name: r?.Name || r?.name || "",
+        description: r?.Description || r?.description || "",
+        assignedUsers: r?.AssignedUsers ?? r?.assignedUsers ?? 0,
+        status: r?.IsActive === false || String(r?.Status || "").toLowerCase() === "inactive" ? "Inactive" : "Active",
+        lastUpdatedBy: r?.UpdatedBy || r?.lastUpdatedBy || "—",
+      }));
+
+      setRoles(normalized);
+      if (resetPage) setPage(1);
+    } catch (e) {
+      setError(e?.message || "Failed to load roles");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
 
-    const load = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const data = await fetchRoles({ authHeaders });
-        const list = Array.isArray(data?.roles) ? data.roles : Array.isArray(data) ? data : data?.data?.roles;
-
-        // Normalize to RolesPage shape: { id, name, description, assignedUsers, status, lastUpdatedBy }
-        const normalized = (list || []).map((r) => ({
-          id: r?.ID || r?.id || r?._id,
-          name: r?.Name || r?.name || "",
-          description: r?.Description || r?.description || "",
-          assignedUsers: r?.AssignedUsers ?? r?.assignedUsers ?? 0,
-          status: r?.IsActive === false || String(r?.Status || "").toLowerCase() === "inactive" ? "Inactive" : "Active",
-          lastUpdatedBy: r?.UpdatedBy || r?.lastUpdatedBy || "—",
-        }));
-
-        if (mounted) {
-          setRoles(normalized);
-          setPage(1);
-        }
-      } catch (e) {
-        if (mounted) setError(e?.message || "Failed to load roles");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    load();
+    loadRoles({ resetPage: true });
     return () => {
       mounted = false;
     };
   }, [authHeaders]);
 
+  // Ensure page resets when searching
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
+
+  const filteredRoles = useMemo(() => {
+    const q = String(searchQuery || '').trim().toLowerCase();
+    if (!q) return roles;
+    return roles.filter((r) => {
+      const name = String(r?.name || '').toLowerCase();
+      const desc = String(r?.description || '').toLowerCase();
+      const id = String(r?.id || '').toLowerCase();
+      return name.includes(q) || desc.includes(q) || id.includes(q);
+    });
+  }, [roles, searchQuery]);
+
   const { items, total } = useMemo(() => {
     const start = (page - 1) * pageSize;
     return {
-      items: roles.slice(start, start + pageSize),
-      total: roles.length,
+      items: filteredRoles.slice(start, start + pageSize),
+      total: filteredRoles.length,
     };
-  }, [page, pageSize, roles]);
+  }, [filteredRoles, page, pageSize]);
 
   const canPrev = page > 1;
   const canNext = page * pageSize < total;
@@ -346,12 +393,35 @@ export default function RolesPage() {
           <div className="roles-page__subtitle">Manage user roles and access control</div>
         </div>
 
-        <button type="button" className="roles-page__addBtn" onClick={() => setIsCreateOpen(true)}>
-          <span className="roles-page__addIcon" aria-hidden="true">
-            +
-          </span>
-          Add New Role
-        </button>
+        <div className="roles-page__topActions" aria-label="Role list actions">
+          <div className="roles-page__search">
+            <input
+              type="search"
+              className="roles-page__searchInput"
+              placeholder="Search roles…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <button
+            type="button"
+            className="roles-page__iconOnlyBtn"
+            onClick={() => loadRoles({ resetPage: false })}
+            title="Refresh"
+            aria-label="Refresh"
+            disabled={loading}
+          >
+            <Icon name="refresh" />
+          </button>
+
+          <button type="button" className="roles-page__addBtn" onClick={() => setIsCreateOpen(true)}>
+            <span className="roles-page__addIcon" aria-hidden="true">
+              +
+            </span>
+            Add New Role
+          </button>
+        </div>
       </div>
 
       {loading ? (

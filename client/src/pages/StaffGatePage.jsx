@@ -801,8 +801,22 @@ const StaffGatePage = () => {
     if (!type) return ''
     const fromDb = vehicleTypes?.find?.((v) => v?.VehicleTypeID === type)
     if (fromDb?.Name) return fromDb.Name
+    // If backend accidentally returns a name instead of VehicleTypeID, best-effort map by name.
+    const byName = vehicleTypes?.find?.((v) => String(v?.Name || '').toLowerCase() === String(type).toLowerCase())
+    if (byName?.Name) return byName.Name
     return String(type).charAt(0).toUpperCase() + String(type).slice(1)
   };
+
+  const normalizeVehicleTypeId = (raw) => {
+    if (!raw) return ''
+    const val = String(raw).trim()
+    if (!val) return ''
+    // Already a business ID (VTP0001)
+    if (/^VTP\d{4}$/i.test(val)) return val.toUpperCase()
+    // Try map by name
+    const byName = vehicleTypes?.find?.((v) => String(v?.Name || '').toLowerCase() === val.toLowerCase())
+    return byName?.VehicleTypeID ? String(byName.VehicleTypeID).toUpperCase() : val
+  }
 
   const isGateIdle = (mode, gateData) => mode === 'idle' || !gateData.hasVehicle;
   const isGateNewEntry = (mode) => mode === 'newEntry';
@@ -1040,7 +1054,7 @@ const StaffGatePage = () => {
                         <div className="new-entry-field">
                           <label className="new-entry-label">Vehicle Type</label>
                           <div className="new-entry-vehicle-grid" role="group" aria-label="Vehicle Type">
-                            {(vehicleTypes?.length ? vehicleTypes : ['car', 'motorcycle', 'truck', 'van']).map((raw) => {
+                            {(vehicleTypes || []).map((raw) => {
                               const type = typeof raw === 'string' ? raw : raw.VehicleTypeID
                               return (
                                 <button
@@ -1049,7 +1063,7 @@ const StaffGatePage = () => {
                                   className={`new-entry-vehicle-option ${gate1NewEntry.vehicleType === type ? 'active' : ''
                                     }`}
                                   onClick={() =>
-                                    setGate1NewEntry((prev) => ({ ...prev, vehicleType: type }))
+                                    setGate1NewEntry((prev) => ({ ...prev, vehicleType: normalizeVehicleTypeId(type) }))
                                   }
                                 >
                                   {vehicleTypeDisplayLabel(type)}
@@ -1291,7 +1305,7 @@ const StaffGatePage = () => {
                         <div className="new-entry-field">
                           <label className="new-entry-label">Vehicle Type</label>
                           <div className="new-entry-vehicle-grid" role="group" aria-label="Vehicle Type">
-                            {(vehicleTypes?.length ? vehicleTypes : ['car', 'motorcycle', 'truck', 'van']).map((raw) => {
+                            {(vehicleTypes || []).map((raw) => {
                               const type = typeof raw === 'string' ? raw : raw.VehicleTypeID
                               return (
                                 <button
@@ -1300,7 +1314,7 @@ const StaffGatePage = () => {
                                   className={`new-entry-vehicle-option ${gate2NewEntry.vehicleType === type ? 'active' : ''
                                     }`}
                                   onClick={() =>
-                                    setGate2NewEntry((prev) => ({ ...prev, vehicleType: type }))
+                                    setGate2NewEntry((prev) => ({ ...prev, vehicleType: normalizeVehicleTypeId(type) }))
                                   }
                                 >
                                   {vehicleTypeDisplayLabel(type)}

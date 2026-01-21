@@ -55,6 +55,7 @@ const normalizeCustomer = (c) => {
 
 export default function PurchaseCardPage() {
   const { authHeaders } = useAuth();
+  const STAFF_CATEGORY_NAME = 'Staff';
   const [currentStep, setCurrentStep] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -300,6 +301,14 @@ export default function PurchaseCardPage() {
 
     if (!cardForm.category) {
       newErrors.category = 'Card category is required';
+    }
+
+    // Staff cards should be issued via employee/staff workflow, not purchased here.
+    if (
+      String(cardForm.category || '').trim().toLowerCase() === STAFF_CATEGORY_NAME.toLowerCase()
+    ) {
+      newErrors.category =
+        'Staff cards can’t be purchased here. Please issue Staff cards from the employee/staff workflow.';
     }
 
     const qty = Number(cardForm.quantity);
@@ -857,9 +866,16 @@ export default function PurchaseCardPage() {
                       const name = cat?.Name;
                       if (!name) return null;
                       const price = getCategoryPrice(name);
+
+                      const isStaffCategory =
+                        String(name).trim().toLowerCase() === STAFF_CATEGORY_NAME.toLowerCase();
                       return (
-                        <option key={cat?.ID || name} value={name}>
-                          {name} (${price})
+                        <option
+                          key={cat?.ID || name}
+                          value={name}
+                          disabled={isStaffCategory}
+                        >
+                          {name} (${price}){isStaffCategory ? ' (not purchasable)' : ''}
                         </option>
                       );
                     })}
