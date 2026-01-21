@@ -33,67 +33,59 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch dashboard data
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
-        // Fetch all dashboard data in parallel
-        const [statsRes, activityRes, alertsRes, capacityRes, revenueTrendRes, dailyDistRes, gateWarningsRes] = await Promise.all([
-          fetch(`${baseURL}/dashboard/stats`, {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          fetch(`${baseURL}/dashboard/recent-activity?limit=10`, {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          fetch(`${baseURL}/dashboard/alerts`, {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          fetch(`${baseURL}/dashboard/capacity`, {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          fetch(`${baseURL}/dashboard/revenue-trend?hours=6`, {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          fetch(`${baseURL}/dashboard/vehicle-distribution-today`, {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          fetch(`${baseURL}/dashboard/gate-warnings`, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
+        const headers = {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        };
+
+        const [
+          statsRes,
+          activityRes,
+          alertsRes,
+          capacityRes,
+          revenueRes,
+          dailyDistRes,
+          gateWarningsRes,
+        ] = await Promise.all([
+          fetch('/api/dashboard/stats', { headers }),
+          fetch('/api/dashboard/recent-activity', { headers }),
+          fetch('/api/dashboard/alerts', { headers }),
+          fetch('/api/dashboard/capacity', { headers }),
+          fetch('/api/dashboard/revenue-trend', { headers }),
+          fetch('/api/dashboard/vehicle-distribution-today', { headers }),
+          fetch('/api/dashboard/gate-warnings', { headers }),
         ]);
 
-        const statsData = await statsRes.json();
-        const activityData = await activityRes.json();
-        const alertsData = await alertsRes.json();
-        const capacityData = await capacityRes.json();
-        const revenueTrendData = await revenueTrendRes.json();
-        const dailyDistData = await dailyDistRes.json();
-        const gateWarningsData = await gateWarningsRes.json();
+        const [
+          statsData,
+          activityData,
+          alertsData,
+          capacityData,
+          revenueData,
+          dailyDistData,
+          gateWarningsData,
+        ] = await Promise.all([
+          statsRes.json(),
+          activityRes.json(),
+          alertsRes.json(),
+          capacityRes.json(),
+          revenueRes.json(),
+          dailyDistRes.json(),
+          gateWarningsRes.json(),
+        ]);
 
-        if (statsData.success) {
-          setStats(statsData.data);
-        }
-        if (activityData.success) {
-          setRecentActivity(activityData.data);
-        }
-        if (alertsData.success) {
-          setAlerts(alertsData.data);
-        }
-        if (capacityData.success) {
-          setCapacity(capacityData.data);
-        }
-        if (revenueTrendData.success) {
-          setRevenueTrend(revenueTrendData.data);
-        }
-        if (dailyDistData.success) {
-          setDailyDistribution(dailyDistData.data);
-        }
-        if (gateWarningsData.success) {
-          setGateWarnings(gateWarningsData.data?.warnings || []);
-        }
+        if (statsData.success) setStats(statsData.data);
+        if (activityData.success) setRecentActivity(activityData.data || []);
+        if (alertsData.success) setAlerts(alertsData.data || []);
+        if (capacityData.success) setCapacity(capacityData.data || []);
+        if (revenueData.success) setRevenueTrend(revenueData.data || []);
+        if (dailyDistData.success) setDailyDistribution(dailyDistData.data || []);
+        if (gateWarningsData.success) setGateWarnings(gateWarningsData.data?.warnings || []);
 
         setError(null);
       } catch (err) {
@@ -106,7 +98,6 @@ export default function Dashboard() {
 
     if (token) {
       fetchDashboardData();
-      // Refresh every 30 seconds
       const interval = setInterval(fetchDashboardData, 30000);
       return () => clearInterval(interval);
     }

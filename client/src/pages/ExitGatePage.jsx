@@ -326,8 +326,8 @@ const ExitGatePage = () => {
     setBusy(true)
 
     try {
-      // For exit: Query the gate/exit endpoint to find active session and close it
-      const res = await fetch(`${API_BASE_URL}/api/entry-sessions/gate/exit`, {
+      // For exit: Query-only (do NOT close session). Processing exit is a separate action.
+      const res = await fetch(`${API_BASE_URL}/api/entry-sessions/gate/exit/query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -336,7 +336,6 @@ const ExitGatePage = () => {
         body: JSON.stringify({
           CardID: cardId,
           LicensePlate: licensePlate,
-          ProcessedExitBy: staffEmployeeId,
           ...options
         })
       })
@@ -344,17 +343,6 @@ const ExitGatePage = () => {
       const json = await res.json().catch(() => null)
       if (!res.ok) {
         throw new Error(json?.error?.message || `Exit query failed (${res.status})`)
-      }
-
-      /* Handle Exit Plate Mismatch Warning */
-      if (json?.data?.warning === true && json?.data?.code === 'EXIT_PLATE_MISMATCH') {
-        const warningMsg = json?.data?.message || 'Plate Mismatch!'
-        if (window.confirm(`${warningMsg}\n\nDo you want to confirm exit anyway? (This will log a warning)`)) {
-          handleQueryPlate(gateNumber, { confirmMismatch: true })
-        } else {
-          setBusy(false)
-        }
-        return
       }
 
       const decision = json?.data?.decision
@@ -369,15 +357,29 @@ const ExitGatePage = () => {
           queriedPlateMismatch: true,
           queriedPlateMode: 'INSTANT'
         }))
-      } else if (decision === 'EXIT_PERMITTED') {
-        // Session closed successfully, show processing view
+      } else if (decision === 'EXIT_PREVIEW') {
+        const gate = json?.data?.gate || {}
+        const queriedPlate = String(gate?.queriedPlate || '').trim() || 'Instant'
+        const normalizedQueriedPlate = queriedPlate.toUpperCase()
+        const normalizedInputPlate = String(licensePlate || '').trim().toUpperCase()
+        const mismatch = Boolean(gate?.plateMismatch) || (
+          Boolean(normalizedQueriedPlate) &&
+          Boolean(normalizedInputPlate) &&
+          normalizedQueriedPlate !== 'INSTANT' &&
+          normalizedQueriedPlate !== normalizedInputPlate
+        )
+
+        // Preview only (session is still IN_PARKING). Show details, but do NOT process/close.
         const gateData = sessionToGateData(gateNumber, session, json.data.duration, json.data.fee)
         setData(gateData)
-        setMode('processing')
-        setHasQueried(false)
-        if (options?.confirmMismatch) {
-          window.alert('Exit confirmed with Mismatch via system override.')
-        }
+        setMode('newExit')
+        setHasQueried(true)
+        setNewExit((prev) => ({
+          ...prev,
+          queriedPlate: normalizedQueriedPlate,
+          queriedPlateMismatch: mismatch,
+          queriedPlateMode: gate?.queriedPlateMode || prev.queriedPlateMode
+        }))
       }
     } catch (e) {
       setErr(e.message)
@@ -724,6 +726,23 @@ const ExitGatePage = () => {
 
                   {gate1Error && <p className="new-entry-error">{gate1Error}</p>}
 
+                  {gate1HasQueried && (
+                    <>
+                      <div className="new-entry-field">
+                        <label className="new-entry-label">Queried Plate</label>
+                        <input
+                          className={`new-entry-input new-entry-input-plate ${gate1NewExit.queriedPlateMismatch ? 'new-entry-input-mismatch' : ''}`}
+                          inputMode="text"
+                          value={(gate1NewExit.queriedPlate || '').toUpperCase()}
+                          readOnly
+                        />
+                        {(gate1NewExit.queriedPlateMode || 'INSTANT') !== 'INSTANT' && (gate1NewExit.cardId || '').trim() ? (
+                          <p className="new-entry-hint">Auto-selected by system</p>
+                        ) : null}
+                      </div>
+                    </>
+                  )}
+
                   {gate1HasQueried && gate1NewExit.queriedPlateMismatch && (
                     <div className="new-entry-field">
                       <button
@@ -902,6 +921,23 @@ const ExitGatePage = () => {
                   </button>
 
                   {gate2Error && <p className="new-entry-error">{gate2Error}</p>}
+
+                  {gate2HasQueried && (
+                    <>
+                      <div className="new-entry-field">
+                        <label className="new-entry-label">Queried Plate</label>
+                        <input
+                          className={`new-entry-input new-entry-input-plate ${gate2NewExit.queriedPlateMismatch ? 'new-entry-input-mismatch' : ''}`}
+                          inputMode="text"
+                          value={(gate2NewExit.queriedPlate || '').toUpperCase()}
+                          readOnly
+                        />
+                        {(gate2NewExit.queriedPlateMode || 'INSTANT') !== 'INSTANT' && (gate2NewExit.cardId || '').trim() ? (
+                          <p className="new-entry-hint">Auto-selected by system</p>
+                        ) : null}
+                      </div>
+                    </>
+                  )}
 
                   {gate2HasQueried && gate2NewExit.queriedPlateMismatch && (
                     <div className="new-entry-field">

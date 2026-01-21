@@ -14,8 +14,31 @@ const ShiftReportDetail = require('../models/shiftReportDetail')
 const GateWarning = require('../models/gateWarning')
 const { getLPClient } = require('../utils/lpClient')
 const config = require('../utils/config')
+const SystemConfig = require('../models/systemConfig')
 
 const middleware = require('../utils/middleware')
+
+const DEFAULT_FREE_MINUTES = 15
+
+const getEntrySessionFreeMinutes = async () => {
+  try {
+    const cfg = await SystemConfig.findOne({}).sort({ UpdatedAt: -1 }).lean().catch(() => null)
+    const freeMinutes = Number(cfg?.entrySession?.freeMinutes)
+    return Number.isFinite(freeMinutes) && freeMinutes >= 0 ? freeMinutes : DEFAULT_FREE_MINUTES
+  } catch (e) {
+    return DEFAULT_FREE_MINUTES
+  }
+}
+
+// Duration check for free/grace-period exits.
+// If durationMinutes <= freeMinutes then the session is free.
+const isWithinFreeMinutes = (entryTime, exitTime, freeMinutes) => {
+  const mins = Number(freeMinutes)
+  if (!Number.isFinite(mins) || mins <= 0) return false
+  const durationMs = new Date(exitTime) - new Date(entryTime)
+  const durationMinutes = durationMs / (1000 * 60)
+  return durationMinutes <= mins
+}
 
 // Option A: permission-based access.
 // Entry sessions only have VIEW permission.
@@ -591,6 +614,136 @@ entrySessionsRouter.get('/gate/query', async (req, res) => {
     return res.status(500).json({
       success: false,
       error: { message: error.message, code: 'GATE_QUERY_ERROR' }
+    })
+  }
+})
+
+/**
+ * POST /api/entry-sessions/gate/exit/query
+ * Query-only endpoint for Exit form.
+ * Does NOT mutate EntrySession documents.
+ * Body:
+ *  - CardID (optional)
+ *  - LicensePlate (optional)
+ * Returns:
+ *  - decision: NO_SESSION_FOUND | EXIT_PREVIEW
+ *  - session: active session (lean) with related info (best-effort)
+ *  - duration + fee preview
+ */
+entrySessionsRouter.post('/gate/exit/query', async (req, res) => {
+  try {
+    const CardID = String(req.body?.CardID || '').trim()
+    const LicensePlate = String(req.body?.LicensePlate || '').trim().toUpperCase()
+
+    if (!CardID && !LicensePlate) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'CardID or LicensePlate is required', code: 'MISSING_REQUIRED_FIELDS' }
+      })
+    }
+
+    // Prefer session lookup by CardID, but allow plate-based lookup via Vehicle.
+    let session = null
+    if (CardID) {
+      session = await EntrySession.findOne({ CardID, Status: 'IN_PARKING' }).lean()
+    }
+
+    if (!session && LicensePlate) {
+      const vehicle = await Vehicle.findOne({ PlateNumber: LicensePlate }).lean()
+      if (vehicle?.VehicleID) {
+        session = await EntrySession.findOne({ VehicleID: String(vehicle.VehicleID), Status: 'IN_PARKING' }).lean()
+      }
+    }
+
+    if (!session) {
+      return res.json({
+        success: true,
+        data: { decision: 'NO_SESSION_FOUND' }
+      })
+    }
+
+    // Best-effort: determine a queried plate from the session/vehicle for mismatch highlighting.
+    // For exit we keep it simple:
+    // - if session has a stored LicensePlate, use it
+    // - else if VehicleID resolves to a vehicle with PlateNumber, use it
+    // - else => Instant
+    const inputPlate = String(LicensePlate || '').trim().toUpperCase()
+    let queriedPlateMode = 'SESSION'
+    let queriedPlate = 'Instant'
+
+    if (session?.LicensePlate) {
+      queriedPlate = String(session.LicensePlate || '').trim().toUpperCase() || 'Instant'
+      queriedPlateMode = queriedPlate === 'INSTANT' ? 'INSTANT' : 'SESSION'
+    } else if (session?.VehicleID) {
+      const v = await Vehicle.findOne({ VehicleID: String(session.VehicleID) }).select('PlateNumber').lean()
+      const plate = String(v?.PlateNumber || '').trim().toUpperCase()
+      if (plate) {
+        queriedPlate = plate
+        queriedPlateMode = 'VEHICLE'
+      }
+    }
+
+    const plateMismatch = Boolean(inputPlate) && Boolean(queriedPlate) && queriedPlate !== 'INSTANT' && queriedPlate !== inputPlate
+
+    const now = new Date()
+    const entryTime = new Date(session.EntryTime)
+    const durationMs = now - entryTime
+
+    // subscription check
+    const subscription = session.CardID ? await checkSubscription(String(session.CardID)) : null
+    const isSubscription = Boolean(subscription) || session.DiscountReason === 'SUBSCRIPTION'
+
+    const freeMinutes = await getEntrySessionFreeMinutes()
+    const isFreeByTime = isWithinFreeMinutes(entryTime, now, freeMinutes)
+
+    let fee = 0
+    if (isSubscription || isFreeByTime) {
+      fee = 0
+    } else {
+      // Resolve CardCategory for pricing
+      const card = session.CardID ? await resolveCardCompat(session.CardID) : null
+      const cardCategory = card?.CardCategoryID ? await resolveCardCategory(card.CardCategoryID?.ID || card.CardCategoryID) : null
+
+      // If we have enough info, compute pricing
+      if (cardCategory?.ID && session.VehicleTypeID) {
+        fee = await calculateParkingFee(session.EntryTime, now, cardCategory.ID, session.VehicleTypeID)
+      }
+    }
+
+    // Best-effort enrichments (similar to gate/query)
+    let vt = null
+    if (session.VehicleTypeID) {
+      vt = await VehicleType.findOne({ VehicleTypeID: String(session.VehicleTypeID) }).select('VehicleTypeID Name').lean()
+    }
+
+    const duration = {
+      hours: Math.floor(durationMs / (1000 * 60 * 60)),
+      minutes: Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60))
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        decision: 'EXIT_PREVIEW',
+        session: {
+          ...session,
+          VehicleTypeID: vt || (session.VehicleTypeID ? { VehicleTypeID: session.VehicleTypeID, Name: 'Unknown' } : null)
+        },
+        gate: {
+          queriedPlateMode,
+          queriedPlate,
+          inputPlate,
+          plateMismatch
+        },
+        duration,
+        fee
+      }
+    })
+  } catch (error) {
+    console.error('Gate Exit Query Error:', error)
+    return res.status(500).json({
+      success: false,
+      error: { message: error.message, code: 'GATE_EXIT_QUERY_ERROR' }
     })
   }
 })
@@ -1529,12 +1682,19 @@ entrySessionsRouter.post('/gate/exit', async (req, res) => {
     const durationMs = now - entryTime
     const durationHours = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60))) // At least 1 hour
 
+  // Configurable grace period: if total duration <= entrySession.freeMinutes then exit is free.
+  const freeMinutes = await getEntrySessionFreeMinutes()
+  const isFreeByTime = isWithinFreeMinutes(entryTime, now, freeMinutes)
+
     // 5. Calculate fee based on pricing rules
     let fee = 0
     const isSubscription = session.DiscountReason === 'SUBSCRIPTION' ||
       cardCategory?.Name?.toLowerCase() === 'subscription'
 
-    if (!isSubscription && cardCategory && vehicleType) {
+    if (!isSubscription && isFreeByTime) {
+      fee = 0
+      session.DiscountReason = session.DiscountReason || 'STAFF_FREE'
+    } else if (!isSubscription && cardCategory && vehicleType) {
       // Look up pricing rule for this CardCategory + VehicleType
       const pricingRule = await SinglePricingRule.findOne({
         CardCategoryID: cardCategory.ID,
@@ -1674,6 +1834,10 @@ entrySessionsRouter.post('/exit/:id', async (req, res) => {
 
     const exitTime = new Date()
 
+  // Configurable grace period: if total duration <= entrySession.freeMinutes then exit is free.
+  const freeMinutes = await getEntrySessionFreeMinutes()
+  const isFreeByTime = isWithinFreeMinutes(session.EntryTime, exitTime, freeMinutes)
+
     // Check for valid subscription
     const subscription = await checkSubscription(session.CardID)
 
@@ -1686,6 +1850,11 @@ entrySessionsRouter.post('/exit/:id', async (req, res) => {
       calculatedFee = 0
       finalFee = 0
       discountReason = 'SUBSCRIPTION'
+    } else if (isFreeByTime && ManualFee === undefined) {
+      // No subscription, but within grace period => free (unless manually overridden)
+      calculatedFee = 0
+      finalFee = 0
+      discountReason = DiscountReason || 'STAFF_FREE'
     } else {
       // Calculate fee based on pricing rules
       calculatedFee = await calculateParkingFee(
@@ -2490,3 +2659,6 @@ entrySessionsRouter.get('/:id/images', async (req, res) => {
 })
 
 module.exports = entrySessionsRouter
+
+// Test-only exports
+module.exports.isWithinFreeMinutes = isWithinFreeMinutes
