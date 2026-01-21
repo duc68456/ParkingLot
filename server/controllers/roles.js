@@ -38,7 +38,27 @@ rolesRouter.get('/', middleware.authRequired, middleware.adminOnly, async (req, 
     const limit = Math.min(parseInt(req.query.limit || '500', 10) || 500, 2000);
     const roles = await Role.find({}, null, { sort: { CreatedAt: -1 }, limit }).lean();
 
-    return res.json({ success: true, data: { roles: roles.map(normalizeRoleDoc) } });
+    // Aggregate assigned users count for each role
+    const roleIds = roles.map(r => r.ID);
+    const assignedCounts = await EmployeeRole.aggregate([
+      { $match: { RoleID: { $in: roleIds } } },
+      { $group: { _id: '$RoleID', count: { $sum: 1 } } }
+    ]);
+
+    // Create a map: RoleID -> count
+    const countMap = {};
+    assignedCounts.forEach(ac => {
+      countMap[ac._id] = ac.count;
+    });
+
+    // Attach AssignedUsers count to each role
+    const rolesWithCounts = roles.map(role => {
+      const normalized = normalizeRoleDoc(role);
+      normalized.AssignedUsers = countMap[role.ID] || 0;
+      return normalized;
+    });
+
+    return res.json({ success: true, data: { roles: rolesWithCounts } });
   } catch (error) {
     console.error('Get roles error:', error);
     return res.status(500).json({ success: false, error: { message: 'Failed to get roles', details: error.message } });

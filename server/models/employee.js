@@ -24,7 +24,7 @@ const employeeSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Employee type is required'],
     enum: {
-      values: ['STAFF', 'GATE_STAFF', 'MANAGER', 'ADMIN'],
+      values: ['STAFF', 'MANAGER', 'ADMIN'],
       message: '{VALUE} is not a valid employee type'
     },
     default: 'STAFF'

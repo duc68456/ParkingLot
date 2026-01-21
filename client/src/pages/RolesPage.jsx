@@ -14,98 +14,41 @@ import {
   updateRolePermissions
 } from "../utils/authzApi";
 
-function Icon({ name, size = 16, className = "" }) {
-  const common = {
-    width: size,
-    height: size,
-    viewBox: "0 0 24 24",
-    fill: "none",
-    xmlns: "http://www.w3.org/2000/svg",
-    className,
-    "aria-hidden": true,
-    focusable: false,
-  };
+// Inline SVG icons matching VehiclesTable pattern (16x16)
+const ViewIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M1 8C1 8 3.5 3 8 3C12.5 3 15 8 15 8C15 8 12.5 13 8 13C3.5 13 1 8 1 8Z" stroke="#314158" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="8" cy="8" r="2" stroke="#314158" strokeWidth="1.5" fill="none" />
+  </svg>
+);
 
-  switch (name) {
-    case "eye":
-      return (
-        <svg {...common}>
-          <path
-            d="M2.5 12s3.5-7 9.5-7 9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-          />
-        </svg>
-      );
-    case "lock":
-      return (
-        <svg {...common}>
-          <path
-            d="M7 11V8.5A5 5 0 0 1 17 8.5V11"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-          />
-          <path
-            d="M6.5 11h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2z"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-          />
-        </svg>
-      );
-    case "edit":
-      return (
-        <svg {...common}>
-          <path
-            d="M4 20h4l10.5-10.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16v4z"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-          />
-          <path d="M13.5 6.5l4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-      );
-    case "trash":
-      return (
-        <svg {...common}>
-          <path d="M6 7h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <path
-            d="M9 7V5.5A2 2 0 0 1 11 3.5h2a2 2 0 0 1 2 2V7"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M8 7l1 14h6l1-14"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-          />
-        </svg>
-      );
-    case "shield":
-      return (
-        <svg {...common}>
-          <path
-            d="M12 2.75l7 3.2v6.07c0 4.62-3.02 8.83-7 9.98-3.98-1.15-7-5.36-7-9.98V5.95l7-3.2z"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-          />
-        </svg>
-      );
-    default:
-      return null;
-  }
-}
+const EditIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M11.3333 2.00004C11.5084 1.82494 11.716 1.68605 11.9447 1.59129C12.1735 1.49653 12.4187 1.44775 12.6666 1.44775C12.9146 1.44775 13.1598 1.49653 13.3886 1.59129C13.6173 1.68605 13.8249 1.82494 14 2.00004C14.1751 2.17513 14.314 2.38272 14.4088 2.61149C14.5035 2.84026 14.5523 3.08543 14.5523 3.33337C14.5523 3.58132 14.5035 3.82649 14.4088 4.05526C14.314 4.28403 14.1751 4.49162 14 4.66671L5.00001 13.6667L1.33334 14.6667L2.33334 11L11.3333 2.00004Z" stroke="#314158" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const DeleteIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M2 4H14" stroke="#314158" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M5.33334 4V2.66667C5.33334 2.48986 5.40358 2.32029 5.52861 2.19526C5.65363 2.07024 5.8232 2 6.00001 2H10C10.1768 2 10.3464 2.07024 10.4714 2.19526C10.5964 2.32029 10.6667 2.48986 10.6667 2.66667V4M12.6667 4V13.3333C12.6667 13.5101 12.5964 13.6797 12.4714 13.8047C12.3464 13.9298 12.1768 14 12 14H4.00001C3.8232 14 3.65363 13.9298 3.52861 13.8047C3.40358 13.6797 3.33334 13.5101 3.33334 13.3333V4H12.6667Z" stroke="#314158" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M6.66666 7.33337V11.3334" stroke="#314158" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M9.33334 7.33337V11.3334" stroke="#314158" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const LockIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 7V5.33333C4 4.62609 4.28095 3.94781 4.78105 3.44772C5.28115 2.94762 5.95942 2.66667 6.66667 2.66667H9.33333C10.0406 2.66667 10.7189 2.94762 11.219 3.44772C11.719 3.94781 12 4.62609 12 5.33333V7" stroke="#314158" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M3.33334 7H12.6667C13.403 7 14 7.59695 14 8.33333V12.6667C14 13.403 13.403 14 12.6667 14H3.33334C2.59696 14 2.00001 13.403 2.00001 12.6667V8.33333C2.00001 7.59695 2.59696 7 3.33334 7Z" stroke="#314158" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const ShieldIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M10 2.29167L16.6667 5.20833V10.0417C16.6667 13.8917 13.9167 17.3583 10 18.75C6.08333 17.3583 3.33333 13.8917 3.33333 10.0417V5.20833L10 2.29167Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+  </svg>
+);
 
 const SAMPLE_ROLES = [];
 
@@ -389,7 +332,7 @@ export default function RolesPage() {
                 <th scope="col">Assigned Users</th>
                 <th scope="col">Status</th>
                 <th scope="col">Last Updated By</th>
-                <th scope="col">Actions</th>
+                <th scope="col" className="roles-page__actionsHeader">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -399,7 +342,7 @@ export default function RolesPage() {
                   <td>
                     <div className="roles-page__roleCell">
                       <div className="roles-page__roleIcon" aria-hidden="true">
-                        <Icon name="shield" size={20} />
+                        <ShieldIcon />
                       </div>
                       <div className="roles-page__roleText">
                         <div className="roles-page__roleName">{r.name}</div>
@@ -416,43 +359,43 @@ export default function RolesPage() {
                     </span>
                   </td>
                   <td className="roles-page__updated">{r.lastUpdatedBy}</td>
-                  <td>
+                  <td className="roles-page__actionsCell">
                     <div className="roles-page__actions" aria-label={`Actions for ${r.name}`}>
                       <button
                         type="button"
-                        className="roles-page__iconBtn"
+                        className="roles-page__iconBtn roles-page__iconBtn--view"
                         title="View permissions"
                         aria-label="View permissions"
                         onClick={() => openViewPermissions(r)}
                       >
-                        <Icon name="eye" />
+                        <ViewIcon />
                       </button>
                       <button
                         type="button"
-                        className="roles-page__iconBtn"
+                        className="roles-page__iconBtn roles-page__iconBtn--lock"
                         title="Manage permissions"
                         aria-label="Manage permissions"
                         onClick={() => openPermissions(r)}
                       >
-                        <Icon name="lock" />
+                        <LockIcon />
                       </button>
                       <button
                         type="button"
-                        className="roles-page__iconBtn"
+                        className="roles-page__iconBtn roles-page__iconBtn--edit"
                         title="Edit"
                         aria-label="Edit"
                         onClick={() => openEdit(r)}
                       >
-                        <Icon name="edit" />
+                        <EditIcon />
                       </button>
                       <button
                         type="button"
-                        className="roles-page__iconBtn"
+                        className="roles-page__iconBtn roles-page__iconBtn--delete"
                         title="Delete"
                         aria-label="Delete"
                         onClick={() => handleDeleteRole(r)}
                       >
-                        <Icon name="trash" />
+                        <DeleteIcon />
                       </button>
                     </div>
                   </td>
