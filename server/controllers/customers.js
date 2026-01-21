@@ -3,6 +3,7 @@ const Customer = require('../models/customer');
 const Person = require('../models/person');
 const Card = require('../models/card');
 const Subscription = require('../models/subscription');
+const middleware = require('../utils/middleware');
 
 /**
  * GET /api/customers
@@ -14,7 +15,10 @@ const Subscription = require('../models/subscription');
  * - page: number - Page number for pagination
  * - limit: number - Items per page
  */
-customersRouter.get('/', async (request, response) => {
+customersRouter.get(
+  '/',
+  middleware.requirePermissions(['PEOPLE.VIEW']),
+  async (request, response) => {
   try {
     const {
       status,
@@ -103,7 +107,10 @@ customersRouter.get('/', async (request, response) => {
  * GET /api/customers/:id
  * Get single customer by ID with person details
  */
-customersRouter.get('/:id', async (request, response) => {
+customersRouter.get(
+  '/:id',
+  middleware.requirePermissions(['PEOPLE.VIEW']),
+  async (request, response) => {
   try {
     const customer = await Customer.findById(request.params.id)
       .populate('person', 'ID FullName Phone Gender IsActive');
@@ -155,7 +162,10 @@ customersRouter.get('/:id', async (request, response) => {
  * POST /api/customers
  * Create new customer (requires existing person)
  */
-customersRouter.post('/', async (request, response) => {
+customersRouter.post(
+  '/',
+  middleware.requirePermissions(['PEOPLE.FULL']),
+  async (request, response) => {
   try {
     const {
       PersonID,
@@ -250,7 +260,10 @@ customersRouter.post('/', async (request, response) => {
  * PUT /api/customers/:id
  * Update customer
  */
-customersRouter.put('/:id', async (request, response) => {
+customersRouter.put(
+  '/:id',
+  middleware.requirePermissions(['PEOPLE.FULL']),
+  async (request, response) => {
   try {
     const {
       RegisteredDay,
@@ -311,7 +324,10 @@ customersRouter.put('/:id', async (request, response) => {
  * DELETE /api/customers/:id
  * Update customer status (soft delete - typically set to INACTIVE)
  */
-customersRouter.delete('/:id', async (request, response) => {
+customersRouter.delete(
+  '/:id',
+  middleware.requirePermissions(['PEOPLE.FULL']),
+  async (request, response) => {
   try {
     const { status } = request.body;
 

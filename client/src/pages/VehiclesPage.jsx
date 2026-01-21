@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useAuthz } from '../contexts/AuthzContext';
+import { canEditModule } from '../utils/permissions';
 import PageHeader from '../components/PageHeader';
 import TabNavigation from '../components/TabNavigation';
 import SearchInput from '../components/SearchInput';
@@ -27,6 +29,8 @@ const initialVehicleTypes = [];
 
 export default function VehiclesPage() {
   const { authHeaders } = useAuth();
+  const { hasPermission } = useAuthz();
+  const canEdit = canEditModule(hasPermission, 'VEHICLES');
   const [activeTab, setActiveTab] = useState('vehicles');
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('All Types');
@@ -43,6 +47,12 @@ export default function VehiclesPage() {
   const [selectedVehicleType, setSelectedVehicleType] = useState(null);
   const [isEditTypeModalOpen, setIsEditTypeModalOpen] = useState(false);
   const [isAddTypeModalOpen, setIsAddTypeModalOpen] = useState(false);
+
+  // View-only UX: prevent opening mutation modals if user doesn't have FULL permission.
+  const openIfCanEdit = (setter) => (value) => {
+    if (!canEdit) return;
+    setter(value);
+  };
 
   const normalizeVehicleTypeName = (t) => (t?.name ?? t?.Name ?? '').toString().trim();
 
@@ -203,16 +213,19 @@ export default function VehiclesPage() {
   };
 
   const handleEditVehicle = (vehicle) => {
+    if (!canEdit) return;
     setSelectedVehicle(vehicle);
     setIsEditModalOpen(true);
   };
 
   const handleDeleteVehicle = (vehicle) => {
+    if (!canEdit) return;
     setSelectedVehicle(vehicle);
     setIsDeleteModalOpen(true);
   };
 
   const handleAddVehicle = () => {
+    if (!canEdit) return;
     setIsAddModalOpen(true);
   };
 
@@ -572,12 +585,14 @@ export default function VehiclesPage() {
                 onChange={setSearchQuery}
                 icon={searchIcon}
               />
-              <button className="add-vehicle-btn" onClick={handleAddVehicle} type="button">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M10 5V15M5 10H15" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                Add Vehicle
-              </button>
+              {canEdit && (
+                <button className="add-vehicle-btn" onClick={handleAddVehicle} type="button">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M10 5V15M5 10H15" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Add Vehicle
+                </button>
+              )}
             </div>
             <div className="filters-row">
               <VehicleTypeFilter
@@ -607,12 +622,14 @@ export default function VehiclesPage() {
       {activeTab === 'vehicleTypes' && (
         <div className="vehicle-types-content">
           <div className="add-type-button-wrapper">
-            <button className="add-type-btn" onClick={handleAddType}>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 5V15M5 10H15" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              Add Type
-            </button>
+            {canEdit && (
+              <button className="add-type-btn" onClick={handleAddType}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M10 5V15M5 10H15" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Add Type
+              </button>
+            )}
           </div>
           <div className="vehicle-types-table-wrapper">
             <VehicleTypesTable
@@ -638,7 +655,7 @@ export default function VehiclesPage() {
         />
       )}
 
-      {isEditModalOpen && selectedVehicle && (
+      {canEdit && isEditModalOpen && selectedVehicle && (
         <EditVehicleModal
           vehicle={selectedVehicle}
           onClose={handleCloseEditModal}
@@ -646,7 +663,7 @@ export default function VehiclesPage() {
         />
       )}
 
-      {isDeleteModalOpen && selectedVehicle && (
+      {canEdit && isDeleteModalOpen && selectedVehicle && (
         <DeleteVehicleModal
           vehicle={selectedVehicle}
           onClose={handleCloseDeleteModal}
@@ -654,7 +671,7 @@ export default function VehiclesPage() {
         />
       )}
 
-      {isEditTypeModalOpen && selectedVehicleType && (
+      {canEdit && isEditTypeModalOpen && selectedVehicleType && (
         <EditVehicleTypeModal
           vehicleType={selectedVehicleType}
           onClose={handleCloseEditTypeModal}
@@ -662,14 +679,14 @@ export default function VehiclesPage() {
         />
       )}
 
-      {isAddTypeModalOpen && (
+      {canEdit && isAddTypeModalOpen && (
         <AddVehicleTypeModal
           onClose={handleCloseAddTypeModal}
           onSave={handleSaveNewVehicleType}
         />
       )}
 
-      {isAddModalOpen && (
+      {canEdit && isAddModalOpen && (
         <AddVehicleModal
           onClose={handleCloseAddModal}
           onSave={handleSaveNewVehicle}

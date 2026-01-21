@@ -155,24 +155,12 @@ adminAccountsRouter.get('/:id', middleware.authRequired, middleware.adminOnly, a
  * - system admin (request.user.type === 'admin') OR
  * - an employee token that includes a permission to manage admin accounts.
  */
-adminAccountsRouter.post('/', middleware.authRequired, async (request, response) => {
+adminAccountsRouter.post(
+  '/',
+  middleware.authRequired,
+  middleware.requirePermissions(['PEOPLE.ACCESS_MANAGEMENT_HUB']),
+  async (request, response) => {
   try {
-    const permissionsRaw = request.user?.permissions || request.user?.Permissions || [];
-    const permissions = (Array.isArray(permissionsRaw) ? permissionsRaw : [])
-      .map((p) => String(p || '').trim().toUpperCase())
-      .filter(Boolean);
-
-    const canManageAdminAccounts =
-      request.user?.type === 'admin' ||
-      permissions.includes('PEOPLE.ACCESS_MANAGEMENT_HUB');
-
-    if (!canManageAdminAccounts) {
-      return response.status(403).json({
-        success: false,
-        error: { message: 'forbidden', code: 'FORBIDDEN' }
-      });
-    }
-
     const {
       EmployeeID,
       Username,

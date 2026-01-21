@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { useAuthz } from "../contexts/AuthzContext";
+import { canEditModule } from "../utils/permissions";
 import PageHeader from "../components/PageHeader";
 import TabNavigation from "../components/TabNavigation";
 import SearchInput from "../components/SearchInput";
@@ -136,6 +138,8 @@ const mockCustomerVehicles = {
 
 export default function PeoplePage() {
   const { authHeaders } = useAuth();
+  const { hasPermission } = useAuthz();
+  const canEdit = canEditModule(hasPermission, "PEOPLE");
   const [activeTab, setActiveTab] = useState("customers");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
@@ -384,6 +388,7 @@ export default function PeoplePage() {
   }, [searchQuery, statusFilter]);
 
   const handleAddEmployee = () => {
+    if (!canEdit) return;
     setIsModalOpen(true);
   };
 
@@ -612,16 +617,19 @@ export default function PeoplePage() {
   };
 
   const handleEditCustomer = (customer) => {
+    if (!canEdit) return;
     setSelectedCustomer(customer);
     setShowEditCustomerModal(true);
   };
 
   const handleDeleteCustomer = (customer) => {
+    if (!canEdit) return;
     setSelectedCustomer(customer);
     setShowDeleteCustomerModal(true);
   };
 
   const handleCreateCustomer = () => {
+    if (!canEdit) return;
     setShowCreateCustomerModal(true);
   };
 
@@ -803,6 +811,7 @@ export default function PeoplePage() {
   };
 
   const handleEditEmployee = (employee) => {
+    if (!canEdit) return;
     setSelectedEmployee(employee);
     setShowEditEmployeeModal(true);
   };
@@ -970,29 +979,33 @@ export default function PeoplePage() {
             />
 
             {activeTab === "customers" && (
-              <button
-                className="add-employee-btn"
-                onClick={handleCreateCustomer}
-                type="button"
-              >
-                <span className="btn-icon" aria-hidden="true">
-                  <CommonActionAddIcon />
-                </span>
-                <span>Create Customer</span>
-              </button>
+              canEdit && (
+                <button
+                  className="add-employee-btn"
+                  onClick={handleCreateCustomer}
+                  type="button"
+                >
+                  <span className="btn-icon" aria-hidden="true">
+                    <CommonActionAddIcon />
+                  </span>
+                  <span>Create Customer</span>
+                </button>
+              )
             )}
 
             {activeTab === "employees" && (
-              <button
-                className="add-employee-btn"
-                onClick={handleAddEmployee}
-                type="button"
-              >
-                <span className="btn-icon" aria-hidden="true">
-                  <CommonActionAddIcon />
-                </span>
-                <span>Add Employee</span>
-              </button>
+              canEdit && (
+                <button
+                  className="add-employee-btn"
+                  onClick={handleAddEmployee}
+                  type="button"
+                >
+                  <span className="btn-icon" aria-hidden="true">
+                    <CommonActionAddIcon />
+                  </span>
+                  <span>Add Employee</span>
+                </button>
+              )
             )}
           </div>
 
@@ -1033,11 +1046,13 @@ export default function PeoplePage() {
         )}
       </div>
 
-      <AddEmployeeModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onSubmit={handleSubmitEmployee}
-      />
+      {canEdit && (
+        <AddEmployeeModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          onSubmit={handleSubmitEmployee}
+        />
+      )}
 
       {showCardsModal && selectedCustomer && (
         <ViewCardsModal
@@ -1057,7 +1072,7 @@ export default function PeoplePage() {
         />
       )}
 
-      {showEditCustomerModal && selectedCustomer && (
+      {canEdit && showEditCustomerModal && selectedCustomer && (
         <EditCustomerModal
           customer={selectedCustomer}
           onClose={handleCloseEditCustomerModal}
@@ -1065,7 +1080,7 @@ export default function PeoplePage() {
         />
       )}
 
-      {showDeleteCustomerModal && selectedCustomer && (
+      {canEdit && showDeleteCustomerModal && selectedCustomer && (
         <DeleteCustomerModal
           customer={selectedCustomer}
           onClose={handleCloseDeleteCustomerModal}
@@ -1073,14 +1088,14 @@ export default function PeoplePage() {
         />
       )}
 
-      {showCreateCustomerModal && (
+      {canEdit && showCreateCustomerModal && (
         <CreateCustomerModal
           onClose={handleCloseCreateCustomerModal}
           onSubmit={handleSubmitCreateCustomer}
         />
       )}
 
-      {showEditEmployeeModal && selectedEmployee && (
+      {canEdit && showEditEmployeeModal && selectedEmployee && (
         <EditEmployeeModal
           employee={selectedEmployee}
           onClose={handleCloseEditEmployeeModal}

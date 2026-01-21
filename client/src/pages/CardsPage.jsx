@@ -7,6 +7,8 @@ import ViewCategoryCardsModal from '../components/ViewCategoryCardsModal';
 import DeleteCategoryModal from '../components/DeleteCategoryModal';
 import EditCardModal from '../components/EditCardModal';
 import { useAuth } from '../contexts/AuthContext';
+import { useAuthz } from '../contexts/AuthzContext';
+import { canEditModule } from '../utils/permissions';
 import {
   CardsActionEditIcon,
   CardsActionSearchIcon,
@@ -87,6 +89,8 @@ const normalizeCard = (c) => {
 
 function CardsPage() {
   const { authHeaders } = useAuth();
+  const { hasPermission } = useAuthz();
+  const canEdit = canEditModule(hasPermission, 'CARDS');
   const [activeTab, setActiveTab] = useState('inventory');
   const [searchQuery, setSearchQuery] = useState('');
   const [invoiceSearchQuery, setInvoiceSearchQuery] = useState('');
@@ -423,6 +427,7 @@ function CardsPage() {
   };
 
   const handleEditCard = (cardId) => {
+    if (!canEdit) return;
     const card = filteredCards.find(c => c.id === cardId) || cards.find((c) => c.id === cardId);
     if (card) {
       setCardToEdit(card);
@@ -474,6 +479,7 @@ function CardsPage() {
   };
 
   const handleAssignClick = (card) => {
+    if (!canEdit) return;
     setSelectedCard(card);
     setShowAssignModal(true);
   };
@@ -527,6 +533,7 @@ function CardsPage() {
   };
 
   const handleAddCategory = () => {
+    if (!canEdit) return;
     setShowAddCategoryModal(true);
   };
 
@@ -566,6 +573,7 @@ function CardsPage() {
   };
 
   const handleDeleteCategory = (category) => {
+    if (!canEdit) return;
     setCategoryToDelete(category);
     setShowDeleteCategoryModal(true);
   };
@@ -596,6 +604,7 @@ function CardsPage() {
   };
 
   const handleEditCategory = (categoryId) => {
+    if (!canEdit) return;
     const found = categories.find((c) => c.id === categoryId);
     if (!found) return;
     setCategoryToEdit(found);
@@ -880,13 +889,15 @@ function CardsPage() {
                         >
                           <CardsActionViewIcon aria-hidden="true" />
                         </button>
-                        <button
-                          className="inventory-actionBtn"
-                          onClick={() => handleEditCard(card.id)}
-                          title="Edit"
-                        >
-                          <CardsActionEditIcon aria-hidden="true" />
-                        </button>
+                        {canEdit && (
+                          <button
+                            className="inventory-actionBtn"
+                            onClick={() => handleEditCard(card.id)}
+                            title="Edit"
+                          >
+                            <CardsActionEditIcon aria-hidden="true" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -979,12 +990,14 @@ function CardsPage() {
                     <td className="expiry-cell">{card.expiry}</td>
                     <td>
                       <div className="action-buttons action-buttons-right">
-                        <button
-                          className="btn-assign-action btn-assign-action--primary"
-                          onClick={() => handleAssignClick(card)}
-                        >
-                          Assign
-                        </button>
+                        {canEdit && (
+                          <button
+                            className="btn-assign-action btn-assign-action--primary"
+                            onClick={() => handleAssignClick(card)}
+                          >
+                            Assign
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1023,12 +1036,14 @@ function CardsPage() {
         <div className="categories-content">
           {/* Add Category Button */}
           <div className="add-category-section">
-            <button className="btn-add-category" onClick={handleAddCategory}>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M10 4V16M4 10H16" stroke="white" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-              Add Category
-            </button>
+            {canEdit && (
+              <button className="btn-add-category" onClick={handleAddCategory}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M10 4V16M4 10H16" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+                Add Category
+              </button>
+            )}
           </div>
 
           {/* Categories Table */}
@@ -1066,22 +1081,26 @@ function CardsPage() {
                         >
                           <CardsActionViewIcon aria-hidden="true" />
                         </button>
-                        <button
-                          className="action-btn"
-                          onClick={() => handleEditCategory(category.id)}
-                          title="Edit"
-                        >
-                          <CardsActionEditIcon aria-hidden="true" />
-                        </button>
-                        <button
-                          className="action-btn action-btn-delete"
-                          onClick={() => handleDeleteCategory(category)}
-                          title="Delete"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path d="M2 4h12M5.333 4V2.667a1.333 1.333 0 0 1 1.334-1.334h2.666a1.333 1.333 0 0 1 1.334 1.334V4m2 0v9.333a1.333 1.333 0 0 1-1.334 1.334H4.667a1.333 1.333 0 0 1-1.334-1.334V4h9.334Z" stroke="#dc2626" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </button>
+                        {canEdit && (
+                          <>
+                            <button
+                              className="action-btn"
+                              onClick={() => handleEditCategory(category.id)}
+                              title="Edit"
+                            >
+                              <CardsActionEditIcon aria-hidden="true" />
+                            </button>
+                            <button
+                              className="action-btn action-btn-delete"
+                              onClick={() => handleDeleteCategory(category)}
+                              title="Delete"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M2 4h12M5.333 4V2.667a1.333 1.333 0 0 1 1.334-1.334h2.666a1.333 1.333 0 0 1 1.334 1.334V4m2 0v9.333a1.333 1.333 0 0 1-1.334 1.334H4.667a1.333 1.333 0 0 1-1.334-1.334V4h9.334Z" stroke="#dc2626" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1414,7 +1433,7 @@ function CardsPage() {
       )}
 
       {/* Assign Card Modal */}
-      {showAssignModal && selectedCard && (
+      {canEdit && showAssignModal && selectedCard && (
         <AssignCardModal
           card={selectedCard}
           onClose={handleCloseAssignModal}
@@ -1423,14 +1442,16 @@ function CardsPage() {
       )}
 
       {/* Add Category Modal */}
-      <AddCategoryModal
-        isOpen={showAddCategoryModal}
-        onClose={handleCloseAddCategoryModal}
-        onSave={handleCreateCategory}
-      />
+      {canEdit && (
+        <AddCategoryModal
+          isOpen={showAddCategoryModal}
+          onClose={handleCloseAddCategoryModal}
+          onSave={handleCreateCategory}
+        />
+      )}
 
       {/* Edit Category Modal */}
-      {showEditCategoryModal && categoryToEdit && (
+      {canEdit && showEditCategoryModal && categoryToEdit && (
         <EditCategoryModal
           isOpen={showEditCategoryModal}
           key={categoryToEdit.id}
@@ -1449,7 +1470,7 @@ function CardsPage() {
       )}
 
       {/* Edit Card Modal */}
-      {showEditCardModal && cardToEdit && (
+      {canEdit && showEditCardModal && cardToEdit && (
         <EditCardModal
           isOpen={showEditCardModal}
           card={cardToEdit}
@@ -1472,7 +1493,7 @@ function CardsPage() {
       )}
 
       {/* Delete Category Modal */}
-      {showDeleteCategoryModal && categoryToDelete && (
+      {canEdit && showDeleteCategoryModal && categoryToDelete && (
         <DeleteCategoryModal
           category={categoryToDelete}
           onClose={() => {

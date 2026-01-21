@@ -4,6 +4,7 @@ import ViewCardsModal from './ViewCardsModal';
 import ViewEmployeeModal from './ViewEmployeeModal';
 import EditEmployeeModal from './EditEmployeeModal';
 import EmployeeAccountModal from './EmployeeAccountModal';
+import { useAuthz } from '../contexts/AuthzContext';
 import DeleteEmployeeModal from './DeleteEmployeeModal';
 import '../styles/components/EmployeesTable.css';
 
@@ -49,6 +50,9 @@ const DeleteIcon = () => (
 );
 
 export default function EmployeesTable({ employees, onEdit, onDelete, onViewCards }) {
+  const { hasPermission } = useAuthz();
+  const canAccessHub = hasPermission('PEOPLE.ACCESS_MANAGEMENT_HUB');
+
   const headers = ['ID', 'Employee', 'Role', 'Status', 'Hired Date', 'Actions'];
 
   const getStatusBadgeClass = (status) => {
@@ -90,6 +94,7 @@ export default function EmployeesTable({ employees, onEdit, onDelete, onViewCard
   };
 
   const handleOpenEmployeeAccount = (employee) => {
+    if (!canAccessHub) return;
     setSelectedEmployee(employee);
     setShowEmployeeAccountModal(true);
   };
@@ -214,9 +219,11 @@ export default function EmployeesTable({ employees, onEdit, onDelete, onViewCard
     hiredDate: employee.hiredDate,
     actions: (
       <div className="table-actions">
-        <button className="action-btn action-btn--account" onClick={() => handleOpenEmployeeAccount(employee)} title="Account">
-          <AccountIcon />
-        </button>
+        {canAccessHub && (
+          <button className="action-btn action-btn--account" onClick={() => handleOpenEmployeeAccount(employee)} title="Account">
+            <AccountIcon />
+          </button>
+        )}
         <button className="action-btn action-btn--card" onClick={() => handleViewCards(employee)} title="View Cards">
           <CardIcon />
         </button>

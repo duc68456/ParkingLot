@@ -1,4 +1,5 @@
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthzProvider } from './contexts/AuthzContext';
 import LoginPage from './pages/LoginPage';
 import AdminLayout from './pages/AdminLayout';
 import StaffGatePage from './pages/StaffGatePage';
@@ -24,7 +25,9 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <AuthzProvider>
+        <AppContent />
+      </AuthzProvider>
     </AuthProvider>
   );
 }

@@ -146,8 +146,8 @@ export default function EmployeeAccountModal({ employee, onClose }) {
     const loadViewerPermissions = async () => {
       if (!cancelled) setViewerPermissionsLoading(true);
       try {
-        const res = await fetch(`${API_BASE_URL}/api/authz/me`, { headers: authHeaders });
-        const json = await res.json();
+        const authzRes = await fetch(`${API_BASE_URL}/api/authz/me`, { headers: authHeaders });
+        const json = await authzRes.json();
         const permsRaw = json?.data?.permissions || json?.permissions || [];
         const perms = Array.from(
           new Set((Array.isArray(permsRaw) ? permsRaw : []).map((p) => String(p || '').trim().toUpperCase()).filter(Boolean))
@@ -807,16 +807,18 @@ export default function EmployeeAccountModal({ employee, onClose }) {
               <span className="employee-account-modal__tabIcon" aria-hidden="true">▢</span>
               PIN Account
             </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'admin'}
-              className={`employee-account-modal__tab ${activeTab === 'admin' ? 'employee-account-modal__tab--active' : ''}`}
-              onClick={() => setActiveTab('admin')}
-            >
-              <span className="employee-account-modal__tabIcon" aria-hidden="true">▢</span>
-              Admin Account
-            </button>
+            {hasPermission(PERM_ACCESS_HUB) && (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 'admin'}
+                className={`employee-account-modal__tab ${activeTab === 'admin' ? 'employee-account-modal__tab--active' : ''}`}
+                onClick={() => setActiveTab('admin')}
+              >
+                <span className="employee-account-modal__tabIcon" aria-hidden="true">▢</span>
+                Admin Account
+              </button>
+            )}
           </div>
 
           {activeTab === 'pin' ? (
@@ -830,15 +832,17 @@ export default function EmployeeAccountModal({ employee, onClose }) {
                   <div className="employee-account-modal__pinEmptySub">
                     This employee doesn&apos;t have a PIN account yet. Create one to enable gate access.
                   </div>
-                  <button
-                    type="button"
-                    className="employee-account-modal__pinEmptyCta"
-                    onClick={handleGenerateNewPin}
-                    disabled={submitting}
-                    title="Create PIN account"
-                  >
-                    Create PIN Account
-                  </button>
+                  {hasPermission(PERM_ACCESS_HUB) ? (
+                    <button
+                      type="button"
+                      className="employee-account-modal__pinEmptyCta"
+                      onClick={handleGenerateNewPin}
+                      disabled={submitting}
+                      title="Create PIN account"
+                    >
+                      Create PIN Account
+                    </button>
+                  ) : null}
                 </div>
               ) : (
                 <div className="employee-account-modal__pinExists">
@@ -847,7 +851,7 @@ export default function EmployeeAccountModal({ employee, onClose }) {
                       <div className="employee-account-modal__pinLabel">CURRENT PIN CODE</div>
                       <div className="employee-account-modal__pinSub">6-digit authentication code</div>
                     </div>
-                    {pinAccountExists ? (
+                    {pinAccountExists && hasPermission(PERM_ACCESS_HUB) ? (
                       <button
                         type="button"
                         className="employee-account-modal__pinKeyBtn"

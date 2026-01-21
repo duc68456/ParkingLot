@@ -9,6 +9,8 @@ import AddSubscriptionTypeModal from '../components/AddSubscriptionTypeModal';
 import EditSubscriptionTypeModal from '../components/EditSubscriptionTypeModal';
 import ViewSubscriptionTypesModal from '../components/ViewSubscriptionTypesModal';
 import { useAuth } from '../contexts/AuthContext';
+import { useAuthz } from '../contexts/AuthzContext';
+import { canEditModule } from '../utils/permissions';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
@@ -125,6 +127,8 @@ const normalizeSubscriptionType = (t) => {
 
 function SubscriptionsPage() {
   const { authHeaders, user } = useAuth();
+  const { hasPermission } = useAuthz();
+  const canEdit = canEditModule(hasPermission, 'SUBSCRIPTIONS');
   const [activeTab, setActiveTab] = useState('subscriptions');
   const [searchQuery, setSearchQuery] = useState('');
   const [subscriptions, setSubscriptions] = useState([]);
@@ -264,6 +268,7 @@ function SubscriptionsPage() {
   ];
 
   const handleRegisterSubscription = () => {
+    if (!canEdit) return;
     setShowRegisterModal(true);
   };
 
@@ -338,6 +343,7 @@ function SubscriptionsPage() {
   };
 
   const handlePauseSubscription = (subscriptionId) => {
+    if (!canEdit) return;
     const subscription = subscriptions.find(s => s.id === subscriptionId);
     if (subscription) {
       setSelectedSubscriptionForPause(subscription);
@@ -375,6 +381,7 @@ function SubscriptionsPage() {
   };
 
   const handleContinueSubscription = (subscriptionId) => {
+    if (!canEdit) return;
     const subscription = subscriptions.find(s => s.id === subscriptionId);
     if (subscription) {
       setSelectedSubscriptionForContinue(subscription);
@@ -412,6 +419,7 @@ function SubscriptionsPage() {
   };
 
   const handleEditSubscription = (subscriptionId) => {
+    if (!canEdit) return;
     const subscription = subscriptions.find(s => s.id === subscriptionId);
     if (subscription) {
       setSelectedSubscriptionForEdit(subscription);
@@ -443,6 +451,7 @@ function SubscriptionsPage() {
   };
 
   const handleDeleteSubscription = async (subscriptionId) => {
+    if (!canEdit) return;
     if (!confirm(`Are you sure you want to delete subscription ${subscriptionId}?`)) return;
 
     try {
@@ -507,7 +516,7 @@ function SubscriptionsPage() {
         <div className="subscriptions-content">
           <div className="subscriptions-controls">
             {/* Top Row: Search and Register Action */}
-            <div className="controls-top">
+              <div className="controls-top">
               <div className="search-container">
                 <svg className="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <path d="M7.33333 12.6667C10.2789 12.6667 12.6667 10.2789 12.6667 7.33333C12.6667 4.38781 10.2789 2 7.33333 2C4.38781 2 2 4.38781 2 7.33333C2 10.2789 4.38781 12.6667 7.33333 12.6667Z" stroke="#62748e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -531,10 +540,11 @@ function SubscriptionsPage() {
                 )}
               </div>
 
-              <button className="btn-register" onClick={handleRegisterSubscription}>
-                <AddIcon />
-                Register Subscription
-              </button>
+              {canEdit && (
+                <button className="register-button" onClick={handleRegisterSubscription}>
+                  <AddIcon /> Register Subscription
+                </button>
+              )}
             </div>
 
             {/* Bottom Row: Filters */}
@@ -641,37 +651,43 @@ function SubscriptionsPage() {
                           >
                             <ViewIcon />
                           </button>
-                          <button
-                            className="action-btn action-btn--edit"
-                            onClick={() => handleEditSubscription(subscription.id)}
-                            title="Edit"
-                          >
-                            <EditIcon />
-                          </button>
-                          {subscription.status === 'Paused' ? (
+                          {canEdit && (
                             <button
-                              className="action-btn action-btn--continue"
-                              onClick={() => handleContinueSubscription(subscription.id)}
-                              title="Resume"
+                              className="action-btn action-btn--edit"
+                              onClick={() => handleEditSubscription(subscription.id)}
+                              title="Edit"
                             >
-                              <ContinueIcon />
-                            </button>
-                          ) : (
-                            <button
-                              className="action-btn action-btn--pause"
-                              onClick={() => handlePauseSubscription(subscription.id)}
-                              title="Pause"
-                            >
-                              <PauseIcon />
+                              <EditIcon />
                             </button>
                           )}
-                          <button
-                            className="action-btn action-btn--delete"
-                            onClick={() => handleDeleteSubscription(subscription.subscriptionId || subscription.id)}
-                            title="Delete"
-                          >
-                            <DeleteIcon />
-                          </button>
+                          {canEdit && (
+                            subscription.status === 'Paused' ? (
+                              <button
+                                className="action-btn action-btn--continue"
+                                onClick={() => handleContinueSubscription(subscription.id)}
+                                title="Resume"
+                              >
+                                <ContinueIcon />
+                              </button>
+                            ) : (
+                              <button
+                                className="action-btn action-btn--pause"
+                                onClick={() => handlePauseSubscription(subscription.id)}
+                                title="Pause"
+                              >
+                                <PauseIcon />
+                              </button>
+                            )
+                          )}
+                          {canEdit && (
+                            <button
+                              className="action-btn action-btn--delete"
+                              onClick={() => handleDeleteSubscription(subscription.subscriptionId || subscription.id)}
+                              title="Delete"
+                            >
+                              <DeleteIcon />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -713,10 +729,12 @@ function SubscriptionsPage() {
       {activeTab === 'subscription-types' && (
         <div className="subscriptions-content">
           <div className="register-section">
-            <button className="btn-register" onClick={() => setShowAddTypeModal(true)}>
-              <AddIcon />
-              + Add Type
-            </button>
+            {canEdit && (
+              <button className="btn-register" onClick={() => setShowAddTypeModal(true)}>
+                <AddIcon />
+                + Add Type
+              </button>
+            )}
           </div>
 
           <div className="data-table">
@@ -797,7 +815,7 @@ function SubscriptionsPage() {
       )}
 
       {/* Register Subscription Modal */}
-      {showRegisterModal && (
+      {canEdit && showRegisterModal && (
         <RegisterSubscriptionModal
           onClose={handleCloseRegisterModal}
           onRegister={handleSubmitRegistration}
@@ -813,7 +831,7 @@ function SubscriptionsPage() {
       )}
 
       {/* Pause Subscription Modal */}
-      {showPauseModal && selectedSubscriptionForPause && (
+      {canEdit && showPauseModal && selectedSubscriptionForPause && (
         <PauseSubscriptionModal
           subscription={selectedSubscriptionForPause}
           onClose={handleClosePauseModal}
@@ -822,7 +840,7 @@ function SubscriptionsPage() {
       )}
 
       {/* Continue Subscription Modal */}
-      {showContinueModal && selectedSubscriptionForContinue && (
+      {canEdit && showContinueModal && selectedSubscriptionForContinue && (
         <ContinueSubscriptionModal
           subscription={selectedSubscriptionForContinue}
           onClose={handleCloseContinueModal}
@@ -831,7 +849,7 @@ function SubscriptionsPage() {
       )}
 
       {/* Edit Subscription Modal */}
-      {showEditModal && selectedSubscriptionForEdit && (
+      {canEdit && showEditModal && selectedSubscriptionForEdit && (
         <EditSubscriptionModal
           subscription={selectedSubscriptionForEdit}
           onClose={handleCloseEditModal}
@@ -840,7 +858,7 @@ function SubscriptionsPage() {
         />
       )}
 
-      {showAddTypeModal && (
+      {canEdit && showAddTypeModal && (
         <AddSubscriptionTypeModal
           onClose={() => setShowAddTypeModal(false)}
           onSubmit={async ({ name, durationDays, description }) => {
@@ -869,7 +887,7 @@ function SubscriptionsPage() {
         />
       )}
 
-      {showEditTypeModal && selectedSubscriptionType && (
+      {canEdit && showEditTypeModal && selectedSubscriptionType && (
         <EditSubscriptionTypeModal
           type={selectedSubscriptionType}
           onClose={() => {

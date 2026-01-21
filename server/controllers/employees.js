@@ -25,7 +25,10 @@ const ALLOWED_EMPLOYEE_STATUSES = [
  * - page: number - Page number for pagination
  * - limit: number - Items per page
  */
-employeesRouter.get("/", async (request, response) => {
+employeesRouter.get(
+  "/",
+  middleware.requirePermissions(['PEOPLE.VIEW']),
+  async (request, response) => {
   try {
     const {
       status,
@@ -99,7 +102,10 @@ employeesRouter.get("/", async (request, response) => {
  * GET /api/employees/:id
  * Get single employee by ID with person details
  */
-employeesRouter.get("/:id", async (request, response) => {
+employeesRouter.get(
+  "/:id",
+  middleware.requirePermissions(['PEOPLE.VIEW']),
+  async (request, response) => {
   try {
     const employee = await Employee.findById(request.params.id).populate(
       "person",
@@ -304,7 +310,10 @@ employeesRouter.post("/validate", async (request, response) => {
  * POST /api/employees
  * Create new employee (requires existing person)
  */
-employeesRouter.post("/", async (request, response) => {
+employeesRouter.post(
+  "/",
+  middleware.requirePermissions(['PEOPLE.FULL']),
+  async (request, response) => {
   try {
     const { PersonID, EmployeeType, HiredDate, Status } = request.body;
 
@@ -450,7 +459,10 @@ employeesRouter.post("/", async (request, response) => {
  * PUT /api/employees/:id
  * Update employee
  */
-employeesRouter.put("/:id", async (request, response) => {
+employeesRouter.put(
+  "/:id",
+  middleware.requirePermissions(['PEOPLE.FULL']),
+  async (request, response) => {
   try {
     const { EmployeeType, HiredDate, Status } = request.body;
 
@@ -513,7 +525,10 @@ employeesRouter.put("/:id", async (request, response) => {
  * DELETE /api/employees/:id
  * Update employee status (soft delete - typically set to INACTIVE)
  */
-employeesRouter.delete("/:id", async (request, response) => {
+employeesRouter.delete(
+  "/:id",
+  middleware.requirePermissions(['PEOPLE.FULL']),
+  async (request, response) => {
   try {
     const { status } = request.body;
 

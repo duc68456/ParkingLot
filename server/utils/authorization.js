@@ -7,8 +7,9 @@ const { ROLE_DEFINITIONS, buildEffectivePermissions } = require('./permissions')
 const normalize = (v) => String(v || '').trim();
 const upper = (v) => normalize(v).toUpperCase();
 
-// Resolve roles + permissions from DB. Falls back to Employee.EmployeeType mapping
-// if there are no EmployeeRole assignments (for backward compatibility).
+// Resolve roles + permissions from DB.
+// IMPORTANT: No implicit role fallback. If there are no EmployeeRole assignments,
+// the employee has NO roles and NO permissions.
 async function resolveAuthzForEmployee(employeeBusinessId) {
   const employeeId = String(employeeBusinessId || '').trim().toUpperCase();
   if (!employeeId) return { employee: null, roleIds: [], permissions: [] };
@@ -20,20 +21,18 @@ async function resolveAuthzForEmployee(employeeBusinessId) {
   const employeeRoles = await EmployeeRole.find({ EmployeeID: employeeId }, { RoleID: 1, _id: 0 }).lean();
   let roleIds = (employeeRoles || []).map((r) => String(r.RoleID || '').toUpperCase()).filter(Boolean);
 
-  // 2) Fallback mapping from EmployeeType to default role
-  if (!roleIds.length) {
-    const employeeType = String(employee.EmployeeType || '').toUpperCase();
-    if (employeeType === 'ADMIN') roleIds = ['ROLE_ADMIN'];
-    else if (employeeType === 'MANAGER') roleIds = ['ROLE_MANAGER'];
-    else roleIds = ['ROLE_STAFF'];
-  }
+  // 2) IMPORTANT: No implicit role fallback.
+  // If an employee has no explicit EmployeeRole assignments, they have NO roles and NO permissions.
+  // This prevents privilege escalation (e.g., a newly created account self-assigning ROLE_SUPREME_ADMIN).
 
   // Dynamic authz: RolePermission.PermissionID is already the plain-text permission code.
   // The server should union permissions across ALL roles for this employee.
-  const dbRolePerms = await RolePermission.find(
-    { RoleID: { $in: roleIds } },
-    { RoleID: 1, PermissionID: 1, _id: 0 }
-  ).lean();
+  const dbRolePerms = roleIds.length
+    ? await RolePermission.find(
+        { RoleID: { $in: roleIds } },
+        { RoleID: 1, PermissionID: 1, _id: 0 }
+      ).lean()
+    : [];
 
   let permissions;
   if (dbRolePerms?.length) {

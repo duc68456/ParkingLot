@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import NavItem from './NavItem';
+import { useAuthz } from '../contexts/AuthzContext';
 import '../styles/components/Sidebar.css';
 
 import logoIcon from '../assets/icons/logo.svg';
@@ -19,6 +20,26 @@ import logoutIcon from '../assets/icons/logout.svg';
 
 export default function Sidebar({ currentPage = 'Dashboard', onLogout, isCollapsed, onToggleCollapse, activeItem, onNavClick }) {
   const [activePage, setActivePage] = useState(activeItem || currentPage);
+  const { hasAnyPermission, loading: authzLoading } = useAuthz();
+
+  // Sidebar visibility contract:
+  // - VIEW => can see page in sidebar
+  // - FULL => can see page + do mutations
+  // - Special cases: PURCHASE_CARD requires PURCHASE_CARD.FULL; Roles requires PEOPLE.ACCESS_MANAGEMENT_HUB
+  const navPermissions = {
+    Dashboard: ['DASHBOARD.VIEW'],
+    'Purchase Card': ['PURCHASE_CARD.FULL'],
+    People: ['PEOPLE.VIEW', 'PEOPLE.FULL', 'PEOPLE.ACCESS_MANAGEMENT_HUB'],
+    Vehicles: ['VEHICLES.VIEW', 'VEHICLES.FULL'],
+    Cards: ['CARDS.VIEW', 'CARDS.FULL'],
+    Subscriptions: ['SUBSCRIPTIONS.VIEW', 'SUBSCRIPTIONS.FULL'],
+    'Entry Sessions': ['ENTRY_SESSIONS.VIEW'],
+    Returns: ['CARDS.FULL'],
+    Pricing: ['PRICING.VIEW', 'PRICING.FULL'],
+    Shifts: ['SHIFTS.VIEW', 'SHIFTS.FULL'],
+    Roles: ['PEOPLE.ACCESS_MANAGEMENT_HUB'],
+    Reports: ['REPORTS.VIEW']
+  };
 
   const navItems = [
     { id: 'Dashboard', label: 'Dashboard', icon: DashboardIcon },
@@ -34,6 +55,10 @@ export default function Sidebar({ currentPage = 'Dashboard', onLogout, isCollaps
     { id: 'Roles', label: 'Roles', icon: ReportsIcon },
     { id: 'Reports', label: 'Reports', icon: ReportsIcon },
   ];
+
+  const visibleNavItems = authzLoading
+    ? navItems
+    : navItems.filter((item) => hasAnyPermission(navPermissions[item.label] || []));
 
   const handleNavClick = (label) => {
     setActivePage(label);
@@ -57,7 +82,7 @@ export default function Sidebar({ currentPage = 'Dashboard', onLogout, isCollaps
       </div>
 
       <nav className="sidebar-nav">
-        {navItems.map((item) => (
+        {visibleNavItems.map((item) => (
           <NavItem
             key={item.id}
             icon={item.icon}
