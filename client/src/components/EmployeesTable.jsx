@@ -49,7 +49,7 @@ const DeleteIcon = () => (
   </svg>
 );
 
-export default function EmployeesTable({ employees, onEdit, onDelete, onViewCards }) {
+export default function EmployeesTable({ employees, onEdit, onDelete, onViewCards, currentPage = 1, totalPages = 1, onPageChange, totalEmployees }) {
   const { hasPermission } = useAuthz();
   const canAccessHub = hasPermission('PEOPLE.ACCESS_MANAGEMENT_HUB');
 
@@ -245,8 +245,11 @@ export default function EmployeesTable({ employees, onEdit, onDelete, onViewCard
         headers={headers}
         columnKeys={['id', 'employee', 'role', 'status', 'hiredDate', 'actions']}
         rows={rows}
-        total={employees.length}
+        total={totalEmployees || employees.length}
         itemName="results"
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={onPageChange}
       />
 
       {showViewEmployeeModal && (

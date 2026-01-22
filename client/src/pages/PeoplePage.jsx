@@ -178,6 +178,9 @@ export default function PeoplePage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCustomers, setTotalCustomers] = useState(0);
+  // Employee pagination (client-side)
+  const [employeePage, setEmployeePage] = useState(1);
+  const employeesPerPage = 10;
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showEditCustomerModal, setShowEditCustomerModal] = useState(false);
   const [showDeleteCustomerModal, setShowDeleteCustomerModal] = useState(false);
@@ -979,6 +982,18 @@ export default function PeoplePage() {
       );
     });
 
+  // Employee pagination (client-side)
+  const totalEmployeePages = Math.ceil(filteredEmployees.length / employeesPerPage);
+  const paginatedEmployees = filteredEmployees.slice(
+    (employeePage - 1) * employeesPerPage,
+    employeePage * employeesPerPage
+  );
+
+  // Reset employee page when filters change
+  useEffect(() => {
+    setEmployeePage(1);
+  }, [searchQuery, statusFilter, roleFilter]);
+
   return (
     <div className="people-page">
       <div className="people-page-header">
@@ -1096,10 +1111,15 @@ export default function PeoplePage() {
           />
         ) : (
           <EmployeesTable
-            employees={filteredEmployees}
+            employees={paginatedEmployees}
             onViewCards={handleViewCards}
             onEdit={handleEditEmployee}
             onDelete={handleDeleteEmployee}
+            // Pagination props
+            currentPage={employeePage}
+            totalPages={totalEmployeePages}
+            onPageChange={setEmployeePage}
+            totalEmployees={filteredEmployees.length}
           />
         )}
       </div>

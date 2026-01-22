@@ -10,6 +10,7 @@
   flex-direction: column;
   gap: 4px;
 }
+
 .shifts {
   display: flex;
   flex-direction: column;
@@ -178,6 +179,33 @@
 
 .shifts-clearBtn:hover {
   background: #f8fafc;
+}
+
+.shifts-selectField {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 400;
+  color: #45556c;
+  line-height: 20px;
+}
+
+.shifts-selectField select {
+  height: 33.6px;
+  min-width: 120px;
+  border: 0.8px solid #cad5e2;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #314158;
+  padding: 0 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.shifts-selectField select:focus {
+  outline: none;
+  border-color: #155dfc;
 }
 
 .shifts-showingInline {
@@ -376,7 +404,15 @@
 
 .shifts-pager {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 12px;
+}
+
+.shifts-pageInfo {
+  font-size: 14px;
+  font-weight: 400;
+  color: #62748e;
+  line-height: 20px;
 }
 
 .shifts-pageBtn {
@@ -389,10 +425,24 @@
   font-weight: 400;
   color: #314158;
   line-height: 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.shifts-pageBtn:hover:not(:disabled) {
+  background: #f1f5f9;
 }
 
 .shifts-pageBtn:disabled {
   opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.shifts-emptyRow {
+  text-align: center;
+  color: #62748e;
+  padding: 32px 24px;
+  font-size: 14px;
 }
 
 @media (max-width: 1000px) {

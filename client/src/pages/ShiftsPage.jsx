@@ -80,6 +80,12 @@ export default function ShiftsPage() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [search, setSearch] = useState('');
+  const [gateFilter, setGateFilter] = useState('All Gates');
+  const [statusFilter, setStatusFilter] = useState('All Status');
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -213,15 +219,48 @@ export default function ShiftsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromDate, toDate, search]);
 
-  const showingText = useMemo(() => {
-    const n = rows.length;
-    return `Showing ${n} of ${n} shifts`;
-  }, [rows.length]);
-
   const handleClearFilters = () => {
     setFromDate('');
     setToDate('');
+    setGateFilter('All Gates');
+    setStatusFilter('All Status');
+    setCurrentPage(1);
   };
+
+  // Filter rows based on gate and status
+  const filteredRows = useMemo(() => {
+    return rows.filter((r) => {
+      const gate = r.raw?.Gate || r.raw?.GateType || '';
+      const matchesGate =
+        gateFilter === 'All Gates' ||
+        gate.toUpperCase().includes(gateFilter.toUpperCase());
+      const matchesStatus =
+        statusFilter === 'All Status' ||
+        (statusFilter === 'Active' && r.status !== 'COMPLETED') ||
+        (statusFilter === 'Completed' && r.status === 'COMPLETED');
+      return matchesGate && matchesStatus;
+    });
+  }, [rows, gateFilter, statusFilter]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
+  const paginatedRows = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredRows.slice(start, start + itemsPerPage);
+  }, [filteredRows, currentPage, itemsPerPage]);
+
+  const handlePreviousPage = () => {
+    setCurrentPage((prev) => Math.max(1, prev - 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+  };
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [gateFilter, statusFilter, search, fromDate, toDate]);
 
   return (
     <div className="shifts">
@@ -267,7 +306,7 @@ export default function ShiftsPage() {
           <div className="shifts-filterLeft">
             <div className="shifts-filterLabel">
               <img src={filterIcon} alt="" />
-              <span>Filter by Date Range:</span>
+              <span>Filter:</span>
             </div>
             <div className="shifts-filterRow">
               <label className="shifts-dateField">
@@ -278,10 +317,28 @@ export default function ShiftsPage() {
                 <span>To:</span>
                 <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
               </label>
+
+              <div className="shifts-selectField">
+                <label>Gate:</label>
+                <select value={gateFilter} onChange={(e) => setGateFilter(e.target.value)}>
+                  <option value="All Gates">All Gates</option>
+                  <option value="Entry">Entry</option>
+                  <option value="Exit">Exit</option>
+                </select>
+              </div>
+
+              <div className="shifts-selectField">
+                <label>Status:</label>
+                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                  <option value="All Status">All Status</option>
+                  <option value="Active">Active</option>
+                  <option value="Completed">Completed</option>
+                </select>
+              </div>
+
               <button type="button" className="shifts-clearBtn" onClick={handleClearFilters}>
                 Clear Filters
               </button>
-              <div className="shifts-showingInline">{showingText}</div>
             </div>
           </div>
         </div>
@@ -317,47 +374,71 @@ export default function ShiftsPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.id}</td>
-                  <td>{r.employee}</td>
-                  <td>{r.dateLabel}</td>
-                  <td>{r.startLabel}</td>
-                  <td>{r.endLabel}</td>
-                  <td>{r.raw?.Gate || r.raw?.GateType || '-'}</td>
-                  <td>{r.entries}</td>
-                  <td>
-                    <span className={`shifts-status ${r.status === 'COMPLETED' ? 'completed' : 'active'}`}>{r.statusLabel}</span>
-                  </td>
-                  <td className="shifts-actions">
-                    <div className="shifts-actionsInner">
-                      <button
-                        type="button"
-                        className="shifts-actionIcon"
-                        aria-label="View shift details"
-                        onClick={() => openShiftDetail(r)}
-                      >
-                        <img src={moreIcon} alt="" />
-                      </button>
-                      {r.status !== 'COMPLETED' && (
-                        <button type="button" className="shifts-endBtn" onClick={() => handleEndShift(r.id)}>
-                          End
-                        </button>
-                      )}
-                    </div>
-                  </td>
+              {paginatedRows.length === 0 ? (
+                <tr>
+                  <td colSpan="9" className="shifts-emptyRow">No shifts found</td>
                 </tr>
-              ))}
+              ) : (
+                paginatedRows.map((r) => (
+                  <tr key={r.id}>
+                    <td>{r.id}</td>
+                    <td>{r.employee}</td>
+                    <td>{r.dateLabel}</td>
+                    <td>{r.startLabel}</td>
+                    <td>{r.endLabel}</td>
+                    <td>{r.raw?.Gate || r.raw?.GateType || '-'}</td>
+                    <td>{r.entries}</td>
+                    <td>
+                      <span className={`shifts-status ${r.status === 'COMPLETED' ? 'completed' : 'active'}`}>{r.statusLabel}</span>
+                    </td>
+                    <td className="shifts-actions">
+                      <div className="shifts-actionsInner">
+                        <button
+                          type="button"
+                          className="shifts-actionIcon"
+                          aria-label="View shift details"
+                          onClick={() => openShiftDetail(r)}
+                        >
+                          <img src={moreIcon} alt="" />
+                        </button>
+                        {r.status !== 'COMPLETED' && (
+                          <button type="button" className="shifts-endBtn" onClick={() => handleEndShift(r.id)}>
+                            End
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         )}
       </div>
 
       <div className="shifts-pagination">
-        <div className="shifts-results">Showing {rows.length} results</div>
+        <div className="shifts-results">
+          Showing {paginatedRows.length} of {filteredRows.length} results
+          {filteredRows.length !== rows.length && ` (${rows.length} total)`}
+        </div>
         <div className="shifts-pager">
-          <button type="button" disabled className="shifts-pageBtn">Previous</button>
-          <button type="button" disabled className="shifts-pageBtn">Next</button>
+          <span className="shifts-pageInfo">Page {currentPage} of {totalPages || 1}</span>
+          <button
+            type="button"
+            className="shifts-pageBtn"
+            onClick={handlePreviousPage}
+            disabled={currentPage <= 1}
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            className="shifts-pageBtn"
+            onClick={handleNextPage}
+            disabled={currentPage >= totalPages}
+          >
+            Next
+          </button>
         </div>
       </div>
 
