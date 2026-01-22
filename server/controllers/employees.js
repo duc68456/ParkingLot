@@ -6,7 +6,7 @@ const middleware = require('../utils/middleware');
 
 const isEmployeeBusinessId = (val) => /^EMP\d{4}$/i.test(String(val || '').trim());
 
-const ALLOWED_EMPLOYEE_TYPES = ["STAFF", "GATE_STAFF", "MANAGER", "ADMIN"];
+const ALLOWED_EMPLOYEE_TYPES = ["STAFF", "MANAGER", "ADMIN"];
 const ALLOWED_EMPLOYEE_STATUSES = [
   "ACTIVE",
   "INACTIVE",

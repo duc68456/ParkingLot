@@ -96,11 +96,13 @@ function CardsPage() {
   const [invoiceSearchQuery, setInvoiceSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [expiryFilter, setExpiryFilter] = useState('all');
+  const [assignedFilter, setAssignedFilter] = useState('all');
   const [cards, setCards] = useState([]);
   const [cardsLoading, setCardsLoading] = useState(false);
   const [cardsError, setCardsError] = useState('');
   const [filteredCards, setFilteredCards] = useState([]);
+
+
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
@@ -366,13 +368,17 @@ function CardsPage() {
       next = next.filter((c) => String(c?.rawStatus || '').toLowerCase() === String(statusFilter).toLowerCase());
     }
 
-    // Expiry filter (basic)
-    if (expiryFilter === 'no-expiry') {
-      next = next.filter((c) => c.expiry === '-');
+    // Assigned filter
+    if (assignedFilter !== 'all') {
+      if (assignedFilter === 'assigned') {
+        next = next.filter((c) => c.owner !== 'Unassigned');
+      } else if (assignedFilter === 'unassigned') {
+        next = next.filter((c) => c.owner === 'Unassigned');
+      }
     }
 
     return next;
-  }, [cards, expiryFilter, searchQuery, statusFilter, typeFilter]);
+  }, [cards, assignedFilter, searchQuery, statusFilter, typeFilter]);
 
   // Derived list for Assign Card tab (unassigned inventory)
   const unassignedCards = useMemo(() => {
@@ -722,7 +728,7 @@ function CardsPage() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setInventoryPage(1);
-  }, [searchQuery, typeFilter, statusFilter, expiryFilter]);
+  }, [searchQuery, typeFilter, statusFilter, assignedFilter]);
 
   useEffect(() => {
     setInvoicesPage(1);
@@ -826,17 +832,29 @@ function CardsPage() {
               </div>
 
               <div className="filter-group">
-                <label className="filter-label">Expiry:</label>
+                <label className="filter-label">Assigned:</label>
                 <select
-                  value={expiryFilter}
-                  onChange={(e) => setExpiryFilter(e.target.value)}
+                  value={assignedFilter}
+                  onChange={(e) => setAssignedFilter(e.target.value)}
                   className="filter-select"
                 >
                   <option value="all">All</option>
-                  <option value="expiring">Expiring Before...</option>
-                  <option value="no-expiry">No Expiry</option>
+                  <option value="assigned">Assigned</option>
+                  <option value="unassigned">Unassigned</option>
                 </select>
               </div>
+
+              <button
+                className="clear-filters-btn"
+                onClick={() => {
+                  setTypeFilter('all');
+                  setStatusFilter('all');
+                  setAssignedFilter('all');
+                  setSearchQuery('');
+                }}
+              >
+                Clear Filters
+              </button>
             </div>
           </div>
 

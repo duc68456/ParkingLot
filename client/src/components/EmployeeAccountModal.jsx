@@ -234,7 +234,7 @@ export default function EmployeeAccountModal({ employee, onClose }) {
 
   if (!employee) return null;
 
-  const isStaff = employeeType === 'STAFF' || employeeType === 'GATE_STAFF';
+  const isStaff = employeeType === 'STAFF';
   const employeeId = employee?.id || employee?.ID || '';
   const pinAccountExists = Boolean(staffAccount) || hasPinAccount(employee);
   // NOTE: employee business id is usually EMP#### in this codebase.
@@ -245,19 +245,19 @@ export default function EmployeeAccountModal({ employee, onClose }) {
 
   const adminDisplayUsername = String(
     adminAccount?.Username ||
-      adminAccount?.username ||
-      employee?.adminUsername ||
-      employee?.AdminUsername ||
-      employee?.admin_username ||
-      employee?.adminEmail ||
-      employee?.AdminEmail ||
-      employee?.admin_email ||
-      employee?.username ||
-      employee?.Username ||
-      employee?.email ||
-      employee?.Email ||
+    adminAccount?.username ||
+    employee?.adminUsername ||
+    employee?.AdminUsername ||
+    employee?.admin_username ||
+    employee?.adminEmail ||
+    employee?.AdminEmail ||
+    employee?.admin_email ||
+    employee?.username ||
+    employee?.Username ||
+    employee?.email ||
+    employee?.Email ||
     employeeId ||
-      ''
+    ''
   ).trim();
 
   const status = employee?.Status || employee?.status || 'Active';
@@ -435,8 +435,8 @@ export default function EmployeeAccountModal({ employee, onClose }) {
     setError('');
     setStatusMessage('');
 
-  setStaffAccount(null);
-  setStaffAccountLoading(false);
+    setStaffAccount(null);
+    setStaffAccountLoading(false);
 
     // Clear admin fields on close as well.
     setAdminIsChangingPassword(false);
@@ -756,7 +756,7 @@ export default function EmployeeAccountModal({ employee, onClose }) {
                           className="employee-account-modal__assignedChipRemove"
                           aria-label={`Remove ${title}`}
                           onClick={async () => {
-                if (!ensurePermissionOrMessage('PEOPLE.ACCESS_MANAGEMENT_HUB', 'You do not have permission to manage employee access.')) return;
+                            if (!ensurePermissionOrMessage('PEOPLE.ACCESS_MANAGEMENT_HUB', 'You do not have permission to manage employee access.')) return;
                             if (!employeeBusinessId) return;
                             setSubmitting(true);
                             setError('');

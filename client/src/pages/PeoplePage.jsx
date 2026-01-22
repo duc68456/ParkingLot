@@ -6,6 +6,7 @@ import PageHeader from "../components/PageHeader";
 import TabNavigation from "../components/TabNavigation";
 import SearchInput from "../components/SearchInput";
 import StatusFilter from "../components/StatusFilter";
+
 import CustomersTable from "../components/CustomersTable";
 import EmployeesTable from "../components/EmployeesTable";
 import AddEmployeeModal from "../components/AddEmployeeModal";
@@ -162,6 +163,7 @@ export default function PeoplePage() {
   const [activeTab, setActiveTab] = useState(getDefaultTab());
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
+  const [roleFilter, setRoleFilter] = useState("All Roles");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [employees, setEmployees] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -962,6 +964,12 @@ export default function PeoplePage() {
       );
     })
     .filter((employee) => {
+      return (
+        roleFilter === "All Roles" ||
+        (employee?.role || "").toUpperCase() === roleFilter.toUpperCase()
+      );
+    })
+    .filter((employee) => {
       if (!searchQuery) return true;
       const q = searchQuery.toLowerCase();
       return (
@@ -1033,15 +1041,41 @@ export default function PeoplePage() {
             )}
           </div>
 
-          <StatusFilter
-            value={statusFilter}
-            onChange={setStatusFilter}
-            count={
-              activeTab === "customers"
-                ? `(${customers.length}/${totalCustomers})` // Use totalCustomers for overall count
-                : `(${filteredEmployees.length}/${employees.length})`
-            }
-          />
+
+
+          <div className="filters-row">
+            <StatusFilter
+              value={statusFilter}
+              onChange={setStatusFilter}
+            />
+
+            {activeTab === "employees" && (
+              <div className="status-filter">
+                <label className="status-filter-label">Role:</label>
+                <select
+                  className="status-filter-select"
+                  value={roleFilter}
+                  onChange={(e) => setRoleFilter(e.target.value)}
+                >
+                  <option value="All Roles">All Roles</option>
+                  <option value="ADMIN">Admin</option>
+                  <option value="MANAGER">Manager</option>
+                  <option value="STAFF">Staff</option>
+                </select>
+              </div>
+            )}
+
+            <button
+              className="clear-filters-btn"
+              onClick={() => {
+                setStatusFilter("All Status");
+                setRoleFilter("All Roles");
+                setSearchQuery("");
+              }}
+            >
+              Clear Filters
+            </button>
+          </div>
         </div>
 
         {activeTab === "customers" ? (

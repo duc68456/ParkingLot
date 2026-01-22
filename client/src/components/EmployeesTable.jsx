@@ -191,8 +191,7 @@ export default function EmployeesTable({ employees, onEdit, onDelete, onViewCard
   const getRoleColor = (role) => {
     const colors = {
       'ADMIN': 'admin',
-      'MANAGER': 'manager',
-      'GATE_STAFF': 'staff'
+      'MANAGER': 'manager'
     };
     return colors[role] || 'staff';
   };
