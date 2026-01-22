@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useAuthz } from "../contexts/AuthzContext";
-import { canEditModule } from "../utils/permissions";
 import PageHeader from "../components/PageHeader";
 import TabNavigation from "../components/TabNavigation";
 import SearchInput from "../components/SearchInput";
@@ -149,9 +148,6 @@ export default function PeoplePage() {
   const canEditCustomers = hasAnyPermission(['PEOPLE.MANAGE_CUSTOMERS', 'PEOPLE.FULL']);
   const canViewEmployees = hasAnyPermission(['PEOPLE.VIEW', 'PEOPLE.MANAGE_EMPLOYEES', 'PEOPLE.ACCESS_MANAGEMENT_HUB', 'PEOPLE.FULL']);
   const canEditEmployees = hasAnyPermission(['PEOPLE.MANAGE_EMPLOYEES', 'PEOPLE.FULL']);
-
-  // Legacy canEdit for backward compatibility
-  const canEdit = canEditModule(hasPermission, "PEOPLE");
 
   // Determine default tab based on permissions
   const getDefaultTab = () => {
@@ -646,19 +642,19 @@ export default function PeoplePage() {
   };
 
   const handleEditCustomer = (customer) => {
-    if (!canEdit) return;
+    if (!canEditCustomers) return;
     setSelectedCustomer(customer);
     setShowEditCustomerModal(true);
   };
 
   const handleDeleteCustomer = (customer) => {
-    if (!canEdit) return;
+    if (!canEditCustomers) return;
     setSelectedCustomer(customer);
     setShowDeleteCustomerModal(true);
   };
 
   const handleCreateCustomer = () => {
-    if (!canEdit) return;
+    if (!canEditCustomers) return;
     setShowCreateCustomerModal(true);
   };
 
@@ -840,7 +836,7 @@ export default function PeoplePage() {
   };
 
   const handleEditEmployee = (employee) => {
-    if (!canEdit) return;
+    if (!canEditEmployees) return;
     setSelectedEmployee(employee);
     setShowEditEmployeeModal(true);
   };
