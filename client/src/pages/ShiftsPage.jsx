@@ -120,11 +120,11 @@ export default function ShiftsPage() {
         prev.map((r) =>
           r.id === shiftId
             ? {
-                ...r,
-                status: 'COMPLETED',
-                statusLabel: 'Completed',
-                endLabel: new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }),
-              }
+              ...r,
+              status: 'COMPLETED',
+              statusLabel: 'Completed',
+              endLabel: new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }),
+            }
             : r
         )
       );
@@ -141,22 +141,31 @@ export default function ShiftsPage() {
       setError('');
       try {
         // Step 1: load employees to render names instead of EMP####
-        const empRes = await fetch(`${API_BASE_URL}/api/employees?limit=500`, {
-          headers,
-          signal: controller.signal,
-        });
-        const empJson = await empRes.json().catch(() => null);
-        if (!empRes.ok) throw new Error(empJson?.error?.message || `Failed to load employees (${empRes.status})`);
-        const employees = Array.isArray(empJson?.data?.employees) ? empJson.data.employees : [];
-        const employeeNameById = new Map(
-          employees
-            .map((e) => {
-              const key = String(e?.ID || e?.id || '').toUpperCase();
-              const name = e?.PersonID?.FullName || e?.PersonID?.Name || e?.FullName || key;
-              return [key, name];
-            })
-            .filter(([key]) => key)
-        );
+        // This is optional - if it fails (e.g., no permission), we'll just show EMP IDs
+        let employeeNameById = new Map();
+        try {
+          const empRes = await fetch(`${API_BASE_URL}/api/employees?limit=500`, {
+            headers,
+            signal: controller.signal,
+          });
+          const empJson = await empRes.json().catch(() => null);
+          if (empRes.ok) {
+            const employees = Array.isArray(empJson?.data?.employees) ? empJson.data.employees : [];
+            employeeNameById = new Map(
+              employees
+                .map((e) => {
+                  const key = String(e?.ID || e?.id || '').toUpperCase();
+                  const name = e?.PersonID?.FullName || e?.PersonID?.Name || e?.FullName || key;
+                  return [key, name];
+                })
+                .filter(([key]) => key)
+            );
+          }
+          // If not ok, we just continue with empty map - employee names will show as IDs
+        } catch (empErr) {
+          // Ignore employee loading errors - not critical for shifts display
+          console.warn('Could not load employee names:', empErr.message);
+        }
 
         // Step 2: load shifts list
         const query = new URLSearchParams();
