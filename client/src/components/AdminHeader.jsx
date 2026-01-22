@@ -1,6 +1,4 @@
 import SearchBar from './SearchBar';
-import NotificationButton from './NotificationButton';
-import SettingsButton from './SettingsButton';
 import UserProfile from './UserProfile';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/components/AdminHeader.css';
@@ -23,12 +21,10 @@ export default function AdminHeader({ title = 'Dashboard' }) {
     <header className="admin-header">
       <div className="admin-header-content">
         <h1 className="admin-header-title">{title}</h1>
-        
+
         <div className="admin-header-actions">
           <SearchBar />
-          <NotificationButton notificationCount={1} />
-          <SettingsButton />
-          <UserProfile 
+          <UserProfile
             name={displayName}
           />
         </div>
