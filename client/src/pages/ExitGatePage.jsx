@@ -278,6 +278,21 @@ const ExitGatePage = () => {
     const setData = gateNumber === 1 ? setGate1Data : setGate2Data;
     const setMode = gateNumber === 1 ? setGate1Mode : setGate2Mode;
 
+    // Check if this is a Force Exit session - just reset gate, no API call needed
+    if (gateData.sessionId === 'FORCE-EXIT') {
+      console.log(`[ConfirmExit] Force Exit session detected for Gate ${gateNumber}, resetting gate...`);
+      window.alert(`✅ Force Exit completed!\n\nCard: ${gateData.cardId}\nPlate: ${gateData.licensePlate}\nWarning has been logged.`);
+      handleResetGate(gateNumber);
+      return;
+    }
+
+    // Check if this is a completed exit session - just reset gate, no API call needed
+    if (gateData.sessionId === 'EXIT-COMPLETED') {
+      console.log(`[ConfirmExit] Exit already completed for Gate ${gateNumber}, resetting gate...`);
+      handleResetGate(gateNumber);
+      return;
+    }
+
     // Get CardID from form state or from gateData (if in processing mode)
     const CardID = (gateState.cardId || gateData.cardId || '').trim();
     const LicensePlate = (gateState.licensePlate || gateData.licensePlate || '').trim().toUpperCase();
@@ -336,16 +351,14 @@ const ExitGatePage = () => {
         // Update gate data to show exit confirmation
         const updatedGateData = sessionToGateData(gateNumber, session, duration, fee);
         updatedGateData.exitTime = session?.ExitTime ? new Date(session.ExitTime).toLocaleTimeString() : new Date().toLocaleTimeString();
+        // Mark as completed so next Confirm Exit click just resets gate
+        updatedGateData.sessionId = 'EXIT-COMPLETED';
+        updatedGateData.fee = fee;
+        updatedGateData.durationInfo = duration;
         setData(updatedGateData);
         setMode('processing');
 
-        // Show success message
-        window.alert(`✅ Exit processed successfully!\n\nCard: ${CardID}\nFee: $${Number(fee || 0).toFixed(2)}\nDuration: ${duration?.hours || 0}h ${duration?.minutes || 0}m`);
-
-        // Reset gate after short delay
-        setTimeout(() => {
-          handleResetGate(gateNumber);
-        }, 1000);
+        // Don't reset automatically - let user click Confirm Exit to finish
       }
     } catch (e) {
       setErr(e.message);
