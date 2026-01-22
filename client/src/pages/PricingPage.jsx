@@ -75,6 +75,15 @@ export default function PricingPage() {
   const [entryPricingLoading, setEntryPricingLoading] = useState(false);
   const [entryPricingError, setEntryPricingError] = useState('');
 
+  // Entry Pricing filters
+  const [entryCategoryFilter, setEntryCategoryFilter] = useState('All Categories');
+  const [entryVehicleTypeFilter, setEntryVehicleTypeFilter] = useState('All Vehicle Types');
+
+  // Subscription Pricing filters
+  const [subCategoryFilter, setSubCategoryFilter] = useState('All Categories');
+  const [subVehicleTypeFilter, setSubVehicleTypeFilter] = useState('All Vehicle Types');
+  const [subTypeFilter, setSubTypeFilter] = useState('All Subscription Types');
+
   const [cardPricing, setCardPricing] = useState([]);
   const [subscriptionPricing, setSubscriptionPricing] = useState([]);
 
@@ -149,6 +158,52 @@ export default function PricingPage() {
     }
     return map;
   }, [vehicleTypeOptions]);
+
+  // Entry Pricing: unique filter options
+  const entryCategories = useMemo(() => {
+    const set = new Set(pricingRules.map((r) => r.cardCategory).filter((v) => v && v !== '--'));
+    return ['All Categories', ...Array.from(set).sort()];
+  }, [pricingRules]);
+
+  const entryVehicleTypes = useMemo(() => {
+    const set = new Set(pricingRules.map((r) => r.vehicleType).filter((v) => v && v !== '--'));
+    return ['All Vehicle Types', ...Array.from(set).sort()];
+  }, [pricingRules]);
+
+  // Filtered Entry Pricing rules
+  const filteredPricingRules = useMemo(() => {
+    return pricingRules.filter((r) => {
+      const matchCategory = entryCategoryFilter === 'All Categories' || r.cardCategory === entryCategoryFilter;
+      const matchVehicle = entryVehicleTypeFilter === 'All Vehicle Types' || r.vehicleType === entryVehicleTypeFilter;
+      return matchCategory && matchVehicle;
+    });
+  }, [pricingRules, entryCategoryFilter, entryVehicleTypeFilter]);
+
+  // Subscription Pricing: unique filter options
+  const subCategories = useMemo(() => {
+    const set = new Set(subscriptionPricing.map((r) => r.cardCategory).filter((v) => v && v !== '--'));
+    return ['All Categories', ...Array.from(set).sort()];
+  }, [subscriptionPricing]);
+
+  const subVehicleTypes = useMemo(() => {
+    const set = new Set(subscriptionPricing.map((r) => r.vehicleType).filter((v) => v && v !== '--'));
+    return ['All Vehicle Types', ...Array.from(set).sort()];
+  }, [subscriptionPricing]);
+
+  const subTypes = useMemo(() => {
+    const set = new Set(subscriptionPricing.map((r) => r.subscriptionType).filter((v) => v && v !== '--'));
+    return ['All Subscription Types', ...Array.from(set).sort()];
+  }, [subscriptionPricing]);
+
+  // Filtered Subscription Pricing rules
+  const filteredSubscriptionPricing = useMemo(() => {
+    return subscriptionPricing.filter((r) => {
+      const matchCategory = subCategoryFilter === 'All Categories' || r.cardCategory === subCategoryFilter;
+      const matchVehicle = subVehicleTypeFilter === 'All Vehicle Types' || r.vehicleType === subVehicleTypeFilter;
+      const matchSubType = subTypeFilter === 'All Subscription Types' || r.subscriptionType === subTypeFilter;
+      return matchCategory && matchVehicle && matchSubType;
+    });
+  }, [subscriptionPricing, subCategoryFilter, subVehicleTypeFilter, subTypeFilter]);
 
   const closeHistory = () => {
     setIsHistoryOpen(false);
@@ -799,8 +854,42 @@ export default function PricingPage() {
       {/* Entry Pricing Tab Content */}
       {activeTab === 'entry-pricing' && (
         <div className="pricing-content">
-          {/* Add Pricing Rule Button */}
-          <div className="add-rule-section">
+          {/* Controls Row: Filters + Add Button */}
+          <div className="pricing-controls">
+            <div className="pricing-filters">
+              <div className="pricing-filter-field">
+                <label>Category:</label>
+                <select
+                  value={entryCategoryFilter}
+                  onChange={(e) => setEntryCategoryFilter(e.target.value)}
+                >
+                  {entryCategories.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="pricing-filter-field">
+                <label>Vehicle Type:</label>
+                <select
+                  value={entryVehicleTypeFilter}
+                  onChange={(e) => setEntryVehicleTypeFilter(e.target.value)}
+                >
+                  {entryVehicleTypes.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                className="pricing-clear-btn"
+                onClick={() => {
+                  setEntryCategoryFilter('All Categories');
+                  setEntryVehicleTypeFilter('All Vehicle Types');
+                }}
+              >
+                Clear Filters
+              </button>
+            </div>
             <button className="btn-add-rule" onClick={handleAddPricingRule}>
               <img src={addIcon} alt="" className="btn-icon" />
               Add Pricing Rule
@@ -818,7 +907,7 @@ export default function PricingPage() {
             <div style={{ padding: '21.2px 24px' }}>Loading...</div>
           ) : (
             <PricingRulesTable
-              pricingRules={pricingRules}
+              pricingRules={filteredPricingRules}
               onEditRule={handleEditRule}
               onViewHistory={handleViewEntryPricingHistory}
             />
@@ -1002,8 +1091,54 @@ export default function PricingPage() {
       {/* Subscription Pricing Tab Content */}
       {activeTab === 'subscription-pricing' && (
         <div className="pricing-content">
-          {/* Add Subscription Rule Button */}
-          <div className="add-rule-section">
+          {/* Controls Row: Filters + Add Button */}
+          <div className="pricing-controls">
+            <div className="pricing-filters">
+              <div className="pricing-filter-field">
+                <label>Category:</label>
+                <select
+                  value={subCategoryFilter}
+                  onChange={(e) => setSubCategoryFilter(e.target.value)}
+                >
+                  {subCategories.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="pricing-filter-field">
+                <label>Vehicle Type:</label>
+                <select
+                  value={subVehicleTypeFilter}
+                  onChange={(e) => setSubVehicleTypeFilter(e.target.value)}
+                >
+                  {subVehicleTypes.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="pricing-filter-field">
+                <label>Sub. Type:</label>
+                <select
+                  value={subTypeFilter}
+                  onChange={(e) => setSubTypeFilter(e.target.value)}
+                >
+                  {subTypes.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                className="pricing-clear-btn"
+                onClick={() => {
+                  setSubCategoryFilter('All Categories');
+                  setSubVehicleTypeFilter('All Vehicle Types');
+                  setSubTypeFilter('All Subscription Types');
+                }}
+              >
+                Clear Filters
+              </button>
+            </div>
             <button className="btn-add-rule" onClick={handleAddSubscriptionRule}>
               <img src={addIcon} alt="" className="btn-icon" />
               Add Rule
@@ -1035,14 +1170,14 @@ export default function PricingPage() {
                       Loading subscription pricing…
                     </td>
                   </tr>
-                ) : subscriptionPricing.length === 0 ? (
+                ) : filteredSubscriptionPricing.length === 0 ? (
                   <tr>
                     <td colSpan={6} style={{ padding: '16px 24px' }}>
                       No subscription pricing rules found
                     </td>
                   </tr>
                 ) : (
-                  subscriptionPricing.map((rule) => (
+                  filteredSubscriptionPricing.map((rule) => (
                     <tr key={rule.id}>
                       <td className="card-id-cell">{rule.id}</td>
                       <td>{rule.cardCategory}</td>
@@ -1076,7 +1211,7 @@ export default function PricingPage() {
             {/* Pagination Footer */}
             <div className="table-footer">
               <p className="results-text">
-                Showing <span className="results-count">{subscriptionPricing.length}</span> results
+                Showing <span className="results-count">{filteredSubscriptionPricing.length}</span> of {subscriptionPricing.length} results
               </p>
               <div className="pagination-buttons">
                 <button className="pagination-btn">Previous</button>
