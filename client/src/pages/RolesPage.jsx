@@ -284,25 +284,7 @@ export default function RolesPage() {
     }
   };
 
-  const handleDeleteRole = async (role) => {
-    if (!role?.id) return;
-    // Basic confirm to avoid accidental deletions.
-    const ok = window.confirm(`Delete role ${role.name || role.id}?`);
-    if (!ok) return;
-
-    setError("");
-    try {
-      await deleteRole({ authHeaders, roleId: role.id });
-      setRoles((prev) => prev.filter((r) => r.id !== role.id));
-      setRolePermissions((prev) => {
-        const next = { ...prev };
-        delete next[role.id];
-        return next;
-      });
-    } catch (e) {
-      setError(e?.message || "Failed to delete role");
-    }
-  };
+  // Delete action intentionally removed from UI.
 
   return (
     <div className="roles-page" data-node-id="363:2488">
@@ -433,15 +415,6 @@ export default function RolesPage() {
                         onClick={() => openEdit(r)}
                       >
                         <EditIcon />
-                      </button>
-                      <button
-                        type="button"
-                        className="roles-page__iconBtn roles-page__iconBtn--delete"
-                        title="Delete"
-                        aria-label="Delete"
-                        onClick={() => handleDeleteRole(r)}
-                      >
-                        <DeleteIcon />
                       </button>
                     </div>
                   </td>

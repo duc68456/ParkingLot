@@ -14,6 +14,26 @@
   color: #90a1b9;
 }
 
+/*
+  Remove click/focus artifacts for sidebar navigation.
+  The global `button:focus-visible` style (index.css) adds a thick outline that
+  looks like a black margin. User requested no margin/ring at all.
+*/
+.nav-item:focus,
+.nav-item:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.nav-item:active {
+  outline: none;
+  box-shadow: none;
+}
+
+.nav-item {
+  -webkit-tap-highlight-color: transparent;
+}
+
 .nav-item:hover {
   background: #f8fafc;
   color: #4a5667;
