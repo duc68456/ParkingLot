@@ -33,10 +33,7 @@ export default function EditCardModal({ card, isOpen, onClose, onSave }) {
     { value: 'ACTIVE', label: 'Active' },
     { value: 'INACTIVE', label: 'Inactive' },
     { value: 'PENDING_RFID', label: 'Pending RFID' },
-    { value: 'LOST', label: 'Lost' },
-    { value: 'DAMAGED', label: 'Damaged' },
     { value: 'EXPIRED', label: 'Expired' },
-    { value: 'SUSPENDED', label: 'Suspended' },
     { value: 'RETURNED', label: 'Returned' },
     { value: 'UNASSIGNED', label: 'Unassigned' }
   ];

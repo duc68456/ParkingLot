@@ -251,17 +251,106 @@ const ExitGatePage = () => {
     }
   }
 
-  const handleProcessExit = (gateNumber) => {
-    // Reset gate to idle after processing
+  // Reset gate UI to idle (after successful exit)
+  const handleResetGate = (gateNumber) => {
     if (gateNumber === 1) {
       setGate1Data((prev) => ({ ...prev, hasVehicle: false }));
       setGate1Mode('idle');
+      setGate1HasQueried(false);
+      setGate1NewExit({ cardId: '', licensePlate: '', queriedPlate: '', vehicleType: '', queriedPlateMismatch: false, queriedPlateMode: 'INSTANT' });
       return;
     }
 
     if (gateNumber === 2) {
       setGate2Data((prev) => ({ ...prev, hasVehicle: false }));
       setGate2Mode('idle');
+      setGate2HasQueried(false);
+      setGate2NewExit({ cardId: '', licensePlate: '', queriedPlate: '', vehicleType: '', queriedPlateMismatch: false, queriedPlateMode: 'INSTANT' });
+    }
+  };
+
+  // Actually process the exit - call the exit API
+  const handleConfirmExit = async (gateNumber, options = {}) => {
+    const gateState = gateNumber === 1 ? gate1NewExit : gate2NewExit;
+    const gateData = gateNumber === 1 ? gate1Data : gate2Data;
+    const setBusy = gateNumber === 1 ? setGate1Busy : setGate2Busy;
+    const setErr = gateNumber === 1 ? setGate1Error : setGate2Error;
+    const setData = gateNumber === 1 ? setGate1Data : setGate2Data;
+    const setMode = gateNumber === 1 ? setGate1Mode : setGate2Mode;
+
+    // Get CardID from form state or from gateData (if in processing mode)
+    const CardID = (gateState.cardId || gateData.cardId || '').trim();
+    const LicensePlate = (gateState.licensePlate || gateData.licensePlate || '').trim().toUpperCase();
+
+    if (!CardID) {
+      setErr('Card ID is required to process exit');
+      return;
+    }
+
+    setErr('');
+    setBusy(true);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/entry-sessions/gate/exit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders()
+        },
+        body: JSON.stringify({
+          CardID,
+          LicensePlate,
+          ProcessedExitBy: staffEmployeeId,
+          ...options
+        })
+      });
+
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(json?.error?.message || `Exit failed (${res.status})`);
+      }
+
+      // Handle plate mismatch warning
+      if (json?.data?.warning === true && json?.data?.code === 'EXIT_PLATE_MISMATCH') {
+        const warningMsg = json?.data?.message || 'Exit plate mismatch!';
+        if (window.confirm(`${warningMsg}\n\nDo you want to confirm exit anyway? (This will log a warning)`)) {
+          handleConfirmExit(gateNumber, { confirmMismatch: true });
+        } else {
+          setBusy(false);
+        }
+        return;
+      }
+
+      const decision = json?.data?.decision;
+
+      if (decision === 'NO_SESSION_FOUND') {
+        setErr('No active session found for this card. Use "Force Exit" if needed.');
+        return;
+      }
+
+      if (decision === 'EXIT_PERMITTED') {
+        const session = json?.data?.session;
+        const duration = json?.data?.duration;
+        const fee = json?.data?.fee;
+
+        // Update gate data to show exit confirmation
+        const updatedGateData = sessionToGateData(gateNumber, session, duration, fee);
+        updatedGateData.exitTime = session?.ExitTime ? new Date(session.ExitTime).toLocaleTimeString() : new Date().toLocaleTimeString();
+        setData(updatedGateData);
+        setMode('processing');
+
+        // Show success message
+        window.alert(`✅ Exit processed successfully!\n\nCard: ${CardID}\nFee: $${Number(fee || 0).toFixed(2)}\nDuration: ${duration?.hours || 0}h ${duration?.minutes || 0}m`);
+
+        // Reset gate after short delay
+        setTimeout(() => {
+          handleResetGate(gateNumber);
+        }, 1000);
+      }
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -721,7 +810,7 @@ const ExitGatePage = () => {
 
                   <button className="new-entry-query" type="button" onClick={() => handleQueryPlate(1)} disabled={gate1Busy}>
                     <img src={queryIcon} alt="" />
-                    <span>{gate1Busy ? 'Processing...' : 'Query & Exit'}</span>
+                    <span>{gate1Busy ? 'Processing...' : 'Query'}</span>
                   </button>
 
                   {gate1Error && <p className="new-entry-error">{gate1Error}</p>}
@@ -764,8 +853,8 @@ const ExitGatePage = () => {
                     >
                       Cancel
                     </button>
-                    <button className="new-entry-submit" type="button" onClick={() => handleQueryPlate(1)} disabled={gate1Busy}>
-                      Process Exit
+                    <button className="new-entry-submit" type="button" onClick={() => handleConfirmExit(1)} disabled={gate1Busy || !gate1HasQueried}>
+                      {gate1Busy ? 'Processing...' : 'Process Exit'}
                     </button>
                   </div>
                 </div>
@@ -837,9 +926,9 @@ const ExitGatePage = () => {
                   </div>
 
                   {/* Process Button */}
-                  <button className="process-btn" onClick={() => handleProcessExit(1)}>
+                  <button className="process-btn" onClick={() => handleConfirmExit(1)} disabled={gate1Busy}>
                     <img src={checkIcon} alt="" />
-                    <span>Confirm Exit</span>
+                    <span>{gate1Busy ? 'Processing...' : 'Confirm Exit'}</span>
                   </button>
                 </>
               )}
@@ -917,7 +1006,7 @@ const ExitGatePage = () => {
 
                   <button className="new-entry-query" type="button" onClick={() => handleQueryPlate(2)} disabled={gate2Busy}>
                     <img src={queryIcon} alt="" />
-                    <span>{gate2Busy ? 'Processing...' : 'Query & Exit'}</span>
+                    <span>{gate2Busy ? 'Processing...' : 'Query'}</span>
                   </button>
 
                   {gate2Error && <p className="new-entry-error">{gate2Error}</p>}
@@ -960,8 +1049,8 @@ const ExitGatePage = () => {
                     >
                       Cancel
                     </button>
-                    <button className="new-entry-submit" type="button" onClick={() => handleQueryPlate(2)} disabled={gate2Busy}>
-                      Process Exit
+                    <button className="new-entry-submit" type="button" onClick={() => handleConfirmExit(2)} disabled={gate2Busy || !gate2HasQueried}>
+                      {gate2Busy ? 'Processing...' : 'Process Exit'}
                     </button>
                   </div>
                 </div>
@@ -1030,9 +1119,9 @@ const ExitGatePage = () => {
                     </div>
                   </div>
 
-                  <button className="process-btn" onClick={() => handleProcessExit(2)}>
+                  <button className="process-btn" onClick={() => handleConfirmExit(2)} disabled={gate2Busy}>
                     <img src={checkIcon} alt="" />
-                    <span>Confirm Exit</span>
+                    <span>{gate2Busy ? 'Processing...' : 'Confirm Exit'}</span>
                   </button>
                 </>
               )}

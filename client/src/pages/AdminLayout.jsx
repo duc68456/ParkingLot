@@ -15,6 +15,7 @@ import ReportsPage from "./ReportsPage";
 import ShiftsPage from "./ShiftsPage";
 import RolesPage from "./RolesPage";
 import SystemConfigPage from "./SystemConfigPage";
+import ReturnsPage from "./ReturnsPage";
 import "../styles/pages/AdminLayout.css";
 import { useSearchParams } from "react-router-dom";
 
@@ -33,6 +34,7 @@ export default function AdminLayout({ children }) {
     'Cards': ['CARDS.VIEW', 'CARDS.FULL'],
     'Subscriptions': ['SUBSCRIPTIONS.VIEW', 'SUBSCRIPTIONS.FULL'],
     'Entry Sessions': ['ENTRY_SESSIONS.VIEW'],
+    'Returns': ['CARDS.VIEW', 'CARDS.FULL'],
     'Pricing': ['PRICING.VIEW', 'PRICING.FULL'],
     'Shifts': ['SHIFTS.VIEW', 'SHIFTS.FULL'],
     'Reports': ['REPORTS.VIEW'],
@@ -50,6 +52,7 @@ export default function AdminLayout({ children }) {
       'Cards',
       'Subscriptions',
       'Entry Sessions',
+      'Returns',
       'Pricing',
       'Shifts',
       'Reports',
@@ -148,6 +151,8 @@ export default function AdminLayout({ children }) {
         return <SubscriptionsPage />;
       case "Entry Sessions":
         return <EntrySessionsPage />;
+      case "Returns":
+        return <ReturnsPage />;
       case "Pricing":
         return <PricingPage />;
       case "Shifts":

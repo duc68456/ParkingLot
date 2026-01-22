@@ -337,22 +337,27 @@ export default function Dashboard() {
     }))
     : recentActivityToDisplay;
 
-  // Use gate warnings for alerts if available, fallback to regular alerts or empty
-  const displayAlerts = gateWarnings.length > 0
-    ? gateWarnings.slice(0, 10).map(w => ({
-      id: w.ID || w._id || w.id,
-      tone: w.Type === 'ENTRY' ? 'warning' : w.Type === 'EXIT' ? 'danger' : 'info',
-      title: w.Message || 'Gate warning',
-      time: formatRelativeTime(w.createdAt)
-    }))
-    : alerts.length > 0
-      ? alerts.map(al => ({
-        id: al.id,
-        tone: al.tone,
-        title: al.title,
-        time: formatRelativeTime(al.timestamp)
-      }))
-      : [];
+  // Combine capacity alerts and gate warnings
+  const capacityAlerts = alerts.map(al => ({
+    id: al.id,
+    tone: al.tone,
+    title: al.title,
+    time: formatRelativeTime(al.timestamp),
+    priority: al.tone === 'danger' ? 0 : al.tone === 'warning' ? 1 : 2
+  }));
+
+  const gateWarningAlerts = gateWarnings.map(w => ({
+    id: w.ID || w._id || w.id,
+    tone: w.Type === 'ENTRY' ? 'warning' : w.Type === 'EXIT' ? 'danger' : 'info',
+    title: w.Message || 'Gate warning',
+    time: formatRelativeTime(w.createdAt),
+    priority: w.Type === 'EXIT' ? 0 : w.Type === 'ENTRY' ? 1 : 2
+  }));
+
+  // Merge and sort by priority (danger first, then warning, then info)
+  const displayAlerts = [...capacityAlerts, ...gateWarningAlerts]
+    .sort((a, b) => a.priority - b.priority)
+    .slice(0, 10);
   // Calculate total for percentage in tooltip
   const totalDailyVehicles = dailyDistribution.reduce((sum, item) => sum + item.value, 0);
 

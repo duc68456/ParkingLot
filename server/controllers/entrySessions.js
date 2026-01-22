@@ -7,6 +7,7 @@ const CardCategory = require('../models/cardCategory')
 const Employee = require('../models/employee')
 const Person = require('../models/person')
 const Subscription = require('../models/subscription')
+const SubscriptionType = require('../models/subscriptionType')
 const SinglePricingRule = require('../models/singlePricingRule')
 const Shift = require('../models/shift')
 const ShiftReport = require('../models/shiftReport')
@@ -102,6 +103,51 @@ const checkSubscription = async (cardId) => {
     EndDate: { $gte: now }
   })
   return subscription
+}
+
+// Helper function to check if subscription exists but is paused
+const checkPausedSubscription = async (cardId) => {
+  const now = new Date()
+  const subscription = await Subscription.findOne({
+    CardID: cardId,
+    IsSuspended: true,
+    StartDate: { $lte: now },
+    EndDate: { $gte: now }
+  })
+  return subscription
+}
+
+// Helper function to check parking capacity for a vehicle type
+const DEFAULT_CAPACITY = 100
+const checkParkingCapacity = async (vehicleTypeId) => {
+  try {
+    const cfg = await SystemConfig.findOne({}).sort({ UpdatedAt: -1 }).lean().catch(() => null)
+    const cfgByType = cfg?.parkingCapacityByType || {}
+
+    const typeId = String(vehicleTypeId || '').trim().toUpperCase()
+    const configured = Number(cfgByType?.[typeId]?.total)
+    const maxCapacity = Number.isFinite(configured) && configured >= 0 ? configured : DEFAULT_CAPACITY
+
+    // Count current vehicles of this type in parking
+    const currentCount = await EntrySession.countDocuments({
+      VehicleTypeID: typeId,
+      Status: 'IN_PARKING'
+    })
+
+    const percent = maxCapacity > 0 ? Math.round((currentCount / maxCapacity) * 100) : 0
+
+    return {
+      vehicleTypeId: typeId,
+      current: currentCount,
+      max: maxCapacity,
+      percent,
+      isFull: currentCount >= maxCapacity,
+      isAlmostFull: percent > 90 && percent < 100
+    }
+  } catch (e) {
+    console.error('Error checking parking capacity:', e)
+    return { vehicleTypeId, current: 0, max: DEFAULT_CAPACITY, percent: 0, isFull: false, isAlmostFull: false }
+  }
 }
 
 const isObjectId = (val) => typeof val === 'string' && /^[0-9a-fA-F]{24}$/.test(val)
@@ -544,18 +590,28 @@ entrySessionsRouter.get('/gate/query', async (req, res) => {
 
     const subscriptionActive = Boolean(subscription)
 
+    // Also check for paused subscription
+    const pausedSubscription = (!subscription && cardId)
+      ? await checkPausedSubscription(cardId)
+      : null
+
+    const subscriptionPaused = Boolean(pausedSubscription)
+
     let subscriptionVehicle = null
     let subscriptionVehicleType = null
 
-    if (subscription?.VehicleID) {
+    // Use active subscription or paused subscription for vehicle info display
+    const effectiveSubscription = subscription || pausedSubscription
+
+    if (effectiveSubscription?.VehicleID) {
       subscriptionVehicle = await Vehicle
-        .findOne({ VehicleID: String(subscription.VehicleID).trim() })
+        .findOne({ VehicleID: String(effectiveSubscription.VehicleID).trim() })
         .lean()
     }
 
-    if (subscription?.VehicleTypeID) {
+    if (effectiveSubscription?.VehicleTypeID) {
       subscriptionVehicleType = await VehicleType
-        .findOne({ VehicleTypeID: String(subscription.VehicleTypeID).trim() })
+        .findOne({ VehicleTypeID: String(effectiveSubscription.VehicleTypeID).trim() })
         .select('VehicleTypeID Name')
         .lean()
     }
@@ -573,12 +629,13 @@ entrySessionsRouter.get('/gate/query', async (req, res) => {
     // Rules:
     // - Visitor card: queried plate => Instant
     // - Non-visitor + ACTIVE subscription: queried plate => subscription vehicle plate
-    // - Non-visitor + no ACTIVE subscription: queried plate => Instant
+    // - Non-visitor + PAUSED subscription: queried plate => subscription vehicle plate (but warn)
+    // - Non-visitor + no subscription: queried plate => Instant
     let queriedPlateMode = 'INSTANT'
     let queriedPlate = 'Instant'
 
-    if (!isVisitorCard && subscriptionActive) {
-      queriedPlateMode = 'SUBSCRIPTION'
+    if (!isVisitorCard && (subscriptionActive || subscriptionPaused)) {
+      queriedPlateMode = subscriptionPaused ? 'SUBSCRIPTION_PAUSED' : 'SUBSCRIPTION'
       queriedPlate = subscriptionPlate || 'Instant'
     }
 
@@ -589,14 +646,16 @@ entrySessionsRouter.get('/gate/query', async (req, res) => {
         card,
         vehicle,
         subscriptionActive,
-        subscription: subscription
+        subscriptionPaused,
+        subscription: effectiveSubscription
           ? {
-            ID: subscription.ID,
-            CardID: subscription.CardID,
-            VehicleID: subscription.VehicleID,
-            VehicleTypeID: subscription.VehicleTypeID,
-            StartDate: subscription.StartDate,
-            EndDate: subscription.EndDate
+            ID: effectiveSubscription.ID,
+            CardID: effectiveSubscription.CardID,
+            VehicleID: effectiveSubscription.VehicleID,
+            VehicleTypeID: effectiveSubscription.VehicleTypeID,
+            StartDate: effectiveSubscription.StartDate,
+            EndDate: effectiveSubscription.EndDate,
+            IsSuspended: effectiveSubscription.IsSuspended || false
           }
           : null,
         subscriptionVehicle,
@@ -606,7 +665,8 @@ entrySessionsRouter.get('/gate/query', async (req, res) => {
           queriedPlateMode,
           queriedPlate,
           inputPlate,
-          subscriptionPlate
+          subscriptionPlate,
+          subscriptionPaused
         }
       }
     })
@@ -939,6 +999,34 @@ entrySessionsRouter.post('/gate/entry', async (req, res) => {
     // Determine subscription early so we can infer VehicleTypeID when needed.
     const subscription = await checkSubscription(CardID)
 
+    // Check for paused subscription - warn staff if subscription exists but is paused
+    const pausedSubscription = !subscription ? await checkPausedSubscription(CardID) : null
+    const confirmPausedSubscription = req.body.confirmPausedSubscription === true
+
+    if (pausedSubscription && !confirmPausedSubscription) {
+      // Get subscription details for warning message
+      const subVehicle = pausedSubscription.VehicleID
+        ? await Vehicle.findOne({ VehicleID: pausedSubscription.VehicleID }).select('PlateNumber').lean()
+        : null
+      const subType = await SubscriptionType.findOne({ ID: pausedSubscription.SubscriptionTypeID }).select('Name').lean().catch(() => null)
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          warning: true,
+          code: 'SUBSCRIPTION_PAUSED',
+          message: `This card has a PAUSED subscription (${subType?.Name || 'Unknown'}).\nRegistered plate: ${subVehicle?.PlateNumber || 'N/A'}\n\nEntry will be charged as single-use pricing.\nConfirm to proceed?`,
+          subscription: {
+            ID: pausedSubscription.ID,
+            PlateNumber: subVehicle?.PlateNumber,
+            VehicleTypeID: pausedSubscription.VehicleTypeID,
+            SubscriptionType: subType?.Name,
+            IsSuspended: true
+          }
+        }
+      })
+    }
+
     // If VehicleTypeID wasn't provided by client (INSTANT case), attempt infer from subscription.
     if (!VehicleTypeID && subscription?.VehicleTypeID) {
       VehicleTypeID = String(subscription.VehicleTypeID).trim()
@@ -960,6 +1048,22 @@ entrySessionsRouter.post('/gate/entry', async (req, res) => {
       return res.status(404).json({
         success: false,
         error: { message: 'VehicleType not found', code: 'VEHICLE_TYPE_NOT_FOUND' }
+      })
+    }
+
+    // Check parking capacity for this vehicle type
+    const capacityCheck = await checkParkingCapacity(VehicleTypeID)
+    const confirmCapacityFull = req.body.confirmCapacityFull === true
+
+    if (capacityCheck.isFull && !confirmCapacityFull) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          warning: true,
+          code: 'PARKING_FULL',
+          message: `Parking for ${vehicleType.Name} is FULL (${capacityCheck.current}/${capacityCheck.max}).\n\nConfirm to allow entry anyway?`,
+          capacity: capacityCheck
+        }
       })
     }
 
@@ -1682,19 +1786,31 @@ entrySessionsRouter.post('/gate/exit', async (req, res) => {
     const durationMs = now - entryTime
     const durationHours = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60))) // At least 1 hour
 
-  // Configurable grace period: if total duration <= entrySession.freeMinutes then exit is free.
-  const freeMinutes = await getEntrySessionFreeMinutes()
-  const isFreeByTime = isWithinFreeMinutes(entryTime, now, freeMinutes)
+    // Configurable grace period: if total duration <= entrySession.freeMinutes then exit is free.
+    const freeMinutes = await getEntrySessionFreeMinutes()
+    const isFreeByTime = isWithinFreeMinutes(entryTime, now, freeMinutes)
 
     // 5. Calculate fee based on pricing rules
     let fee = 0
     const isSubscription = session.DiscountReason === 'SUBSCRIPTION' ||
       cardCategory?.Name?.toLowerCase() === 'subscription'
 
-    if (!isSubscription && isFreeByTime) {
+    // Check if subscription is paused - if so, treat as non-subscription
+    let isSubscriptionPaused = false
+    if (isSubscription && session.CardID) {
+      const pausedSub = await checkPausedSubscription(String(session.CardID))
+      if (pausedSub) {
+        isSubscriptionPaused = true
+      }
+    }
+
+    // If subscription is paused, charge as single-use
+    const shouldCharge = !isSubscription || isSubscriptionPaused
+
+    if (shouldCharge && isFreeByTime) {
       fee = 0
       session.DiscountReason = session.DiscountReason || 'STAFF_FREE'
-    } else if (!isSubscription && cardCategory && vehicleType) {
+    } else if (shouldCharge && cardCategory && vehicleType) {
       // Look up pricing rule for this CardCategory + VehicleType
       const pricingRule = await SinglePricingRule.findOne({
         CardCategoryID: cardCategory.ID,
@@ -1834,9 +1950,9 @@ entrySessionsRouter.post('/exit/:id', async (req, res) => {
 
     const exitTime = new Date()
 
-  // Configurable grace period: if total duration <= entrySession.freeMinutes then exit is free.
-  const freeMinutes = await getEntrySessionFreeMinutes()
-  const isFreeByTime = isWithinFreeMinutes(session.EntryTime, exitTime, freeMinutes)
+    // Configurable grace period: if total duration <= entrySession.freeMinutes then exit is free.
+    const freeMinutes = await getEntrySessionFreeMinutes()
+    const isFreeByTime = isWithinFreeMinutes(session.EntryTime, exitTime, freeMinutes)
 
     // Check for valid subscription
     const subscription = await checkSubscription(session.CardID)

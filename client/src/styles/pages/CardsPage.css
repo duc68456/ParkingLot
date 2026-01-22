@@ -563,8 +563,11 @@
 /* Filters Section */
 .filters-section {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .search-input-wrapper {
@@ -640,6 +643,8 @@
   display: flex;
   gap: 12px;
   align-items: center;
+  flex: 1;
+  flex-wrap: wrap;
 }
 
 .filter-group {
@@ -1080,6 +1085,12 @@
   color: #166534;
 }
 
+.status-pill--pending {
+  background: #fef3c7;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
 .status-pill--inactive,
 .status-pill--expired {
   background: #fff7ed;
@@ -1131,6 +1142,72 @@
 .inventory-actionBtn svg {
   width: 18px;
   height: 18px;
+}
+
+/* Reuse Button for Returns tab */
+.reuse-btn {
+  padding: 6px 12px;
+  font-family: 'Arimo', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.reuse-btn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+}
+
+.reuse-btn:active {
+  transform: translateY(0);
+}
+
+.reuse-btn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.reuse-btn:focus-visible {
+  outline: 2px solid rgba(16, 185, 129, 0.5);
+  outline-offset: 2px;
+}
+
+/* Returns content */
+.returns-content {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1);
+}
+
+.returns-content .filters-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.returns-content .loading-message,
+.returns-content .error-message {
+  padding: 16px;
+  text-align: center;
+  font-family: 'Arimo', sans-serif;
+  font-size: 14px;
+  color: #45556c;
+}
+
+.returns-content .error-message {
+  color: #dc2626;
+  background: #fef2f2;
+  border-radius: 8px;
 }
 
 .tab-placeholder p {

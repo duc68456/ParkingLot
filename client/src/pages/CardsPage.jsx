@@ -28,10 +28,6 @@ const gradientForStatus = (status) => {
     case 'INACTIVE':
     case 'RETURNED':
       return 'linear-gradient(135deg, rgb(144, 161, 185) 0%, rgb(98, 116, 142) 100%)';
-    case 'LOST':
-      return 'linear-gradient(135deg, rgb(245, 74, 74) 0%, rgb(217, 45, 32) 100%)';
-    case 'DAMAGED':
-      return 'linear-gradient(135deg, rgb(173, 70, 255) 0%, rgb(152, 16, 250) 100%)';
     case 'EXPIRED':
       return 'linear-gradient(135deg, rgb(245, 158, 11) 0%, rgb(217, 119, 6) 100%)';
     default:
@@ -97,6 +93,10 @@ function CardsPage() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [assignedFilter, setAssignedFilter] = useState('all');
+  const [assignCategoryFilter, setAssignCategoryFilter] = useState('all');
+  const [categoriesStatusFilter, setCategoriesStatusFilter] = useState('all');
+  const [categoriesPriceFilter, setCategoriesPriceFilter] = useState('all');
+  const [invoiceStatusFilter, setInvoiceStatusFilter] = useState('all');
   const [cards, setCards] = useState([]);
   const [cardsLoading, setCardsLoading] = useState(false);
   const [cardsError, setCardsError] = useState('');
@@ -133,7 +133,15 @@ function CardsPage() {
   const [assignPage, setAssignPage] = useState(1);
   const [categoriesPage, setCategoriesPage] = useState(1);
   const [invoicesPage, setInvoicesPage] = useState(1);
+  const [returnsPage, setReturnsPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Returns tab state
+  const [returnedCards, setReturnedCards] = useState([]);
+  const [returnedCardsLoading, setReturnedCardsLoading] = useState(false);
+  const [returnedCardsError, setReturnedCardsError] = useState('');
+  const [returnsSearchQuery, setReturnsSearchQuery] = useState('');
+  const [reusingCardId, setReusingCardId] = useState(null);
 
   // Load cards when visiting inventory/assign tab
   useEffect(() => {
@@ -200,6 +208,36 @@ function CardsPage() {
       }
     })();
 
+    return () => controller.abort();
+  }, [activeTab, authHeaders]);
+
+  // Load returned cards when visiting Returns tab
+  useEffect(() => {
+    if (activeTab !== 'returns') return;
+    const controller = new AbortController();
+
+    const fetchReturnedCards = async () => {
+      setReturnedCardsLoading(true);
+      setReturnedCardsError('');
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/cards?status=RETURNED&limit=1000`, {
+          headers: authHeaders,
+          signal: controller.signal
+        });
+        if (!res.ok) throw new Error('Failed to fetch returned cards');
+        const data = await res.json();
+        const items = Array.isArray(data?.data?.items) ? data.data.items : [];
+        setReturnedCards(items.map(normalizeCard));
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          setReturnedCardsError(err.message || 'Error loading returned cards');
+        }
+      } finally {
+        setReturnedCardsLoading(false);
+      }
+    };
+
+    fetchReturnedCards();
     return () => controller.abort();
   }, [activeTab, authHeaders]);
 
@@ -384,7 +422,7 @@ function CardsPage() {
   const unassignedCards = useMemo(() => {
     // Business rule: cards are initially created as UNASSIGNED and later assigned to a person.
     const list = Array.isArray(cards) ? cards : [];
-    return list.filter((c) => {
+    let filtered = list.filter((c) => {
       if (String(c?.rawStatus || '').toUpperCase() !== 'UNASSIGNED') return false;
 
       // Business rule: Visitor cards are not assignable.
@@ -393,7 +431,16 @@ function CardsPage() {
 
       return true;
     });
-  }, [cards]);
+
+    // Apply category filter
+    if (assignCategoryFilter !== 'all') {
+      filtered = filtered.filter((c) =>
+        String(c?.category || c?.type || '').toLowerCase() === String(assignCategoryFilter).toLowerCase()
+      );
+    }
+
+    return filtered;
+  }, [cards, assignCategoryFilter]);
 
   useEffect(() => {
     setFilteredCards(filteredCardsMemo);
@@ -407,12 +454,10 @@ function CardsPage() {
         return 'status-pill status-pill--inactive';
       case 'pending rfid':
         return 'status-pill status-pill--pending';
+      case 'unassigned':
+        return 'status-pill status-pill--inactive';
       case 'returned':
         return 'status-pill status-pill--inactive';
-      case 'lost':
-        return 'status-pill status-pill--lost';
-      case 'damaged':
-        return 'status-pill status-pill--damaged';
       case 'expired':
         return 'status-pill status-pill--expired';
       default:
@@ -484,6 +529,50 @@ function CardsPage() {
     } catch (err) {
       console.error('Update card status error:', err);
       throw err;
+    }
+  };
+
+  // Handle reuse card (RETURNED -> UNASSIGNED)
+  const handleReuseCard = async (cardId) => {
+    if (!canEdit) return;
+    setReusingCardId(cardId);
+    try {
+      // Find the card in returnedCards to get Mongo ID
+      const cardObj = returnedCards.find(c => c.id === cardId);
+      const mongoId = cardObj?._raw?._id || cardObj?._raw?.id;
+
+      if (!mongoId) throw new Error('Cannot identify card for reuse');
+
+      // Update card status to UNASSIGNED and clear owner/UID
+      const res = await fetch(`${API_BASE_URL}/api/cards/${mongoId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        body: JSON.stringify({
+          Status: 'UNASSIGNED',
+          OwnerID: null,
+          UID: null
+        })
+      });
+
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(json?.error?.message || 'Failed to reuse card');
+      }
+
+      // Remove from returnedCards list (card is now UNASSIGNED, not RETURNED)
+      setReturnedCards(prev => prev.filter(c => c.id !== cardId));
+
+      // Also update the main cards state if the card exists there
+      const updatedRaw = json?.data;
+      if (updatedRaw) {
+        const normalized = normalizeCard(updatedRaw);
+        setCards(prev => prev.map(c => c.id === normalized.id ? normalized : c));
+      }
+    } catch (err) {
+      console.error('Reuse card error:', err);
+      alert(err.message || 'Failed to reuse card');
+    } finally {
+      setReusingCardId(null);
     }
   };
 
@@ -715,14 +804,65 @@ function CardsPage() {
     [unassignedCards, assignPage]
   );
 
+  const filteredCategories = useMemo(() => {
+    let filtered = [...categories];
+
+    // Status filter
+    if (categoriesStatusFilter !== 'all') {
+      filtered = filtered.filter((c) =>
+        String(c?.status || '').toLowerCase() === String(categoriesStatusFilter).toLowerCase()
+      );
+    }
+
+    // Price filter (free/fee)
+    if (categoriesPriceFilter !== 'all') {
+      if (categoriesPriceFilter === 'free') {
+        filtered = filtered.filter((c) => !c?.currentPrice || Number(c.currentPrice) === 0);
+      } else if (categoriesPriceFilter === 'fee') {
+        filtered = filtered.filter((c) => c?.currentPrice && Number(c.currentPrice) > 0);
+      }
+    }
+
+    return filtered;
+  }, [categories, categoriesStatusFilter, categoriesPriceFilter]);
+
   const paginatedCategories = useMemo(() =>
-    paginateData(categories, categoriesPage),
-    [categories, categoriesPage]
+    paginateData(filteredCategories, categoriesPage),
+    [filteredCategories, categoriesPage]
   );
 
+  const filteredInvoices = useMemo(() => {
+    let filtered = [...purchaseInvoices];
+
+    // Search filter
+    const query = invoiceSearchQuery.trim().toLowerCase();
+    if (query) {
+      filtered = filtered.filter((inv) => {
+        const id = String(inv?.ID || inv?.id || inv?._id || '').toLowerCase();
+        const customerName = String(
+          inv?.CustomerID?.PersonID?.FullName ||
+          inv?.CustomerID?.PersonID?.ID ||
+          inv?.CustomerID?.ID ||
+          inv?.CustomerID ||
+          ''
+        ).toLowerCase();
+        return id.includes(query) || customerName.includes(query);
+      });
+    }
+
+    // Status filter
+    if (invoiceStatusFilter !== 'all') {
+      filtered = filtered.filter((inv) =>
+        String(inv?.Status || '').toUpperCase() === String(invoiceStatusFilter).toUpperCase()
+      );
+    }
+
+    return filtered;
+  }, [purchaseInvoices, invoiceSearchQuery, invoiceStatusFilter]);
+
   const paginatedInvoices = useMemo(() =>
-    paginateData(purchaseInvoices, invoicesPage),
-    [purchaseInvoices, invoicesPage]
+    paginateData(filteredInvoices, invoicesPage),
+    [filteredInvoices, invoicesPage]
   );
 
   // Reset to page 1 when filters change
@@ -731,8 +871,16 @@ function CardsPage() {
   }, [searchQuery, typeFilter, statusFilter, assignedFilter]);
 
   useEffect(() => {
+    setAssignPage(1);
+  }, [assignCategoryFilter]);
+
+  useEffect(() => {
+    setCategoriesPage(1);
+  }, [categoriesStatusFilter, categoriesPriceFilter]);
+
+  useEffect(() => {
     setInvoicesPage(1);
-  }, [invoiceSearchQuery]);
+  }, [invoiceSearchQuery, invoiceStatusFilter]);
 
   return (
     <div className="cards-page">
@@ -823,11 +971,9 @@ function CardsPage() {
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
                   <option value="pending_rfid">Pending RFID</option>
-                  <option value="lost">Lost</option>
-                  <option value="damaged">Damaged</option>
-                  <option value="expired">Expired</option>
-                  <option value="suspended">Suspended</option>
+                  <option value="unassigned">Unassigned</option>
                   <option value="returned">Returned</option>
+                  <option value="expired">Expired</option>
                 </select>
               </div>
 
@@ -960,6 +1106,34 @@ function CardsPage() {
       {/* Assign Card Tab Content */}
       {activeTab === 'assign' && (
         <div className="assign-content">
+          {/* Filters */}
+          <div className="filters-section">
+            <div className="filter-dropdowns">
+              <div className="filter-group">
+                <label className="filter-label">Category:</label>
+                <select
+                  value={assignCategoryFilter}
+                  onChange={(e) => setAssignCategoryFilter(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="all">All Categories</option>
+                  {[...new Set(cards.map((c) => String(c?.category || c?.type || '').toLowerCase()).filter(Boolean))]
+                    .sort()
+                    .map((cat) => (
+                      <option key={cat} value={cat}>{cat.replace(/^./, (ch) => ch.toUpperCase())}</option>
+                    ))}
+                </select>
+              </div>
+
+              <button
+                className="clear-filters-btn"
+                onClick={() => setAssignCategoryFilter('all')}
+              >
+                Clear Filters
+              </button>
+            </div>
+          </div>
+
           {/* Info Banner */}
           <div className="info-banner" role="status" aria-live="polite">
             <p>
@@ -1058,8 +1232,46 @@ function CardsPage() {
       {/* Categories Tab Content */}
       {activeTab === 'categories' && (
         <div className="categories-content">
-          {/* Add Category Button */}
-          <div className="add-category-section">
+          {/* Filters and Add Button */}
+          <div className="filters-section">
+            <div className="filter-dropdowns">
+              <div className="filter-group">
+                <label className="filter-label">Status:</label>
+                <select
+                  value={categoriesStatusFilter}
+                  onChange={(e) => setCategoriesStatusFilter(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="all">All Status</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+
+              <div className="filter-group">
+                <label className="filter-label">Price:</label>
+                <select
+                  value={categoriesPriceFilter}
+                  onChange={(e) => setCategoriesPriceFilter(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="all">All Prices</option>
+                  <option value="free">Free</option>
+                  <option value="fee">Fee</option>
+                </select>
+              </div>
+
+              <button
+                className="clear-filters-btn"
+                onClick={() => {
+                  setCategoriesStatusFilter('all');
+                  setCategoriesPriceFilter('all');
+                }}
+              >
+                Clear Filters
+              </button>
+            </div>
+
             {canEdit && (
               <button className="btn-add-category" onClick={handleAddCategory}>
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -1135,7 +1347,7 @@ function CardsPage() {
             {/* Pagination */}
             <div className="table-footer">
               <p className="results-text">
-                Showing <span className="results-count">{paginatedCategories.length}</span> of {categories.length} results (Page {categoriesPage} of {getTotalPages(categories.length)})
+                Showing <span className="results-count">{paginatedCategories.length}</span> of {filteredCategories.length} results (Page {categoriesPage} of {getTotalPages(filteredCategories.length)})
               </p>
               <div className="pagination-buttons">
                 <button
@@ -1147,8 +1359,8 @@ function CardsPage() {
                 </button>
                 <button
                   className="pagination-btn"
-                  onClick={() => setCategoriesPage(p => Math.min(getTotalPages(categories.length), p + 1))}
-                  disabled={categoriesPage >= getTotalPages(categories.length)}
+                  onClick={() => setCategoriesPage(p => Math.min(getTotalPages(filteredCategories.length), p + 1))}
+                  disabled={categoriesPage >= getTotalPages(filteredCategories.length)}
                 >
                   Next
                 </button>
@@ -1160,8 +1372,8 @@ function CardsPage() {
 
       {activeTab === 'invoices' && (
         <div className="invoices-content">
-          {/* Search */}
-          <div className="invoices-filters">
+          {/* Filters */}
+          <div className="filters-section">
             <div className="search-input-wrapper">
               <span className="search-icon" aria-hidden="true">
                 <CardsActionSearchIcon />
@@ -1173,6 +1385,32 @@ function CardsPage() {
                 onChange={handleInvoiceSearch}
                 className="search-input"
               />
+            </div>
+
+            <div className="filter-dropdowns">
+              <div className="filter-group">
+                <label className="filter-label">Status:</label>
+                <select
+                  value={invoiceStatusFilter}
+                  onChange={(e) => setInvoiceStatusFilter(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="all">All Status</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+              </div>
+
+              <button
+                className="clear-filters-btn"
+                onClick={() => {
+                  setInvoiceSearchQuery('');
+                  setInvoiceStatusFilter('all');
+                }}
+              >
+                Clear Filters
+              </button>
             </div>
           </div>
 
@@ -1202,23 +1440,9 @@ function CardsPage() {
                       <td colSpan={7} className="loading-cell">Loading invoices...</td>
                     </tr>
                   ) : (() => {
-                    const query = invoiceSearchQuery.trim().toLowerCase();
                     const list = Array.isArray(paginatedInvoices) ? paginatedInvoices : [];
-                    const filtered = !query
-                      ? list
-                      : list.filter((inv) => {
-                        const id = String(inv?.ID || inv?.id || inv?._id || '').toLowerCase();
-                        const customerName = String(
-                          inv?.CustomerID?.PersonID?.FullName ||
-                          inv?.CustomerID?.PersonID?.ID ||
-                          inv?.CustomerID?.ID ||
-                          inv?.CustomerID ||
-                          ''
-                        ).toLowerCase();
-                        return id.includes(query) || customerName.includes(query);
-                      });
 
-                    if (filtered.length === 0) {
+                    if (list.length === 0) {
                       return (
                         <tr>
                           <td colSpan={7} className="empty-cell">No invoices found</td>
@@ -1226,7 +1450,7 @@ function CardsPage() {
                       );
                     }
 
-                    return filtered.map((inv) => {
+                    return list.map((inv) => {
                       const id = inv?.ID || inv?.id || inv?._id;
                       const customerName =
                         inv?.CustomerID?.PersonID?.FullName ||
@@ -1282,7 +1506,7 @@ function CardsPage() {
 
             <div className="table-footer invoices-footer">
               <p className="results-text">
-                Showing <span className="results-count">{paginatedInvoices.length}</span> of {purchaseInvoices.length} results (Page {invoicesPage} of {getTotalPages(purchaseInvoices.length)})
+                Showing <span className="results-count">{paginatedInvoices.length}</span> of {filteredInvoices.length} results (Page {invoicesPage} of {getTotalPages(filteredInvoices.length)})
               </p>
               <div className="pagination-buttons">
                 <button
@@ -1294,8 +1518,8 @@ function CardsPage() {
                 </button>
                 <button
                   className="pagination-btn"
-                  onClick={() => setInvoicesPage(p => Math.min(getTotalPages(purchaseInvoices.length), p + 1))}
-                  disabled={invoicesPage >= getTotalPages(purchaseInvoices.length)}
+                  onClick={() => setInvoicesPage(p => Math.min(getTotalPages(filteredInvoices.length), p + 1))}
+                  disabled={invoicesPage >= getTotalPages(filteredInvoices.length)}
                 >
                   Next
                 </button>
@@ -1444,8 +1668,163 @@ function CardsPage() {
       )}
 
       {activeTab === 'returns' && (
-        <div className="tab-placeholder">
-          <p>Content for Returns tab coming soon...</p>
+        <div className="returns-content">
+          {/* Search and Filters */}
+          <div className="filters-section">
+            <div className="search-input-wrapper">
+              <span className="search-icon" aria-hidden="true">
+                <CardsActionSearchIcon />
+              </span>
+              <input
+                type="text"
+                placeholder="Search returned cards..."
+                value={returnsSearchQuery}
+                onChange={(e) => setReturnsSearchQuery(e.target.value)}
+                className="search-input"
+              />
+            </div>
+            <button
+              className="clear-filters-btn"
+              onClick={() => setReturnsSearchQuery('')}
+            >
+              Clear
+            </button>
+          </div>
+
+          {/* Loading / Error States */}
+          {returnedCardsLoading && (
+            <div className="loading-message">Loading returned cards...</div>
+          )}
+          {returnedCardsError && (
+            <div className="error-message" role="alert">{returnedCardsError}</div>
+          )}
+
+          {/* Data Table */}
+          {!returnedCardsLoading && !returnedCardsError && (
+            <div className="data-table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th className="col-id">CARD ID</th>
+                    <th className="col-card">CARD INFO</th>
+                    <th className="col-category">CATEGORY</th>
+                    <th className="col-status">STATUS</th>
+                    <th className="col-actions text-right">ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const filtered = returnedCards.filter(card => {
+                      if (!returnsSearchQuery) return true;
+                      const q = returnsSearchQuery.toLowerCase();
+                      return (
+                        String(card.id || '').toLowerCase().includes(q) ||
+                        String(card.uid || '').toLowerCase().includes(q) ||
+                        String(card.type || '').toLowerCase().includes(q)
+                      );
+                    });
+                    const paginated = filtered.slice((returnsPage - 1) * itemsPerPage, returnsPage * itemsPerPage);
+
+                    if (paginated.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={5} className="empty-message">No returned cards found.</td>
+                        </tr>
+                      );
+                    }
+
+                    return paginated.map((card) => (
+                      <tr key={card.id}>
+                        <td className="table-cell col-id">{card.id}</td>
+                        <td className="table-cell col-card">
+                          <div className="inventory-cardCell">
+                            <div
+                              className="inventory-cardIcon"
+                              style={{ backgroundImage: card.gradient }}
+                            >
+                              <div className="cards-cardGlyph" aria-hidden="true">
+                                <CardsGlyphListIcon />
+                              </div>
+                            </div>
+                            <div className="inventory-cardText">
+                              <p className="inventory-cardUid" title={card.uid || ''}>{card.uid || '-'}</p>
+                              <p className="inventory-cardType">{card.type}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="table-cell col-category">{card.type}</td>
+                        <td className="table-cell col-status">
+                          <span className={getStatusBadgeClass(card.status)}>{card.status}</span>
+                        </td>
+                        <td className="table-cell col-actions">
+                          <div className="inventory-actions">
+                            <button
+                              className="inventory-actionBtn"
+                              onClick={() => handleViewCard(card.id)}
+                              title="View"
+                            >
+                              <CardsActionViewIcon aria-hidden="true" />
+                            </button>
+                            {canEdit && (
+                              <button
+                                className="reuse-btn"
+                                onClick={() => handleReuseCard(card.id)}
+                                disabled={reusingCardId === card.id}
+                                title="Reuse - Mark as Unassigned"
+                              >
+                                {reusingCardId === card.id ? 'Processing...' : 'Reuse'}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+
+              {/* Pagination */}
+              <div className="table-footer">
+                {(() => {
+                  const filtered = returnedCards.filter(card => {
+                    if (!returnsSearchQuery) return true;
+                    const q = returnsSearchQuery.toLowerCase();
+                    return (
+                      String(card.id || '').toLowerCase().includes(q) ||
+                      String(card.uid || '').toLowerCase().includes(q) ||
+                      String(card.type || '').toLowerCase().includes(q)
+                    );
+                  });
+                  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+                  const paginated = filtered.slice((returnsPage - 1) * itemsPerPage, returnsPage * itemsPerPage);
+
+                  return (
+                    <>
+                      <p className="results-text">
+                        Showing <span className="results-count">{paginated.length}</span> of {filtered.length} returned cards (Page {returnsPage} of {totalPages || 1})
+                      </p>
+                      <div className="pagination-buttons">
+                        <button
+                          className="pagination-btn"
+                          onClick={() => setReturnsPage(p => Math.max(1, p - 1))}
+                          disabled={returnsPage === 1}
+                        >
+                          Previous
+                        </button>
+                        <button
+                          className="pagination-btn"
+                          onClick={() => setReturnsPage(p => Math.min(totalPages, p + 1))}
+                          disabled={returnsPage >= totalPages}
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

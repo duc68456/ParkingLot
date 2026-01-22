@@ -497,16 +497,22 @@ const StaffGatePage = () => {
       // Backend already encodes the rules for queried plate:
       // - Visitor => Instant
       // - Non-visitor + ACTIVE subscription => subscription plate
+      // - Non-visitor + PAUSED subscription => subscription plate (but warned)
       // - Non-visitor + no subscription => Instant
       const queriedPlate = String(gate?.queriedPlate || '').trim() || 'Instant'
 
       const normalizedQueriedPlate = queriedPlate.toUpperCase()
       const normalizedInputPlate = String(licensePlate || '').trim().toUpperCase()
       const mismatch =
-        gate?.queriedPlateMode === 'SUBSCRIPTION' &&
+        (gate?.queriedPlateMode === 'SUBSCRIPTION' || gate?.queriedPlateMode === 'SUBSCRIPTION_PAUSED') &&
         Boolean(normalizedQueriedPlate) &&
         Boolean(normalizedInputPlate) &&
         normalizedQueriedPlate !== normalizedInputPlate
+
+      // Show warning if subscription is paused
+      if (gate?.subscriptionPaused || gate?.queriedPlateMode === 'SUBSCRIPTION_PAUSED') {
+        setErr('⚠️ Subscription is PAUSED. Entry will be charged as single-use pricing.')
+      }
 
       // Card type should show vehicle type from subscription when available,
       // otherwise (Instant) the UI will allow selecting vehicle type.
@@ -519,7 +525,7 @@ const StaffGatePage = () => {
       setNewEntry((prev) => ({
         ...prev,
         cardId, // Ensure cardId is updated in case it was created
-        queriedPlate: normalizedQueriedPlate,
+        queriedPlate: gate?.subscriptionPaused ? `${normalizedQueriedPlate} (PAUSED)` : normalizedQueriedPlate,
         queriedPlateMismatch: mismatch,
         queriedPlateMode: gate?.queriedPlateMode || (normalizedQueriedPlate === 'INSTANT' ? 'INSTANT' : prev.queriedPlateMode),
         // Only set vehicleType from subscription when provided.
@@ -683,6 +689,29 @@ const StaffGatePage = () => {
           const warningMsg = json?.data?.message || 'Subscription Plate Mismatch!'
           if (window.confirm(`${warningMsg}\n\nDo you want to confirm entry anyway? (This will log a warning)`)) {
             handleAddEntry(gateNumber, { confirmMismatch: true })
+          } else {
+            setBusy(false)
+          }
+          return
+        }
+
+        /* Handle Paused Subscription Warning */
+        if (json?.data?.warning === true && json?.data?.code === 'SUBSCRIPTION_PAUSED') {
+          const warningMsg = json?.data?.message || 'Subscription is PAUSED!'
+          if (window.confirm(`PAUSED SUBSCRIPTION\n\n${warningMsg}`)) {
+            handleAddEntry(gateNumber, { ...options, confirmPausedSubscription: true })
+          } else {
+            setBusy(false)
+          }
+          return
+        }
+
+        /* Handle Parking Full Warning */
+        if (json?.data?.warning === true && json?.data?.code === 'PARKING_FULL') {
+          const capacity = json?.data?.capacity
+          const warningMsg = json?.data?.message || `Parking is FULL (${capacity?.current}/${capacity?.max})`
+          if (window.confirm(`PARKING FULL\n\n${warningMsg}`)) {
+            handleAddEntry(gateNumber, { ...options, confirmCapacityFull: true })
           } else {
             setBusy(false)
           }

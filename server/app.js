@@ -32,8 +32,7 @@ const subscriptionPricingRuleDetailsRouter = require('./controllers/subscription
 const cardPurchaseInvoicesRouter = require('./controllers/cardPurchaseInvoices')
 
 // Phase 6: Returns System
-const cardReturnsRouter = require('./controllers/cardReturns')
-const returnBatchesRouter = require('./controllers/returnBatches')
+const cardReturnLogsRouter = require('./controllers/cardReturnLogs')
 
 // Phase 7: Subscription Management
 const subscriptionsRouter = require('./controllers/subscriptions')
@@ -156,8 +155,7 @@ app.use('/api/subscription-pricing-rule-details', middleware.authRequired, subsc
 app.use('/api/card-purchase-invoices', middleware.authRequired, cardPurchaseInvoicesRouter)
 
 // Phase 6: Returns System Routes
-app.use('/api/card-returns', middleware.authRequired, cardReturnsRouter)
-app.use('/api/return-batches', middleware.authRequired, returnBatchesRouter)
+app.use('/api/card-return-logs', middleware.authRequired, cardReturnLogsRouter)
 
 // Phase 7: Subscription Management Routes
 app.use('/api/subscriptions', middleware.authRequired, subscriptionsRouter)

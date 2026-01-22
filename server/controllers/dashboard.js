@@ -231,8 +231,8 @@ dashboardRouter.get('/capacity', async (request, response, next) => {
 
     // Load configured capacity (fallback to DEFAULT_CAPACITY if config not set)
     const DEFAULT_CAPACITY = 100
-  const cfg = await SystemConfig.findOne({}).sort({ UpdatedAt: -1 }).lean().catch(() => null)
-  const cfgByType = cfg?.parkingCapacityByType || {}
+    const cfg = await SystemConfig.findOne({}).sort({ UpdatedAt: -1 }).lean().catch(() => null)
+    const cfgByType = cfg?.parkingCapacityByType || {}
 
     // Count vehicles currently in parking by type
     const sessionsInParking = await EntrySession.find({
@@ -293,10 +293,10 @@ dashboardRouter.get('/alerts', async (request, response, next) => {
     const alerts = []
     const now = new Date()
 
-  // Check capacity alerts - use configured capacity (fallback to 100 per type)
-  const DEFAULT_CAPACITY = 100
-  const cfg = await SystemConfig.findOne({}).sort({ UpdatedAt: -1 }).lean().catch(() => null)
-  const cfgByType = cfg?.parkingCapacityByType || {}
+    // Check capacity alerts - use configured capacity (fallback to 100 per type)
+    const DEFAULT_CAPACITY = 100
+    const cfg = await SystemConfig.findOne({}).sort({ UpdatedAt: -1 }).lean().catch(() => null)
+    const cfgByType = cfg?.parkingCapacityByType || {}
     const vehicleTypes = await VehicleType.find({ IsActive: true }).lean()
 
     const sessionsInParking = await EntrySession.find({
@@ -317,18 +317,20 @@ dashboardRouter.get('/alerts', async (request, response, next) => {
       const max = Number.isFinite(configured) && configured >= 0 ? configured : DEFAULT_CAPACITY
       const percent = max > 0 ? Math.round((current / max) * 100) : 0
 
-      if (percent >= 90) {
+      if (percent >= 100) {
+        // Full capacity - critical alert
         alerts.push({
           id: `capacity-${vt.VehicleTypeID}`,
           tone: 'danger',
-          title: `${vt.Name} parking ${percent}% full (${current}/${max})`,
+          title: `${vt.Name} parking is FULL (${current}/${max})`,
           timestamp: now
         })
-      } else if (percent >= 80) {
+      } else if (percent > 90) {
+        // Almost full - warning alert
         alerts.push({
           id: `capacity-${vt.VehicleTypeID}`,
           tone: 'warning',
-          title: `${vt.Name} parking ${percent}% full (${current}/${max})`,
+          title: `${vt.Name} parking almost full - ${percent}% (${current}/${max})`,
           timestamp: now
         })
       }
