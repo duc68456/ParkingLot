@@ -343,7 +343,7 @@ export default function Dashboard() {
     tone: al.tone,
     title: al.title,
     time: formatRelativeTime(al.timestamp),
-    priority: al.tone === 'danger' ? 0 : al.tone === 'warning' ? 1 : 2
+    timestamp: new Date(al.timestamp).getTime() // Keep original timestamp for sorting
   }));
 
   const gateWarningAlerts = gateWarnings.map(w => ({
@@ -351,12 +351,12 @@ export default function Dashboard() {
     tone: w.Type === 'ENTRY' ? 'warning' : w.Type === 'EXIT' ? 'danger' : 'info',
     title: w.Message || 'Gate warning',
     time: formatRelativeTime(w.createdAt),
-    priority: w.Type === 'EXIT' ? 0 : w.Type === 'ENTRY' ? 1 : 2
+    timestamp: new Date(w.createdAt).getTime() // Keep original timestamp for sorting
   }));
 
-  // Merge and sort by priority (danger first, then warning, then info)
+  // Merge and sort by time (newest first)
   const displayAlerts = [...capacityAlerts, ...gateWarningAlerts]
-    .sort((a, b) => a.priority - b.priority)
+    .sort((a, b) => b.timestamp - a.timestamp)
     .slice(0, 10);
   // Calculate total for percentage in tooltip
   const totalDailyVehicles = dailyDistribution.reduce((sum, item) => sum + item.value, 0);

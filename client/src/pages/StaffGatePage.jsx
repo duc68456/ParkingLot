@@ -214,7 +214,7 @@ const StaffGatePage = () => {
       ''
     const cardId = session?.CardID?.CardID || session?.CardID || ''
     // Customer name comes from Card.OwnerID (Person) - null for visitors
-    const customer = session?.CardID?.OwnerID?.FullName || ''
+    const customer = session?.CardID?.OwnerID?.FullName || 'Guest'
 
     return {
       gateNumber,
@@ -802,7 +802,7 @@ const StaffGatePage = () => {
           : normalizedQueriedPlate
 
         // Extract customer name from Card.OwnerID (null for visitors)
-        const customerName = session?.CardID?.OwnerID?.FullName || ''
+        const customerName = session?.CardID?.OwnerID?.FullName || 'Guest'
 
         setData((prev) => ({
           ...prev,

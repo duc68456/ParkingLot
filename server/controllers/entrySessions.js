@@ -1807,13 +1807,30 @@ entrySessionsRouter.post('/gate/exit', async (req, res) => {
     // If subscription is paused, charge as single-use
     const shouldCharge = !isSubscription || isSubscriptionPaused
 
+    // Determine which card category to use for pricing
+    // If subscription is paused, use Visitor category for pricing instead of Subscription category
+    let pricingCardCategory = cardCategory
+    if (isSubscriptionPaused) {
+      const visitorCategory = await CardCategory.findOne({
+        $or: [
+          { Name: { $regex: /^visitor$/i } },
+          { Name: { $regex: /vãng lai/i } }
+        ],
+        IsActive: true
+      }).lean()
+      if (visitorCategory) {
+        pricingCardCategory = visitorCategory
+      }
+    }
+
     if (shouldCharge && isFreeByTime) {
       fee = 0
       session.DiscountReason = session.DiscountReason || 'STAFF_FREE'
-    } else if (shouldCharge && cardCategory && vehicleType) {
+    } else if (shouldCharge && pricingCardCategory && vehicleType) {
       // Look up pricing rule for this CardCategory + VehicleType
+      // Use pricingCardCategory (Visitor category if subscription is paused)
       const pricingRule = await SinglePricingRule.findOne({
-        CardCategoryID: cardCategory.ID,
+        CardCategoryID: pricingCardCategory.ID,
         VehicleTypeID: vehicleType.VehicleTypeID
       }).lean()
 
