@@ -450,25 +450,7 @@ function SubscriptionsPage() {
     await fetchSubscriptions(); // Re-fetch after edit
   };
 
-  const handleDeleteSubscription = async (subscriptionId) => {
-    if (!canEdit) return;
-    if (!confirm(`Are you sure you want to delete subscription ${subscriptionId}?`)) return;
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/subscriptions/${encodeURIComponent(subscriptionId)}`, {
-        method: 'DELETE',
-        headers: { ...authHeaders }
-      });
-      const json = await res.json().catch(() => null);
-      if (!res.ok) {
-        const msg = json?.error?.message || `Failed to delete subscription (${res.status})`;
-        throw new Error(msg);
-      }
-      await fetchSubscriptions(); // Re-fetch after delete
-    } catch (err) {
-      alert(err?.message || 'Failed to delete subscription');
-    }
-  };
+  // Delete action intentionally removed from UI.
 
   const totalPages = Math.ceil(totalItems / itemsPerPage); // Calculate total pages based on totalItems from server
 
@@ -678,15 +660,6 @@ function SubscriptionsPage() {
                                 <PauseIcon />
                               </button>
                             )
-                          )}
-                          {canEdit && (
-                            <button
-                              className="action-btn action-btn--delete"
-                              onClick={() => handleDeleteSubscription(subscription.subscriptionId || subscription.id)}
-                              title="Delete"
-                            >
-                              <DeleteIcon />
-                            </button>
                           )}
                         </div>
                       </td>

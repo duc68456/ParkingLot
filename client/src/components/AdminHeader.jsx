@@ -1,4 +1,3 @@
-import SearchBar from './SearchBar';
 import UserProfile from './UserProfile';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/components/AdminHeader.css';
@@ -23,7 +22,6 @@ export default function AdminHeader({ title = 'Dashboard' }) {
         <h1 className="admin-header-title">{title}</h1>
 
         <div className="admin-header-actions">
-          <SearchBar />
           <UserProfile
             name={displayName}
           />
