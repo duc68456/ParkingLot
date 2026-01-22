@@ -9,6 +9,8 @@ const PERMISSIONS = Object.freeze({
   SYSTEM_CONFIG_FULL: 'SYSTEM_CONFIG.FULL',
 
   PEOPLE_VIEW: 'PEOPLE.VIEW',
+  PEOPLE_MANAGE_CUSTOMERS: 'PEOPLE.MANAGE_CUSTOMERS',
+  PEOPLE_MANAGE_EMPLOYEES: 'PEOPLE.MANAGE_EMPLOYEES',
   PEOPLE_ACCESS_HUB: 'PEOPLE.ACCESS_MANAGEMENT_HUB',
   PEOPLE_FULL: 'PEOPLE.FULL',
 
@@ -60,8 +62,9 @@ const ROLE_DEFINITIONS = Object.freeze({
       PERMISSIONS.DASHBOARD_VIEW,
       PERMISSIONS.PURCHASE_CARD,
 
-      // Manager: full people actions except access hub.
-      PERMISSIONS.PEOPLE_FULL,
+      // Manager: manage customers only (not employees)
+      PERMISSIONS.PEOPLE_VIEW,
+      PERMISSIONS.PEOPLE_MANAGE_CUSTOMERS,
 
       PERMISSIONS.VEHICLES_FULL,
       PERMISSIONS.CARDS_FULL,
@@ -75,8 +78,8 @@ const ROLE_DEFINITIONS = Object.freeze({
       PERMISSIONS.SHIFTS_FULL,
       PERMISSIONS.REPORTS_VIEW
     ],
-    // Explicit excludes (helpful for building effective permission sets)
-    excludes: [PERMISSIONS.PEOPLE_ACCESS_HUB]
+    // Explicit excludes - Manager cannot manage employees or access hub
+    excludes: [PERMISSIONS.PEOPLE_ACCESS_HUB, PERMISSIONS.PEOPLE_MANAGE_EMPLOYEES]
   },
 
   [ROLE_IDS.ADMIN]: {
@@ -85,9 +88,10 @@ const ROLE_DEFINITIONS = Object.freeze({
     description: 'Admin panel permissions (non-supreme)',
     permissions: [
       PERMISSIONS.DASHBOARD_VIEW,
+      // Admin: manage employees only (not customers)
       PERMISSIONS.PEOPLE_VIEW,
+      PERMISSIONS.PEOPLE_MANAGE_EMPLOYEES,
       PERMISSIONS.PEOPLE_ACCESS_HUB,
-      PERMISSIONS.PEOPLE_FULL,
       PERMISSIONS.VEHICLES_VIEW,
       PERMISSIONS.CARDS_VIEW,
       PERMISSIONS.SUBSCRIPTIONS_VIEW,
@@ -96,7 +100,9 @@ const ROLE_DEFINITIONS = Object.freeze({
       PERMISSIONS.SHIFTS_VIEW,
       PERMISSIONS.REPORTS_VIEW,
       PERMISSIONS.ROLES_VIEW
-    ]
+    ],
+    // Explicit excludes - Admin cannot manage customers
+    excludes: [PERMISSIONS.PEOPLE_MANAGE_CUSTOMERS]
   },
 
   [ROLE_IDS.SUPREME_ADMIN]: {

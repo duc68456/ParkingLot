@@ -28,7 +28,7 @@ export default function AdminLayout({ children }) {
   const pagePermissions = {
     'Dashboard': ['DASHBOARD.VIEW'],
     'Purchase Card': ['PURCHASE_CARD.FULL'],
-    'People': ['PEOPLE.VIEW', 'PEOPLE.FULL', 'PEOPLE.ACCESS_MANAGEMENT_HUB'],
+    'People': ['PEOPLE.VIEW', 'PEOPLE.MANAGE_CUSTOMERS', 'PEOPLE.MANAGE_EMPLOYEES', 'PEOPLE.FULL', 'PEOPLE.ACCESS_MANAGEMENT_HUB'],
     'Vehicles': ['VEHICLES.VIEW', 'VEHICLES.FULL'],
     'Cards': ['CARDS.VIEW', 'CARDS.FULL'],
     'Subscriptions': ['SUBSCRIPTIONS.VIEW', 'SUBSCRIPTIONS.FULL'],

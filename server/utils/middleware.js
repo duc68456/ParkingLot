@@ -129,12 +129,62 @@ const requirePermissions = (permissionCodes = []) => {
   }
 }
 
+// Authorization: require at least one of the specified permission codes (OR logic).
+// Usage: middleware.requireAnyPermission(['PEOPLE.MANAGE_CUSTOMERS', 'PEOPLE.FULL'])
+const requireAnyPermission = (permissionCodes = []) => {
+  const required = (Array.isArray(permissionCodes) ? permissionCodes : [permissionCodes])
+    .map((p) => String(p || '').trim().toUpperCase())
+    .filter(Boolean)
+
+  return async (request, response, next) => {
+    if (!required.length) return next()
+
+    // Dynamic authz: permissions are plain-text codes aggregated from all roles.
+    let permsRaw = request.user?.permissions || request.user?.Permissions || []
+    let permissions = (Array.isArray(permsRaw) ? permsRaw : [])
+      .map((p) => String(p || '').trim().toUpperCase())
+      .filter(Boolean)
+
+    if (!permissions.length) {
+      const employeeBusinessId = request.user?.employeeBusinessId || request.user?.employeeId
+      if (employeeBusinessId) {
+        try {
+          const resolved = await resolveAuthzForEmployee(employeeBusinessId)
+          permissions = (resolved?.permissions || [])
+            .map((p) => String(p || '').trim().toUpperCase())
+            .filter(Boolean)
+        } catch (err) {
+          permissions = []
+        }
+      }
+    }
+
+    const have = new Set(permissions)
+
+    // Check if user has ANY of the required permissions (OR logic)
+    const ok = required.some((p) => have.has(p))
+    if (!ok) {
+      return response.status(403).json({
+        success: false,
+        error: {
+          message: 'forbidden',
+          code: 'FORBIDDEN_PERMISSION',
+          details: `Requires at least one of: ${required.join(', ')}`
+        }
+      })
+    }
+
+    next()
+  }
+}
+
 module.exports = {
   requestLogger,
   tokenExtractor,
   authRequired,
   adminOnly,
   requirePermissions,
+  requireAnyPermission,
   unknownEndpoint,
   errorHandler
 }

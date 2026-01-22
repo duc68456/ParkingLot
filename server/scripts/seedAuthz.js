@@ -27,8 +27,10 @@ const PERMISSION_DISPLAY = {
   [PERMISSIONS.SYSTEM_CONFIG_FULL]: { name: 'System Configuration (Full)', description: 'Edit and save system settings' },
 
   [PERMISSIONS.PEOPLE_VIEW]: { name: 'View People', description: 'Show People button + view people and cards of people' },
+  [PERMISSIONS.PEOPLE_MANAGE_CUSTOMERS]: { name: 'Manage Customers', description: 'View, Create, Edit, Delete customers. For Manager role.' },
+  [PERMISSIONS.PEOPLE_MANAGE_EMPLOYEES]: { name: 'Manage Employees', description: 'View, Create, Edit, Delete employees + Access Hub. For Admin role.' },
   [PERMISSIONS.PEOPLE_ACCESS_HUB]: { name: 'Access Management Hub', description: 'Allow Access Management Hub action on employee' },
-  [PERMISSIONS.PEOPLE_FULL]: { name: 'People (Full)', description: 'Full actions of People page (except access hub is separate)' },
+  [PERMISSIONS.PEOPLE_FULL]: { name: 'People (Full)', description: 'Full access to People page (all customers & employees operations)' },
 
   [PERMISSIONS.VEHICLES_VIEW]: { name: 'View Vehicles', description: 'View vehicles and vehicle types' },
   [PERMISSIONS.VEHICLES_FULL]: { name: 'Vehicles (Full)', description: 'Full actions of Vehicles page' },

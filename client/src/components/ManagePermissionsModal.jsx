@@ -9,8 +9,8 @@ const PERMISSION_CODES = Object.freeze({
   SYSTEM_CONFIG_VIEW: 'SYSTEM_CONFIG.VIEW',
   SYSTEM_CONFIG_FULL: 'SYSTEM_CONFIG.FULL',
 
-  PEOPLE_VIEW: 'PEOPLE.VIEW',
-  PEOPLE_ACCESS_HUB: 'PEOPLE.ACCESS_MANAGEMENT_HUB',
+  PEOPLE_MANAGE_CUSTOMERS: 'PEOPLE.MANAGE_CUSTOMERS',
+  PEOPLE_MANAGE_EMPLOYEES: 'PEOPLE.MANAGE_EMPLOYEES',
   PEOPLE_FULL: 'PEOPLE.FULL',
 
   VEHICLES_VIEW: 'VEHICLES.VIEW',
@@ -110,19 +110,19 @@ export default function ManagePermissionsModal({
             title: 'People Management',
             items: [
               {
-                key: PERMISSION_CODES.PEOPLE_VIEW,
-                title: 'View People',
-                desc: 'Includes “View” action and “View Cards of People”. Show button: People'
+                key: PERMISSION_CODES.PEOPLE_MANAGE_CUSTOMERS,
+                title: 'Manage Customers',
+                desc: 'View, Create, Edit, Delete customers. Show: People (Customers tab). For Manager role.'
               },
               {
-                key: PERMISSION_CODES.PEOPLE_ACCESS_HUB,
-                title: 'Employee Access',
-                desc: 'Action: Access Management Hub (Employee)'
+                key: PERMISSION_CODES.PEOPLE_MANAGE_EMPLOYEES,
+                title: 'Manage Employees',
+                desc: 'View, Create, Edit, Delete employees + Access Hub. Show: People (Employees tab). For Admin role.'
               },
               {
                 key: PERMISSION_CODES.PEOPLE_FULL,
                 title: 'Full Management',
-                desc: 'Full actions of People page (Create, Edit, Delete, etc.)'
+                desc: 'Full access to People page (all customers & employees operations).'
               }
             ]
           },

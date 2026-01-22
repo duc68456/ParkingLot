@@ -138,9 +138,28 @@ const mockCustomerVehicles = {
 
 export default function PeoplePage() {
   const { authHeaders } = useAuth();
-  const { hasPermission } = useAuthz();
+  const { hasPermission, hasAnyPermission } = useAuthz();
+
+  // Permission checks for different actions
+  // Manager: PEOPLE.MANAGE_CUSTOMERS - can CRUD customers only
+  // Admin: PEOPLE.MANAGE_EMPLOYEES + PEOPLE.ACCESS_MANAGEMENT_HUB - can manage employees only
+  // PEOPLE.FULL: full access to both customers and employees
+  const canViewCustomers = hasAnyPermission(['PEOPLE.VIEW', 'PEOPLE.MANAGE_CUSTOMERS', 'PEOPLE.FULL']);
+  const canEditCustomers = hasAnyPermission(['PEOPLE.MANAGE_CUSTOMERS', 'PEOPLE.FULL']);
+  const canViewEmployees = hasAnyPermission(['PEOPLE.VIEW', 'PEOPLE.MANAGE_EMPLOYEES', 'PEOPLE.ACCESS_MANAGEMENT_HUB', 'PEOPLE.FULL']);
+  const canEditEmployees = hasAnyPermission(['PEOPLE.MANAGE_EMPLOYEES', 'PEOPLE.FULL']);
+
+  // Legacy canEdit for backward compatibility
   const canEdit = canEditModule(hasPermission, "PEOPLE");
-  const [activeTab, setActiveTab] = useState("customers");
+
+  // Determine default tab based on permissions
+  const getDefaultTab = () => {
+    if (canViewCustomers) return "customers";
+    if (canViewEmployees) return "employees";
+    return "customers";
+  };
+
+  const [activeTab, setActiveTab] = useState(getDefaultTab());
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -164,20 +183,25 @@ export default function PeoplePage() {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [showEditEmployeeModal, setShowEditEmployeeModal] = useState(false);
 
-  const tabs = [
+  // Build visible tabs based on permissions
+  const allTabs = [
     {
       id: "customers",
       label: "Customers",
       icon: <PeopleTabCustomerIcon aria-hidden="true" />,
-      count: totalCustomers, // Use totalCustomers for the count
+      count: totalCustomers,
+      visible: canViewCustomers,
     },
     {
       id: "employees",
       label: "Employees",
       icon: <PeopleTabEmployeeIcon aria-hidden="true" />,
       count: employees.length,
+      visible: canViewEmployees,
     },
   ];
+
+  const tabs = allTabs.filter(tab => tab.visible);
 
   const normalizeEmployee = (e) => {
     // API returns:
@@ -388,7 +412,7 @@ export default function PeoplePage() {
   }, [searchQuery, statusFilter]);
 
   const handleAddEmployee = () => {
-    if (!canEdit) return;
+    if (!canEditEmployees) return;
     setIsModalOpen(true);
   };
 
@@ -979,7 +1003,7 @@ export default function PeoplePage() {
             />
 
             {activeTab === "customers" && (
-              canEdit && (
+              canEditCustomers && (
                 <button
                   className="add-employee-btn"
                   onClick={handleCreateCustomer}
@@ -994,7 +1018,7 @@ export default function PeoplePage() {
             )}
 
             {activeTab === "employees" && (
-              canEdit && (
+              canEditEmployees && (
                 <button
                   className="add-employee-btn"
                   onClick={handleAddEmployee}
@@ -1046,7 +1070,7 @@ export default function PeoplePage() {
         )}
       </div>
 
-      {canEdit && (
+      {canEditEmployees && (
         <AddEmployeeModal
           isOpen={isModalOpen}
           onClose={handleCloseModal}
@@ -1072,7 +1096,7 @@ export default function PeoplePage() {
         />
       )}
 
-      {canEdit && showEditCustomerModal && selectedCustomer && (
+      {canEditCustomers && showEditCustomerModal && selectedCustomer && (
         <EditCustomerModal
           customer={selectedCustomer}
           onClose={handleCloseEditCustomerModal}
@@ -1080,7 +1104,7 @@ export default function PeoplePage() {
         />
       )}
 
-      {canEdit && showDeleteCustomerModal && selectedCustomer && (
+      {canEditCustomers && showDeleteCustomerModal && selectedCustomer && (
         <DeleteCustomerModal
           customer={selectedCustomer}
           onClose={handleCloseDeleteCustomerModal}
@@ -1088,14 +1112,14 @@ export default function PeoplePage() {
         />
       )}
 
-      {canEdit && showCreateCustomerModal && (
+      {canEditCustomers && showCreateCustomerModal && (
         <CreateCustomerModal
           onClose={handleCloseCreateCustomerModal}
           onSubmit={handleSubmitCreateCustomer}
         />
       )}
 
-      {canEdit && showEditEmployeeModal && selectedEmployee && (
+      {canEditEmployees && showEditEmployeeModal && selectedEmployee && (
         <EditEmployeeModal
           employee={selectedEmployee}
           onClose={handleCloseEditEmployeeModal}

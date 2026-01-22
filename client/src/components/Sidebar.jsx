@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import NavItem from './NavItem';
 import { useAuthz } from '../contexts/AuthzContext';
 import '../styles/components/Sidebar.css';
@@ -20,7 +19,8 @@ import collapseIcon from '../assets/icons/collapse.svg';
 import logoutIcon from '../assets/icons/logout.svg';
 
 export default function Sidebar({ currentPage = 'Dashboard', onLogout, isCollapsed, onToggleCollapse, activeItem, onNavClick }) {
-  const [activePage, setActivePage] = useState(activeItem || currentPage);
+  // Use activeItem prop directly instead of local state to sync with URL
+  const activePage = activeItem || currentPage;
   const { hasAnyPermission, loading: authzLoading } = useAuthz();
 
   // Sidebar visibility contract:
@@ -30,7 +30,7 @@ export default function Sidebar({ currentPage = 'Dashboard', onLogout, isCollaps
   const navPermissions = {
     Dashboard: ['DASHBOARD.VIEW'],
     'Purchase Card': ['PURCHASE_CARD.FULL'],
-    People: ['PEOPLE.VIEW', 'PEOPLE.FULL', 'PEOPLE.ACCESS_MANAGEMENT_HUB'],
+    People: ['PEOPLE.VIEW', 'PEOPLE.MANAGE_CUSTOMERS', 'PEOPLE.MANAGE_EMPLOYEES', 'PEOPLE.FULL', 'PEOPLE.ACCESS_MANAGEMENT_HUB'],
     Vehicles: ['VEHICLES.VIEW', 'VEHICLES.FULL'],
     Cards: ['CARDS.VIEW', 'CARDS.FULL'],
     Subscriptions: ['SUBSCRIPTIONS.VIEW', 'SUBSCRIPTIONS.FULL'],
@@ -64,7 +64,6 @@ export default function Sidebar({ currentPage = 'Dashboard', onLogout, isCollaps
     : navItems.filter((item) => hasAnyPermission(navPermissions[item.label] || []));
 
   const handleNavClick = (label) => {
-    setActivePage(label);
     if (onNavClick) {
       onNavClick(label);
     }
