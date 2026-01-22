@@ -89,26 +89,31 @@ const requirePermissions = (permissionCodes = []) => {
   return async (request, response, next) => {
     if (!required.length) return next()
 
-    // Dynamic authz: permissions are plain-text codes aggregated from all roles.
-    // Prefer JWT permissions when present, otherwise resolve from DB per request.
-    let permsRaw = request.user?.permissions || request.user?.Permissions || []
-    let permissions = (Array.isArray(permsRaw) ? permsRaw : [])
-      .map((p) => String(p || '').trim().toUpperCase())
-      .filter(Boolean)
+    // Dynamic authz: ALWAYS resolve from DB to ensure real-time permission changes.
+    // This ensures that if permissions are added/removed from roles, they take effect immediately
+    // without requiring users to re-login.
+    let permissions = []
 
-    if (!permissions.length) {
-      const employeeBusinessId = request.user?.employeeBusinessId || request.user?.employeeId
-      if (employeeBusinessId) {
-        try {
-          const resolved = await resolveAuthzForEmployee(employeeBusinessId)
-          permissions = (resolved?.permissions || [])
-            .map((p) => String(p || '').trim().toUpperCase())
-            .filter(Boolean)
-        } catch (err) {
-          // If dynamic resolution fails, we'll treat as no permissions.
-          permissions = []
-        }
+    const employeeBusinessId = request.user?.employeeBusinessId || request.user?.employeeId
+    if (employeeBusinessId) {
+      try {
+        const resolved = await resolveAuthzForEmployee(employeeBusinessId)
+        permissions = (resolved?.permissions || [])
+          .map((p) => String(p || '').trim().toUpperCase())
+          .filter(Boolean)
+      } catch (err) {
+        // If dynamic resolution fails, fallback to JWT permissions.
+        let permsRaw = request.user?.permissions || request.user?.Permissions || []
+        permissions = (Array.isArray(permsRaw) ? permsRaw : [])
+          .map((p) => String(p || '').trim().toUpperCase())
+          .filter(Boolean)
       }
+    } else {
+      // No employee ID, try JWT permissions
+      let permsRaw = request.user?.permissions || request.user?.Permissions || []
+      permissions = (Array.isArray(permsRaw) ? permsRaw : [])
+        .map((p) => String(p || '').trim().toUpperCase())
+        .filter(Boolean)
     }
 
     const have = new Set(permissions)
@@ -139,24 +144,29 @@ const requireAnyPermission = (permissionCodes = []) => {
   return async (request, response, next) => {
     if (!required.length) return next()
 
-    // Dynamic authz: permissions are plain-text codes aggregated from all roles.
-    let permsRaw = request.user?.permissions || request.user?.Permissions || []
-    let permissions = (Array.isArray(permsRaw) ? permsRaw : [])
-      .map((p) => String(p || '').trim().toUpperCase())
-      .filter(Boolean)
+    // Dynamic authz: ALWAYS resolve from DB to ensure real-time permission changes.
+    let permissions = []
 
-    if (!permissions.length) {
-      const employeeBusinessId = request.user?.employeeBusinessId || request.user?.employeeId
-      if (employeeBusinessId) {
-        try {
-          const resolved = await resolveAuthzForEmployee(employeeBusinessId)
-          permissions = (resolved?.permissions || [])
-            .map((p) => String(p || '').trim().toUpperCase())
-            .filter(Boolean)
-        } catch (err) {
-          permissions = []
-        }
+    const employeeBusinessId = request.user?.employeeBusinessId || request.user?.employeeId
+    if (employeeBusinessId) {
+      try {
+        const resolved = await resolveAuthzForEmployee(employeeBusinessId)
+        permissions = (resolved?.permissions || [])
+          .map((p) => String(p || '').trim().toUpperCase())
+          .filter(Boolean)
+      } catch (err) {
+        // If dynamic resolution fails, fallback to JWT permissions.
+        let permsRaw = request.user?.permissions || request.user?.Permissions || []
+        permissions = (Array.isArray(permsRaw) ? permsRaw : [])
+          .map((p) => String(p || '').trim().toUpperCase())
+          .filter(Boolean)
       }
+    } else {
+      // No employee ID, try JWT permissions
+      let permsRaw = request.user?.permissions || request.user?.Permissions || []
+      permissions = (Array.isArray(permsRaw) ? permsRaw : [])
+        .map((p) => String(p || '').trim().toUpperCase())
+        .filter(Boolean)
     }
 
     const have = new Set(permissions)
