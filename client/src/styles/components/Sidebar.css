@@ -100,6 +100,21 @@
   padding: 0 12px;
 }
 
+.sidebar-footer-button:focus,
+.sidebar-footer-button:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.sidebar-footer-button:active {
+  outline: none;
+  box-shadow: none;
+}
+
+.sidebar-footer-button {
+  -webkit-tap-highlight-color: transparent;
+}
+
 .sidebar-footer-button:hover {
   background: #f8fafc;
 }

@@ -14,6 +14,7 @@ import ReturnsIcon from '../assets/icons/returns.svg?react';
 import PricingIcon from '../assets/icons/pricing.svg?react';
 import ShiftsIcon from '../assets/icons/shifts.svg?react';
 import ReportsIcon from '../assets/icons/reports.svg?react';
+import RolesIcon from '../assets/icons/roles.svg?react';
 import SystemConfigIcon from '../assets/icons/system-config.svg?react';
 import collapseIcon from '../assets/icons/collapse.svg';
 import logoutIcon from '../assets/icons/logout.svg';
@@ -54,7 +55,7 @@ export default function Sidebar({ currentPage = 'Dashboard', onLogout, isCollaps
     { id: 'Returns', label: 'Returns', icon: ReturnsIcon },
     { id: 'Pricing', label: 'Pricing', icon: PricingIcon },
     { id: 'Shifts', label: 'Shifts', icon: ShiftsIcon },
-    { id: 'Roles', label: 'Roles', icon: ReportsIcon },
+    { id: 'Roles', label: 'Roles', icon: RolesIcon },
     { id: 'Reports', label: 'Reports', icon: ReportsIcon },
     { id: 'System Config', label: 'System Config', icon: SystemConfigIcon },
   ];
