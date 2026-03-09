@@ -4,8 +4,9 @@
  */
 
 import axios from 'axios';
+import { getApiBaseUrl } from './apiBase'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = getApiBaseUrl()
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
 const MAX_RETRIES = 2;
 

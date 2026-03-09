@@ -7,6 +7,7 @@ import AssignCardModal from '../components/AssignCardModal';
 import RegisterSubscriptionModal from '../components/RegisterSubscriptionModal';
 import '../styles/pages/PurchaseCardPage.css';
 import { useAuth } from '../contexts/AuthContext';
+import { getApiBaseUrl } from '../utils/apiBase'
 
 import {
   PurchaseCardPlusIcon,
@@ -18,7 +19,7 @@ import {
   PurchaseCardDownloadIcon,
 } from '../assets/icons/purchase-card';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = getApiBaseUrl()
 
 const buildInitials = (fullName = '') => {
   const trimmed = String(fullName).trim();

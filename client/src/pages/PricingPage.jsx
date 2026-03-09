@@ -16,8 +16,9 @@ import editIcon from '../assets/icons/common/actions/edit.svg';
 import viewIcon from '../assets/icons/common/actions/view.svg';
 
 import { useAuth } from '../contexts/AuthContext';
+import { getApiBaseUrl } from '../utils/apiBase'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = getApiBaseUrl()
 
 const normalizeSinglePricingRule = (rule) => {
   const cardCategory = rule?.CardCategory;

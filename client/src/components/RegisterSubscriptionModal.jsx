@@ -2,8 +2,9 @@ import React, { useMemo, useRef, useState, useEffect } from 'react';
 import '../styles/components/RegisterSubscriptionModal.css';
 import { useAuth } from '../contexts/AuthContext';
 import AddVehicleModal from './AddVehicleModal';
+import { getApiBaseUrl } from '../utils/apiBase'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = getApiBaseUrl()
 
 const addDaysIso = (startIso, days) => {
   if (!startIso || !days) return '';

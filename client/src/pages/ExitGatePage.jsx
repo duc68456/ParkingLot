@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import ShiftReportModal from '../components/ShiftReportModal';
 import WebcamCapture from '../components/WebcamCapture';
 import { recognizePlateOnly, compressImage } from '../utils/lpApi';
+import { getApiBaseUrl } from '../utils/apiBase'
 import '../styles/pages/StaffGatePage.css';
 
 // Import real icons from assets
@@ -37,7 +38,7 @@ const ExitGatePage = () => {
   const { user, token, authHeaders: ctxAuthHeaders, logout } = useAuth();
   const [showShiftReport, setShowShiftReport] = useState(false);
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+  const API_BASE_URL = getApiBaseUrl()
 
   const authHeaders = () => (ctxAuthHeaders || (token ? { Authorization: `Bearer ${token}` } : {}))
 

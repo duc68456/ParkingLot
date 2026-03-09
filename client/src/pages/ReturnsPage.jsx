@@ -3,8 +3,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAuthz } from '../contexts/AuthzContext';
 import { canEditModule } from '../utils/permissions';
 import '../styles/pages/ReturnsPage.css';
+import { getApiBaseUrl } from '../utils/apiBase'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = getApiBaseUrl()
 
 const formatDate = (value) => {
   if (!value) return '-';

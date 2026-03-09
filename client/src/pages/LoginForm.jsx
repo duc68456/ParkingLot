@@ -5,8 +5,9 @@ import Input from '../components/Input';
 import PasswordInput from '../components/PasswordInput';
 import Button from '../components/Button';
 import '../styles/pages/LoginForm.css';
+import { getApiBaseUrl } from '../utils/apiBase'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+const API_BASE_URL = getApiBaseUrl()
 
 export default function LoginForm({ type }) {
   const [username, setUsername] = useState('');

@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import EntrySessionsTable from '../components/EntrySessionsTable';
 import ViewEntrySessionModal from '../components/ViewEntrySessionModal';
 import '../styles/pages/EntrySessionsPage.css';
+import { getApiBaseUrl } from '../utils/apiBase'
 
 const SearchIcon = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -74,7 +75,7 @@ const mapEntrySession = (session) => {
 export default function EntrySessionsPage() {
   const { token, authHeaders: ctxAuthHeaders } = useAuth();
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+  const API_BASE_URL = getApiBaseUrl()
   const authHeaders = useMemo(
     () => (ctxAuthHeaders || (token ? { Authorization: `Bearer ${token}` } : {})),
     [ctxAuthHeaders, token]

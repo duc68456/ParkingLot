@@ -3,8 +3,9 @@ import '../styles/components/ViewCustomerModal.css';
 import vehicleIcon from '../assets/icons/vehicles.svg';
 import carIcon from '../assets/icons/dashboard/car.svg';
 import { useAuth } from '../contexts/AuthContext';
+import { getApiBaseUrl } from '../utils/apiBase'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = getApiBaseUrl()
 
 function ViewCustomerModal({ customer, onClose }) {
   const { authHeaders } = useAuth();

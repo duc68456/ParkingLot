@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/components/EmployeeAccountModal.css';
 import { fetchEmployeeRoles, fetchRoles, setEmployeeRoles } from '../utils/authzApi';
+import { getApiBaseUrl } from '../utils/apiBase'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = getApiBaseUrl()
 
 function normalizeEmployeeType(employee) {
   const raw = employee?.EmployeeType ?? employee?.employeeType ?? employee?.role ?? employee?.type;

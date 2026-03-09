@@ -14,7 +14,9 @@ import {
   BarChart, Bar, Cell, PieChart, Pie, Legend
 } from 'recharts';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+import { getApiBaseUrl } from '../utils/apiBase'
+
+const API_BASE_URL = getApiBaseUrl()
 
 // Custom colors for charts
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6366f1'];

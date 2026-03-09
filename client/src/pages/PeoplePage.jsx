@@ -29,9 +29,9 @@ import "../styles/pages/PeoplePage.css";
 // For those, we keep using the existing local SVG strings already in the repo.
 import searchInputIconUrl from "../assets/icons/cards/actions/search.svg";
 import phoneIconUrl from "../assets/icons/common/objects/phone.svg";
+import { getApiBaseUrl } from '../utils/apiBase'
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
+const API_BASE_URL = getApiBaseUrl()
 
 // // Mock data
 // const mockCustomers = [

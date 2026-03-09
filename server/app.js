@@ -5,6 +5,7 @@ const logger = require('./utils/logger')
 const middleware = require('./utils/middleware')
 const cors = require('cors')
 const { resolveAuthzForEmployee } = require('./utils/authorization')
+const path = require('path')
 
 // Phase 1: Core Entities
 const personsRouter = require('./controllers/persons')
@@ -73,19 +74,60 @@ mongoose
     logger.error('error connection to MongoDB:', error.message)
   })
 
-app.use(express.static('dist'))
-app.use(
-  cors({
-    origin: [
-      // Vite dev server (common ports)
-      'http://localhost:5173',
-      'http://localhost:5174'
-    ],
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
+// --- CORS (Render-friendly) ---
+// In production, Render often serves frontend and backend on different domains.
+// Configure allowed origins with CORS_ORIGIN (comma-separated) or '*' for public APIs.
+const parseOrigins = (raw) =>
+  String(raw || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+
+const allowedOrigins = parseOrigins(process.env.CORS_ORIGIN)
+const corsOptions = {
+  origin(origin, cb) {
+    // Allow non-browser requests (no Origin) like health checks.
+    if (!origin) return cb(null, true)
+    if (!allowedOrigins.length) {
+      // Default dev origins
+      const ok = origin === 'http://localhost:5173' || origin === 'http://localhost:5174'
+      return cb(null, ok)
+    }
+    if (allowedOrigins.includes('*')) return cb(null, true)
+    return cb(null, allowedOrigins.includes(origin))
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}
+
+app.use(cors(corsOptions))
+
+// --- Health check ---
+app.get(['/health', '/api/health'], (req, res) => {
+  res.status(200).json({ status: 'ok' })
+})
+
+// API root (only when not serving the client)
+// This makes visiting http://localhost:3001 in a browser show something useful.
+if (process.env.SERVE_CLIENT !== 'true') {
+  app.get('/', (req, res) => {
+    res.status(200).json({
+      name: 'ParkingLot API',
+      status: 'ok',
+      docs: '/api',
+      health: '/health'
+    })
   })
-)
+}
+
+// --- Static frontend (optional) ---
+// If you deploy a single Render web service (Node) that also serves the built Vite app,
+// put the client build output into server/dist and set SERVE_CLIENT=true.
+if (process.env.SERVE_CLIENT === 'true') {
+  const distPath = path.join(__dirname, 'dist')
+  app.use(express.static(distPath))
+}
 // Increase payload size limit for base64 images (50MB)
 app.use(express.json({ limit: '50mb' }))
 app.use(express.urlencoded({ limit: '50mb', extended: true }))
@@ -181,6 +223,16 @@ app.use('/api/reports', middleware.authRequired, reportsRouter)
 
 // Dashboard Routes
 app.use('/api/dashboard', middleware.authRequired, dashboardRouter)
+
+// SPA fallback for React Router (only when serving the client build)
+if (process.env.SERVE_CLIENT === 'true') {
+  const distIndex = path.join(__dirname, 'dist', 'index.html')
+  // Express 5 uses path-to-regexp v6, which does not accept the bare "*" string.
+  // Use a regex catch-all instead.
+  app.get(/^(?!\/api).*$/, (req, res) => {
+    return res.sendFile(distIndex)
+  })
+}
 
 app.use(middleware.unknownEndpoint)
 app.use(middleware.errorHandler)

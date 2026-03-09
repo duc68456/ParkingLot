@@ -10,8 +10,9 @@ import staffIcon from '../assets/staff-icon.svg';
 // Import real icons from assets
 import entryGateIcon from '../assets/icons/dashboard/activity-entry.svg';
 import exitGateIcon from '../assets/icons/dashboard/activity-exit.svg';
+import { getApiBaseUrl } from '../utils/apiBase'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+const API_BASE_URL = getApiBaseUrl()
 
 export default function StaffLoginForm({ type }) {
   const [pin, setPin] = useState(['', '', '', '', '', '']);

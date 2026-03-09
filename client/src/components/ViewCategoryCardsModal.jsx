@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import '../styles/components/ViewCategoryCardsModal.css';
+import { getApiBaseUrl } from '../utils/apiBase'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = getApiBaseUrl()
 
 function ViewCategoryCardsModal({ isOpen, category, authHeaders, onClose }) {
   const [cards, setCards] = useState([]);

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/components/EditSubscriptionModal.css';
+import { getApiBaseUrl } from '../utils/apiBase'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = getApiBaseUrl()
 
 function EditSubscriptionModal({ subscription, onClose, onSubmit, authHeaders }) {
   const [subscriptionTypeId, setSubscriptionTypeId] = useState('');

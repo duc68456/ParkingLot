@@ -17,10 +17,11 @@ import DeleteVehicleModal from '../components/DeleteVehicleModal';
 import AddVehicleModal from '../components/AddVehicleModal';
 import AddVehicleTypeModal from '../components/AddVehicleTypeModal';
 import '../styles/pages/VehiclesPage.css';
+import { getApiBaseUrl } from '../utils/apiBase'
 
 import searchIcon from '../assets/icons/common/actions/search.svg';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = getApiBaseUrl()
 
 // Vehicles are fetched from the backend.
 

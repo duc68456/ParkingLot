@@ -3,8 +3,9 @@ import '../styles/components/ViewSubscriptionTypesModal.css';
 import SubscriptionPriceHistoryModal from './SubscriptionPriceHistoryModal';
 import AddSubscriptionPricingModal from './AddSubscriptionPricingModal';
 import EditSubscriptionPricingModal from './EditSubscriptionPricingModal';
+import { getApiBaseUrl } from '../utils/apiBase'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = getApiBaseUrl()
 
 function formatMoney(value) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return '--';

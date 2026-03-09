@@ -2,8 +2,9 @@ import '../styles/components/ViewCardsModal.css';
 import { useEffect, useState } from 'react';
 import AddEmployeeCardModal from './AddEmployeeCardModal';
 import { useAuth } from '../contexts/AuthContext';
+import { getApiBaseUrl } from '../utils/apiBase'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = getApiBaseUrl()
 
 import vehicleIcon from '../assets/icons/vehicles.svg';
 import plusIcon from '../assets/icons/common/actions/add.svg';

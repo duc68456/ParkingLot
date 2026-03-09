@@ -12,6 +12,7 @@ import ViewShiftModal from '../components/ViewShiftModal';
 // Figma-like stat card icons (local copies via existing icon system)
 import staffIcon from '../assets/icons/dashboard/users.svg';
 import revenueIcon from '../assets/icons/reports/general/cash.svg';
+import { getApiBaseUrl } from '../utils/apiBase'
 
 const fmtMoney = (value) => {
   if (typeof value === 'number' && !Number.isNaN(value)) {
@@ -72,7 +73,7 @@ const normalizeShiftRow = (shift, employeeNameById) => {
 
 export default function ShiftsPage() {
   const { authHeaders } = useAuth();
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+  const API_BASE_URL = getApiBaseUrl()
 
   // In this codebase `authHeaders` from AuthContext is a memoized object, not a function.
   const headers = useMemo(() => ({ ...(authHeaders || {}) }), [authHeaders]);

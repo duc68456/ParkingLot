@@ -8,8 +8,9 @@ import carIcon from '../assets/icons/vehicles.svg?react';
 import motorcycleIcon from '../assets/icons/entry-sessions.svg?react';
 import truckIcon from '../assets/icons/purchase-card.svg?react';
 import vanIcon from '../assets/icons/cards.svg?react';
+import { getApiBaseUrl } from '../utils/apiBase'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = getApiBaseUrl()
 
 function SectionHeader({ icon: Icon, iconBg = '#DBEAFE', title, subtitle }) {
   return (
