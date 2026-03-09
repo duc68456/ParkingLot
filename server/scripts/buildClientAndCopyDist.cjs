@@ -60,10 +60,16 @@ if (!fs.existsSync(clientDir)) {
   process.exit(1);
 }
 
-// Use npm ci when package-lock exists; otherwise fall back to npm install.
+// IMPORTANT (Render): client build needs devDependencies (vite).
+// Some hosts set NODE_ENV=production which can cause `npm ci` to omit dev deps.
+// We force dev deps via `--include=dev`.
 const hasLock = fs.existsSync(path.join(clientDir, 'package-lock.json'));
 
-run('npm', [hasLock ? 'ci' : 'install'], { cwd: clientDir });
+if (hasLock) {
+  run('npm', ['ci', '--include=dev'], { cwd: clientDir });
+} else {
+  run('npm', ['install', '--include=dev'], { cwd: clientDir });
+}
 run('npm', ['run', 'build'], { cwd: clientDir });
 
 if (!fs.existsSync(clientDist)) {
